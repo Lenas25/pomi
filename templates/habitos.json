@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 2,
+  "kind": "modules",
+  "modules": [
+    {
+      "id": "agua",
+      "name": "Agua",
+      "icon": "💧",
+      "habits": [
+        {
+          "id": "agua",
+          "type": "counter",
+          "name": "Vasos de agua",
+          "unit": "vasos",
+          "glassMl": 250,
+          "target": {
+            "formula": "water",
+            "_note": "Lo calcula la app con el perfil. Ver sección 9.1."
+          },
+          "schedules": [
+            {
+              "days": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "relativeTo": "wake",
+              "offsetMin": 60,
+              "repeatEveryMin": 60,
+              "until": "20:00"
+            }
+          ],
+          "notification": {
+            "title": "💧 Agua",
+            "body": "Toma un vaso de agua.",
+            "action": "+1 vaso"
+          }
+        }
+      ]
+    },
+    {
+      "id": "movimiento",
+      "name": "Movimiento",
+      "icon": "🚶",
+      "habits": [
+        {
+          "id": "pasos",
+          "type": "counter",
+          "name": "Pasos",
+          "unit": "pasos",
+          "source": "health_connect_or_manual",
+          "target": {
+            "formula": "steps",
+            "_note": "Se calcula desde tu línea base. Ver sección 9.2."
+          }
+        },
+        {
+          "id": "pausa-activa",
+          "type": "check",
+          "name": "Pausa activa",
+          "how": "Párate, camina 2 minutos y haz 10 puentes de glúteo o sentadillas.",
+          "schedules": [
+            {
+              "days": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "time": "09:00",
+              "repeatEveryMin": 60,
+              "until": "18:00"
+            }
+          ],
+          "onlyIf": {
+            "profile.workType": "sentada"
+          }
+        },
+        {
+          "id": "caminar-comida",
+          "type": "check",
+          "name": "Caminar 10–15 min después de comer"
+        }
+      ]
+    },
+    {
+      "id": "sueno",
+      "name": "Sueño",
+      "icon": "🌙",
+      "reminders": [
+        {
+          "id": "pantallas",
+          "text": "Pantallas fuera, prepárate para dormir",
+          "schedule": {
+            "days": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "relativeTo": "bed",
+            "offsetMin": -40
+          }
+        },
+        {
+          "id": "dormir",
+          "text": "Hora de dormir",
+          "schedule": {
+            "days": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "relativeTo": "bed",
+            "offsetMin": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "comida-notas",
+      "name": "Notas de comida",
+      "icon": "📝",
+      "notes": {
+        "prompt": "¿Qué comiste hoy y cómo te sentiste?",
+        "optional": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Pomi",
+    "slug": "pomi",
+    "scheme": "pomi",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icons/app-icon.png",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "pe.nakea.pomi",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/adaptive-foreground.png",
+        "backgroundImage": "./assets/icons/adaptive-background.png",
+        "monochromeImage": "./assets/icons/adaptive-monochrome.png"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icons/splash-icon.png",
+          "imageWidth": 200,
+          "backgroundColor": "#F8F1E5",
+          "dark": {
+            "image": "./assets/icons/splash-icon.png",
+            "backgroundColor": "#0E1729"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icons/notification-icon.png",
+          "color": "#29B5E8"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      "expo-sqlite",
+      "expo-audio"
+    ]
+  }
+}

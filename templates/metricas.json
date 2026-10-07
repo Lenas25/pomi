@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 2,
+  "kind": "module",
+  "id": "metricas",
+  "name": "Progreso",
+  "icon": "📏",
+  "metrics": [
+    {
+      "id": "peso",
+      "name": "Peso",
+      "unit": "kg",
+      "frequency": "weekly"
+    },
+    {
+      "id": "cintura",
+      "name": "Cintura",
+      "unit": "cm",
+      "frequency": "monthly"
+    },
+    {
+      "id": "cadera",
+      "name": "Cadera",
+      "unit": "cm",
+      "frequency": "monthly"
+    },
+    {
+      "id": "gluteo",
+      "name": "Contorno de glúteo",
+      "unit": "cm",
+      "frequency": "monthly"
+    }
+  ],
+  "photos": {
+    "frequency": "monthly",
+    "poses": [
+      "frente",
+      "perfil",
+      "espalda"
+    ],
+    "guide": "Misma luz, misma hora, misma ropa. La app muestra la foto anterior en transparencia para alinear la pose."
+  },
+  "checkins": {
+    "morning": [
+      {
+        "id": "hora-dormir",
+        "type": "time",
+        "label": "¿A qué hora te dormiste?",
+        "prefill": "bed"
+      },
+      {
+        "id": "hora-despertar",
+        "type": "time",
+        "label": "¿A qué hora despertaste?",
+        "prefill": "wake"
+      },
+      {
+        "id": "calidad-sueno",
+        "type": "scale",
+        "label": "¿Cómo dormiste?",
+        "scale": [
+          1,
+          5
+        ]
+      }
+    ],
+    "night": [
+      {
+        "id": "energia",
+        "type": "scale",
+        "label": "¿Cómo estuvo tu energía hoy?",
+        "scale": [
+          1,
+          5
+        ]
+      },
+      {
+        "id": "animo",
+        "type": "scale",
+        "label": "¿Y tu ánimo?",
+        "scale": [
+          1,
+          5
+        ]
+      },
+      {
+        "id": "nota",
+        "type": "text",
+        "label": "Algo que quieras recordar de hoy (opcional)",
+        "optional": true
+      }
+    ]
+  }
+}

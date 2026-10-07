@@ -1,0 +1,601 @@
+{
+  "schemaVersion": 2,
+  "kind": "module",
+  "id": "gym",
+  "name": "Gym",
+  "icon": "🏋️",
+  "programs": [
+    {
+      "id": "glute-4d",
+      "name": "Glúteo prioritario, 4 días",
+      "rotation": true,
+      "schedules": [
+        {
+          "days": [
+            1,
+            3
+          ],
+          "relativeTo": "gymMorning"
+        },
+        {
+          "days": [
+            2,
+            4
+          ],
+          "relativeTo": "gymEvening"
+        }
+      ],
+      "rules": {
+        "progression": "double",
+        "rirTarget": [
+          1,
+          2
+        ],
+        "stallSessions": 3,
+        "deloadPct": 10
+      },
+      "routines": [
+        {
+          "id": "d1",
+          "name": "Día 1: Glúteos e isquios",
+          "steps": [
+            {
+              "type": "timed",
+              "id": "w-tread",
+              "name": "Caminadora 5 min",
+              "totalSec": 300,
+              "segments": [
+                {
+                  "atSec": 0,
+                  "label": "Inclinación 3% · 5 km/h"
+                }
+              ]
+            },
+            {
+              "type": "check",
+              "id": "w-mob",
+              "name": "Movilidad: balanceo de pierna adelante-atrás y lateral 10 por lado, círculos de cadera 5 por lado, 5 sentadillas lentas"
+            },
+            {
+              "type": "check",
+              "id": "w-9090",
+              "name": "Respiración 90/90: 5 respiraciones"
+            },
+            {
+              "type": "check",
+              "id": "act-1",
+              "name": "Activación: Puente de glúteo 1 × 15"
+            },
+            {
+              "type": "check",
+              "id": "act-2",
+              "name": "Activación: Sentadilla al aire 1 × 10"
+            },
+            {
+              "type": "check",
+              "id": "act-3",
+              "name": "Activación: Patada en cuadrupedia 1 × 12 por pierna"
+            },
+            {
+              "type": "sets",
+              "id": "ht-heavy",
+              "name": "Hip thrust en máquina",
+              "sets": 4,
+              "reps": "8–10",
+              "restSec": 120,
+              "weightHint": "40–45 kg",
+              "approach": "1 × 10 al 50% + 1 × 5 al 75%",
+              "how": "Pausa de 1 s arriba apretando el glúteo.",
+              "incrementKg": 5,
+              "muscles": [
+                "gluteo"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "rdl",
+              "name": "Peso muerto rumano con mancuernas",
+              "sets": 3,
+              "reps": "8–10",
+              "restSec": 120,
+              "weightHint": "32–34 kg",
+              "approach": "1 × 8 al 50%",
+              "how": "Cadera hacia atrás, espalda recta.",
+              "incrementKg": 2,
+              "muscles": [
+                "isquios",
+                "gluteo"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "bss",
+              "name": "Sentadilla búlgara",
+              "sets": 3,
+              "reps": "8–10 por pierna",
+              "restSec": 90,
+              "weightHint": "12–14 kg",
+              "how": "Torso un poco inclinado hacia adelante.",
+              "incrementKg": 2,
+              "muscles": [
+                "gluteo",
+                "cuadriceps"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "kick",
+              "name": "Patada de glúteo cruzada en polea (45°)",
+              "sets": 2,
+              "reps": "12–15 por pierna",
+              "restSec": 45,
+              "weightHint": "11 kg",
+              "how": "Pierna atrás y un poco hacia afuera en diagonal, torso quieto.",
+              "incrementKg": 1,
+              "muscles": [
+                "gluteo"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "abd",
+              "name": "Abducción sentada",
+              "sets": 3,
+              "reps": "15–20",
+              "restSec": 45,
+              "weightHint": "50–55 kg",
+              "how": "Inclinada hacia adelante.",
+              "incrementKg": 5,
+              "muscles": [
+                "gluteo_medio"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "deadbug",
+              "name": "Dead bug",
+              "sets": 3,
+              "reps": "8 por lado",
+              "restSec": 45,
+              "bodyweight": true,
+              "how": "Espalda baja pegada al piso, exhala al extender.",
+              "muscles": [
+                "core"
+              ]
+            },
+            {
+              "type": "timed",
+              "id": "cardio",
+              "name": "Caminata inclinada 10 min",
+              "totalSec": 600,
+              "segments": [
+                {
+                  "atSec": 0,
+                  "label": "Inclinación 10–12% · 4.0–4.5 km/h"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "d2",
+          "name": "Día 2: Espalda, brazos y core",
+          "steps": [
+            {
+              "type": "timed",
+              "id": "w-tread",
+              "name": "Caminadora 5 min",
+              "totalSec": 300,
+              "segments": [
+                {
+                  "atSec": 0,
+                  "label": "Inclinación 3% · 5 km/h"
+                }
+              ]
+            },
+            {
+              "type": "check",
+              "id": "w-mob",
+              "name": "Rotaciones de hombro 10 por lado y gato-camello 1 × 8"
+            },
+            {
+              "type": "check",
+              "id": "w-9090",
+              "name": "Respiración 90/90: 5 respiraciones"
+            },
+            {
+              "type": "check",
+              "id": "act-1",
+              "name": "Activación: Face pull ligero 1 × 15"
+            },
+            {
+              "type": "sets",
+              "id": "row",
+              "name": "Remo sentado en polea baja",
+              "sets": 4,
+              "reps": "8–12",
+              "restSec": 90,
+              "weightHint": "15–16 kg",
+              "approach": "1 × 12 ligero",
+              "incrementKg": 2.5,
+              "muscles": [
+                "espalda"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "dbrow",
+              "name": "Remo con mancuerna a una mano en banco",
+              "sets": 3,
+              "reps": "10–12 por lado",
+              "restSec": 60,
+              "weightHint": "6–8 kg",
+              "how": "Codo hacia la cadera, pegado al cuerpo.",
+              "incrementKg": 1,
+              "muscles": [
+                "espalda"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "facepull",
+              "name": "Face pull con cuerda",
+              "sets": 3,
+              "reps": "12–15",
+              "restSec": 60,
+              "weightHint": "11 kg",
+              "incrementKg": 1,
+              "muscles": [
+                "espalda_alta",
+                "hombro_posterior"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "curl",
+              "name": "Curl inclinado en banco a 45°",
+              "sets": 3,
+              "reps": "10–15",
+              "restSec": 60,
+              "weightHint": "4 kg",
+              "incrementKg": 1,
+              "muscles": [
+                "biceps"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "tri",
+              "name": "Extensión de tríceps en polea",
+              "sets": 3,
+              "reps": "10–15",
+              "restSec": 60,
+              "weightHint": "6.8–7.5 kg",
+              "incrementKg": 1,
+              "muscles": [
+                "triceps"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "heeltap",
+              "name": "Toque de talones",
+              "sets": 3,
+              "reps": "10 por pierna",
+              "restSec": 45,
+              "bodyweight": true,
+              "how": "Rodillas a 90° en el aire, espalda baja pegada, baja un talón a la vez.",
+              "muscles": [
+                "core"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "plank",
+              "name": "Plancha",
+              "sets": 3,
+              "reps": "30–45 s",
+              "restSec": 45,
+              "bodyweight": true,
+              "holdSec": 40,
+              "muscles": [
+                "core"
+              ]
+            },
+            {
+              "type": "timed",
+              "id": "cardio",
+              "name": "Caminata inclinada 20 min",
+              "totalSec": 1200,
+              "segments": [
+                {
+                  "atSec": 0,
+                  "label": "Inclinación 5% · 4.0 km/h"
+                },
+                {
+                  "atSec": 300,
+                  "label": "Inclinación 12% · 4.0 km/h"
+                },
+                {
+                  "atSec": 600,
+                  "label": "Inclinación 5% · 4.5 km/h"
+                },
+                {
+                  "atSec": 900,
+                  "label": "Inclinación 10% · 3.8 km/h"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "d3",
+          "name": "Día 3: Cuádriceps y glúteos",
+          "steps": [
+            {
+              "type": "timed",
+              "id": "w-tread",
+              "name": "Caminadora 5 min",
+              "totalSec": 300,
+              "segments": [
+                {
+                  "atSec": 0,
+                  "label": "Inclinación 3% · 5 km/h"
+                }
+              ]
+            },
+            {
+              "type": "check",
+              "id": "w-mob",
+              "name": "Movilidad: balanceo de pierna adelante-atrás y lateral 10 por lado, círculos de cadera 5 por lado, 5 sentadillas lentas"
+            },
+            {
+              "type": "check",
+              "id": "w-9090",
+              "name": "Respiración 90/90: 5 respiraciones"
+            },
+            {
+              "type": "check",
+              "id": "act-1",
+              "name": "Activación: Puente de glúteo 1 × 15"
+            },
+            {
+              "type": "check",
+              "id": "act-2",
+              "name": "Activación: Sentadilla al aire 1 × 10"
+            },
+            {
+              "type": "check",
+              "id": "act-3",
+              "name": "Activación: Zancada al aire 1 × 8 por pierna"
+            },
+            {
+              "type": "sets",
+              "id": "press",
+              "name": "Prensa 45° con pies altos y separados",
+              "sets": 3,
+              "reps": "8–12",
+              "restSec": 90,
+              "approach": "1 × 15 al 50%",
+              "how": "Empuja con los talones y baja profundo.",
+              "incrementKg": 5,
+              "muscles": [
+                "cuadriceps",
+                "gluteo"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "ht-mid",
+              "name": "Hip thrust",
+              "sets": 3,
+              "reps": "10–12",
+              "restSec": 90,
+              "weightHint": "35–40 kg",
+              "incrementKg": 5,
+              "muscles": [
+                "gluteo"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "stepup",
+              "name": "Step-up con mancuernas",
+              "sets": 3,
+              "reps": "10–12 por pierna",
+              "restSec": 90,
+              "incrementKg": 2,
+              "muscles": [
+                "gluteo",
+                "cuadriceps"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "legext",
+              "name": "Extensión de cuádriceps",
+              "sets": 3,
+              "reps": "10–15",
+              "restSec": 75,
+              "approach": "1 × 15 ligero",
+              "incrementKg": 2.5,
+              "muscles": [
+                "cuadriceps"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "abd",
+              "name": "Abducción sentada",
+              "sets": 3,
+              "reps": "12–15",
+              "restSec": 45,
+              "weightHint": "50–55 kg",
+              "incrementKg": 5,
+              "muscles": [
+                "gluteo_medio"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "deadbug",
+              "name": "Dead bug",
+              "sets": 3,
+              "reps": "8–10 por lado",
+              "restSec": 45,
+              "bodyweight": true,
+              "muscles": [
+                "core"
+              ]
+            },
+            {
+              "type": "timed",
+              "id": "cardio",
+              "name": "Caminata inclinada 10 min",
+              "totalSec": 600,
+              "segments": [
+                {
+                  "atSec": 0,
+                  "label": "Inclinación 10–12% · 4.0–4.5 km/h"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "d4",
+          "name": "Día 4: Glúteo ligero, espalda y core",
+          "steps": [
+            {
+              "type": "timed",
+              "id": "w-tread",
+              "name": "Caminadora 5 min",
+              "totalSec": 300,
+              "segments": [
+                {
+                  "atSec": 0,
+                  "label": "Inclinación 3% · 5 km/h"
+                }
+              ]
+            },
+            {
+              "type": "check",
+              "id": "w-mob",
+              "name": "Movilidad: balanceo de pierna adelante-atrás y lateral 10 por lado, círculos de cadera 5 por lado, 5 sentadillas lentas"
+            },
+            {
+              "type": "check",
+              "id": "w-9090",
+              "name": "Respiración 90/90: 5 respiraciones"
+            },
+            {
+              "type": "check",
+              "id": "act-1",
+              "name": "Activación: Puente de glúteo 1 × 15"
+            },
+            {
+              "type": "check",
+              "id": "act-2",
+              "name": "Activación: Peso muerto al aire 1 × 10"
+            },
+            {
+              "type": "check",
+              "id": "act-3",
+              "name": "Activación: Rotaciones de hombro 10 por lado"
+            },
+            {
+              "type": "sets",
+              "id": "ht-pulse",
+              "name": "Hip thrust con pulsos e isométrico",
+              "sets": 3,
+              "reps": "12–15 + 10 pulsos + 10 s arriba",
+              "restSec": 90,
+              "weightHint": "30–35 kg",
+              "approach": "1 × 10 al 50%",
+              "incrementKg": 2.5,
+              "muscles": [
+                "gluteo"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "sldl",
+              "name": "Peso muerto a una pierna",
+              "sets": 3,
+              "reps": "10–12 por pierna",
+              "restSec": 90,
+              "weightHint": "Ligero",
+              "incrementKg": 2,
+              "muscles": [
+                "isquios",
+                "gluteo"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "kick",
+              "name": "Patada de glúteo cruzada en polea (45°)",
+              "sets": 3,
+              "reps": "12–15 por pierna",
+              "restSec": 45,
+              "weightHint": "11 kg",
+              "incrementKg": 1,
+              "muscles": [
+                "gluteo"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "widerow",
+              "name": "Remo sentado con agarre ancho",
+              "sets": 3,
+              "reps": "12–15",
+              "restSec": 75,
+              "incrementKg": 2.5,
+              "muscles": [
+                "espalda"
+              ]
+            },
+            {
+              "type": "sets",
+              "id": "captain",
+              "name": "Elevación de rodillas en silla romana",
+              "sets": 3,
+              "reps": "10–12",
+              "restSec": 45,
+              "bodyweight": true,
+              "how": "Enrolla la pelvis al subir, baja lento sin balancearte.",
+              "muscles": [
+                "core"
+              ]
+            },
+            {
+              "type": "timed",
+              "id": "cardio",
+              "name": "Caminata inclinada 20 min",
+              "totalSec": 1200,
+              "segments": [
+                {
+                  "atSec": 0,
+                  "label": "Inclinación 5% · 4.0 km/h"
+                },
+                {
+                  "atSec": 300,
+                  "label": "Inclinación 12% · 4.0 km/h"
+                },
+                {
+                  "atSec": 600,
+                  "label": "Inclinación 5% · 4.5 km/h"
+                },
+                {
+                  "atSec": 900,
+                  "label": "Inclinación 10% · 3.8 km/h"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

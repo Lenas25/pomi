@@ -1,0 +1,9 @@
+node_modules
+.expo
+android
+ios
+assets
+package-lock.json
+PLAN.md
+design
+templates

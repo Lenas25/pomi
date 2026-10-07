@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "kind": "settings",
+  "language": "es",
+  "theme": {
+    "mode": "dark",
+    "accent": "rosa"
+  },
+  "_note": "Valores de ejemplo de la autora. En la app reales, estos datos salen del onboarding.",
+  "profile": {
+    "weightKg": 60,
+    "heightCm": 154,
+    "workType": "sentada",
+    "goal": "gluteo_y_bajar_grasa",
+    "level": "intermedio"
+  },
+  "anchors": {
+    "wake": "05:10",
+    "sleepTargetH": 7.5,
+    "gymMorning": "06:00",
+    "gymEvening": "18:00"
+  },
+  "gymDays": [
+    {
+      "days": [
+        1,
+        3
+      ],
+      "anchor": "gymMorning"
+    },
+    {
+      "days": [
+        2,
+        4
+      ],
+      "anchor": "gymEvening"
+    }
+  ],
+  "checkins": {
+    "morning": true,
+    "night": true,
+    "monthlyReviewDay": 1
+  }
+}
