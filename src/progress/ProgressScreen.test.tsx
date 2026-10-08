@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
+import { Alert } from 'react-native';
 
 import { setLanguage } from '../i18n';
 import { ThemeProvider } from '../ui/theme';
@@ -10,6 +11,7 @@ import { useProgress, type ProgressState } from './useProgress';
 
 jest.mock('expo-router', () => ({
   // Runs the focus effect once on mount, like a screen that just got focus.
+  router: { push: (...args: unknown[]) => mockPush(...args) },
   useFocusEffect: (effect: () => void) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useEffect } = require('react') as typeof import('react');
@@ -18,13 +20,21 @@ jest.mock('expo-router', () => ({
   },
 }));
 jest.mock('./useProgress', () => ({ useProgress: jest.fn() }));
+jest.mock('../photos/expoPhotoFs', () => ({
+  expoPhotoFs: {
+    exists: (name: string) => name !== 'missing.jpg',
+    uriOf: (name: string) => `file:///photos/${name}`,
+  },
+}));
 
+const mockPush = jest.fn();
 const mocked = jest.mocked(useProgress);
 
 function mockProgress(state: ProgressState) {
   const handlers = {
     load: jest.fn(async () => undefined),
     saveMetric: jest.fn(async () => undefined),
+    removePhoto: jest.fn(async () => undefined),
   };
   mocked.mockReturnValue({ state, ...handlers });
   return handlers;
@@ -42,6 +52,9 @@ const base: ProgressData = {
   habitDates: [],
   exerciseNames: { hip: 'Hip thrust' },
   metrics: [],
+  photos: [],
+  poses: [],
+  monthlyDone: false,
 };
 
 const set = (weightKg: number, reps: number) => ({ stepId: 'hip', weightKg, reps });
@@ -117,5 +130,53 @@ describe('ProgressScreen', () => {
     await renderThemed(<ProgressScreen />);
     await fireEvent.press(screen.getByRole('button', { name: 'Reintentar' }));
     expect(handlers.load).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('ProgressScreen: monthly review and photos', () => {
+  const photos = [
+    { id: 2, date: '2026-10-01', pose: 'frente', uri: 'b.jpg' },
+    { id: 1, date: '2026-09-01', pose: 'frente', uri: 'missing.jpg' },
+  ];
+
+  beforeEach(() => mockPush.mockClear());
+
+  it('opens the monthly review and the 30-day comparison', async () => {
+    mockProgress({ status: 'ready', data: base });
+    await renderThemed(<ProgressScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Empezar la revisión' }));
+    expect(mockPush).toHaveBeenCalledWith('/revision-mensual');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver «Tú hace 30 días vs. hoy»' }));
+    expect(mockPush).toHaveBeenCalledWith('/comparacion');
+  });
+
+  it('says so when this month review is already done', async () => {
+    mockProgress({ status: 'ready', data: { ...base, monthlyDone: true } });
+    await renderThemed(<ProgressScreen />);
+    expect(screen.getByText('Ya hiciste la revisión de este mes.')).toBeTruthy();
+  });
+
+  it('shows the photos newest first, with a calm placeholder for a file that is not here', async () => {
+    mockProgress({ status: 'ready', data: { ...base, photos } });
+    await renderThemed(<ProgressScreen />);
+    expect(screen.queryByText('Tus fotos aparecerán aquí')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Frente, 1/10/2026' })).toBeTruthy();
+    expect(screen.getByText('Foto no disponible')).toBeTruthy();
+  });
+
+  it('asks before deleting a photo, and deletes it (file included) on confirm', async () => {
+    const handlers = mockProgress({ status: 'ready', data: { ...base, photos } });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    await renderThemed(<ProgressScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Frente, 1/10/2026' }));
+    expect(alert).toHaveBeenCalledTimes(1);
+    const buttons = alert.mock.calls[0]?.[2] ?? [];
+    expect(buttons.map((button) => button.text)).toEqual(['Cancelar', 'Eliminar']);
+    expect(handlers.removePhoto).not.toHaveBeenCalled();
+    await act(async () => {
+      buttons[1]?.onPress?.();
+    });
+    expect(handlers.removePhoto).toHaveBeenCalledWith(2);
+    alert.mockRestore();
   });
 });

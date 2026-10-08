@@ -1,11 +1,13 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { Alert, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { format, parseISO } from 'date-fns';
 
 import { useLocaleStore, useT } from '../i18n';
 import { formatKg } from '../gym/sessionViewModel';
+import { StoredPhoto } from '../photos/StoredPhoto';
 import { BarChart } from '../ui/BarChart';
+import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Chip } from '../ui/Chip';
 import { EmptyState } from '../ui/EmptyState';
@@ -23,6 +25,7 @@ import {
   type ProgressView,
   type StrengthView,
 } from './progressView';
+import type { ProgressData } from './loadProgress';
 import { useProgress } from './useProgress';
 
 const weekLabel = (weekStart: string) => format(parseISO(weekStart), 'd/M');
@@ -242,13 +245,112 @@ function StrengthSection({
   );
 }
 
+const poseName = (pose: string) => pose.charAt(0).toUpperCase() + pose.slice(1);
+/** The newest photos shown in the grid (the rest stay on the phone). */
+const GRID_PHOTOS = 12;
+
+function MonthlySection({ done }: { done: boolean }) {
+  const t = useT();
+  const theme = useTheme();
+  return (
+    <View style={{ gap: theme.space[3] }}>
+      <SectionTitle>{t('progress.monthly.title')}</SectionTitle>
+      <Card>
+        <View style={{ gap: theme.space[3] }}>
+          <Text style={[theme.text('body'), { color: theme.color.text }]}>
+            {done ? t('progress.monthly.done') : t('progress.monthly.body')}
+          </Text>
+          <Button
+            label={t('progress.monthly.start')}
+            variant={done ? 'secondary' : 'primary'}
+            onPress={() => router.push('/revision-mensual')}
+          />
+          <Button
+            label={t('progress.monthly.compare')}
+            variant="secondary"
+            onPress={() => router.push('/comparacion')}
+          />
+        </View>
+      </Card>
+    </View>
+  );
+}
+
+function PhotosSection({
+  photos,
+  onDelete,
+}: {
+  photos: ProgressData['photos'];
+  onDelete: (id: number) => Promise<void>;
+}) {
+  const t = useT();
+  const theme = useTheme();
+  const shown = photos.slice(0, GRID_PHOTOS);
+
+  const confirmDelete = (id: number) =>
+    Alert.alert(t('progress.photos.deleteTitle'), t('progress.photos.deleteBody'), [
+      { text: t('progress.photos.cancel'), style: 'cancel' },
+      {
+        text: t('progress.photos.delete'),
+        style: 'destructive',
+        onPress: () =>
+          void onDelete(id).catch(() => Alert.alert(t('progress.photos.deleteFailed'))),
+      },
+    ]);
+
+  return (
+    <View style={{ gap: theme.space[3] }}>
+      <SectionTitle>{t('progress.photos.title')}</SectionTitle>
+      {shown.length > 0 ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[3] }}>
+          {shown.map((photo) => {
+            const label = t('progress.photos.label', {
+              pose: poseName(photo.pose),
+              date: format(parseISO(photo.date), 'd/M/yyyy'),
+            });
+            return (
+              <Pressable
+                key={photo.id}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                accessibilityHint={t('progress.photos.hint')}
+                onPress={() => confirmDelete(photo.id)}
+                style={({ pressed }) => ({
+                  width: '30%',
+                  flexGrow: 1,
+                  gap: theme.space[1],
+                  opacity: pressed ? theme.opacity.pressed : 1,
+                })}
+              >
+                <StoredPhoto name={photo.uri} label={label} />
+                <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : (
+        <Card>
+          <EmptyState
+            compact
+            pose="mide"
+            title={t('progress.photos.emptyTitle')}
+            body={t('progress.photos.emptyBody')}
+          />
+        </Card>
+      )}
+    </View>
+  );
+}
+
 /** Progreso tab (PLAN §13): consistency, strength, measurements, photos and findings. */
 export function ProgressScreen() {
   const t = useT();
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const twoColumns = width >= theme.layout.twoColumnMin;
-  const { state, load, saveMetric } = useProgress();
+  const { state, load, saveMetric, removePhoto } = useProgress();
   const [selectedStepId, setSelectedStepId] = useState<string | undefined>();
 
   // Coming back to the tab (or from a workout / check-in) refreshes the numbers.
@@ -318,17 +420,11 @@ export function ProgressScreen() {
               )}
             </View>
 
-            <View style={{ gap: theme.space[3] }}>
-              <SectionTitle>{t('progress.photos.title')}</SectionTitle>
-              <Card>
-                <EmptyState
-                  compact
-                  pose="mide"
-                  title={t('progress.photos.emptyTitle')}
-                  body={t('progress.photos.emptyBody')}
-                />
-              </Card>
-            </View>
+            <MonthlySection done={state.status === 'ready' && state.data.monthlyDone} />
+            <PhotosSection
+              photos={state.status === 'ready' ? state.data.photos : []}
+              onDelete={removePhoto}
+            />
 
             <View style={{ gap: theme.space[3] }}>
               <SectionTitle>{t('progress.insights.title')}</SectionTitle>

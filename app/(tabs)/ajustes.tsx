@@ -7,10 +7,13 @@ import { useNotificationPrefs } from '../../src/notifications/useNotificationPre
 import { Card } from '../../src/ui/Card';
 import { OptionRow } from '../../src/ui/OptionRow';
 import { Screen } from '../../src/ui/Screen';
-import { TimeStepper } from '../../src/ui/Stepper';
+import { NumberStepper, TimeStepper } from '../../src/ui/Stepper';
 import { useTheme } from '../../src/ui/theme';
 
 const DEFAULT_SURVEY_TIME = '20:00';
+const DEFAULT_MONTHLY_DAY = 1;
+/** Day 29-31 do not exist every month, so the review day stops at 28. */
+const MAX_MONTHLY_DAY = 28;
 
 /** Settings. Only the alert section and the permissions entry exist so far (M6); more comes later. */
 export default function Ajustes() {
@@ -20,6 +23,7 @@ export default function Ajustes() {
   const enabled = prefs?.enabled ?? true;
   const survey = prefs?.survey ?? true;
   const weekly = prefs?.weeklyReview ?? true;
+  const monthly = prefs?.monthlyReview ?? true;
 
   const toggle = (label: string, value: boolean, onChange: (next: boolean) => void) => (
     <View
@@ -166,6 +170,22 @@ export default function Ajustes() {
                     weekly,
                     (next) => void update({ weeklyReview: next }),
                   )}
+                  {toggle(
+                    t('settings.notifications.monthly'),
+                    monthly,
+                    (next) => void update({ monthlyReview: next }),
+                  )}
+                  {monthly ? (
+                    <NumberStepper
+                      label={t('settings.notifications.monthlyDay')}
+                      value={prefs.monthlyReviewDay ?? DEFAULT_MONTHLY_DAY}
+                      min={1}
+                      max={MAX_MONTHLY_DAY}
+                      step={1}
+                      format={(day) => t('settings.notifications.monthlyDayValue', { day })}
+                      onChange={(day) => void update({ monthlyReviewDay: day })}
+                    />
+                  ) : null}
                 </>
               ) : null}
               {failed ? (

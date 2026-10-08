@@ -78,7 +78,7 @@ async function seed({ db, repos }: Fixture): Promise<void> {
     enabled: true,
     createdAt: 1,
   });
-  await db.insert(photos).values({ date: '2026-10-05', pose: 'front', uri: 'file:///a.jpg' });
+  await db.insert(photos).values({ date: '2026-10-05', pose: 'front', uri: 'a.jpg' });
 }
 
 let source: Fixture;
@@ -140,9 +140,7 @@ describe('backup export / restore', () => {
     expect(withoutPhotos.data.photos).toEqual([]);
 
     await restoreBackup(target.db, parse(withoutPhotos));
-    await target.db
-      .insert(photos)
-      .values({ date: '2026-10-06', pose: 'side', uri: 'file:///b.jpg' });
+    await target.db.insert(photos).values({ date: '2026-10-06', pose: 'side', uri: 'b.jpg' });
     await restoreBackup(target.db, parse(withoutPhotos));
     expect(
       (await createBackup(target.db, { ...OPTIONS, includePhotos: true })).data.photos,
@@ -283,6 +281,13 @@ describe('parseBackupText: JSON columns', () => {
       backup.data.reminders[0]!.schedule = { time: '10:00' };
     });
     expect(paths).toContain('data.reminders[0].schedule');
+  });
+
+  it('rejects photo rows whose file name could escape the photo folder', async () => {
+    const paths = await corrupted((backup) => {
+      backup.data.photos.push({ id: 99, date: '2026-10-06', pose: 'frente', uri: '../secret.jpg' });
+    });
+    expect(paths.some((path) => path.startsWith('data.photos[0].uri'))).toBe(true);
   });
 
   it('rejects check-in answers that are not text or numbers', async () => {

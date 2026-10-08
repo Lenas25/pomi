@@ -1,8 +1,9 @@
 // Repositories -> `ProgressData`. The numbers are computed by the pure functions in
 // `src/domain/progress` and `progressView.ts`; this file only reads.
-import { format, parseISO, subDays } from 'date-fns';
+import { format, parseISO, startOfMonth, subDays } from 'date-fns';
 
 import type { Repositories } from '../db/repositories';
+import type { PhotoRow } from '../db/repositories/photos';
 import type { MetricFrequency, MetricPoint } from '../domain/progress/metrics';
 import type { SessionSets } from '../domain/progress/strength';
 import { DEFAULT_WEEKS } from '../domain/progress/weekly';
@@ -33,6 +34,14 @@ export type ProgressData = {
   /** Exercise names by step id, from the active program. */
   exerciseNames: Record<string, string>;
   metrics: ProgressMetric[];
+  /** Photo rows, newest first (the files live in private storage, see `src/photos`). */
+  photos: PhotoRow[];
+  /** Poses of the monthly review, from the metrics template (e.g. frente, perfil, espalda). */
+  poses: string[];
+  /** The template's short guide for taking the photos. */
+  photoGuide?: string | undefined;
+  /** A monthly review already exists for the current month. */
+  monthlyDone: boolean;
 };
 
 const key = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -43,12 +52,15 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
   const habitsFrom = key(subDays(now, DEFAULT_WEEKS * 7));
   const metricsFrom = key(subDays(now, METRIC_LOOKBACK_DAYS));
 
-  const [modules, startedOn, gymDays, sessionRows, habitRows] = await Promise.all([
+  const monthStart = key(startOfMonth(now));
+  const [modules, startedOn, gymDays, sessionRows, habitRows, photos, monthly] = await Promise.all([
     repos.templates.listModules(),
     repos.settings.get('startedOn'),
     repos.settings.get('gymDays'),
     repos.workouts.sessionsInRange(sessionsFrom, today),
     repos.habitLogs.inRange(habitsFrom, today),
+    repos.photos.all(),
+    repos.checkins.inRange(monthStart, today, 'monthly'),
   ]);
 
   const exerciseNames: Record<string, string> = {};
@@ -61,6 +73,10 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
   const definitions = modules
     .filter((module) => module.active)
     .flatMap((module) => module.template.metrics ?? []);
+  const photoSpec = modules
+    .filter((module) => module.active)
+    .map((module) => module.template.photos)
+    .find((spec) => spec !== undefined);
   const metrics = await Promise.all(
     definitions.map(async (definition): Promise<ProgressMetric> => ({
       id: definition.id,
@@ -87,5 +103,9 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
     habitDates: habitRows.filter((row) => row.value > 0).map((row) => row.date),
     exerciseNames,
     metrics,
+    photos,
+    poses: photoSpec?.poses ?? [],
+    photoGuide: photoSpec?.guide,
+    monthlyDone: monthly.length > 0,
   };
 }

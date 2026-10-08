@@ -54,7 +54,15 @@
       "expo-sqlite",
       "expo-audio",
       "expo-background-task",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera for your monthly progress photos.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ]
   }
 }

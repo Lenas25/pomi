@@ -22,7 +22,7 @@ function safely(action: () => void): void {
   }
 }
 
-/** Removes `pomi-backup-*.json` files left in the cache by earlier exports. */
+/** Removes `pomi-backup-*.json` / `pomi-photos-*.json` files left in the cache by earlier exports. */
 function removeStaleBackups(): void {
   safely(() => {
     for (const entry of new Directory(Paths.cache).list()) {
@@ -36,9 +36,11 @@ export async function shareJsonFile(
   fileName: string,
   contents: string,
   dialogTitle: string,
+  options: { sweep: boolean } = { sweep: true },
 ): Promise<'shared' | 'unavailable'> {
   if (!(await Sharing.isAvailableAsync())) return 'unavailable';
-  removeStaleBackups();
+  // Parts of one multi-file export pass `sweep: false` after the first, so they keep each other.
+  if (options.sweep) removeStaleBackups();
   const file = new File(Paths.cache, fileName);
   let keepForGrace = false;
   try {

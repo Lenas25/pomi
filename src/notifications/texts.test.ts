@@ -17,6 +17,7 @@ describe('notification texts (BRAND §9: title <= 30, body <= 80, one emoji at m
       notify.checkinMorning,
       notify.checkinNight,
       notify.review,
+      notify.monthly,
       notify.survey,
       notify.habit,
       notify.reminder,

@@ -21,13 +21,16 @@ export const DEFAULT_SURVEY_MINUTES = 20 * 60;
 /** Minutes before bed at which the survey is sent by default. */
 export const SURVEY_BEFORE_BED_MIN = 90;
 export const WEEKLY_REVIEW_MINUTES = 18 * 60;
+/** The monthly review needs daylight for the photos: 10:00 on its day. */
+export const MONTHLY_REVIEW_MINUTES = 10 * 60;
+export const DEFAULT_MONTHLY_REVIEW_DAY = 1;
 export const SUNDAY = 0;
 /** BRAND §9 limits for notification text. */
 export const TITLE_MAX = 30;
 export const BODY_MAX = 80;
 
 export type NotificationKind =
-  'gym' | 'water' | 'habit' | 'checkin' | 'reminder' | 'review' | 'survey';
+  'gym' | 'water' | 'habit' | 'checkin' | 'reminder' | 'review' | 'monthly' | 'survey';
 
 /** Android channels of planned notifications (timers have their own, outside this list). */
 export type PlannedChannel = 'gym' | 'habits' | 'checkins' | 'reminders' | 'review';
@@ -41,6 +44,7 @@ export type NotifyTextKey =
   | 'notify.checkinMorning'
   | 'notify.checkinNight'
   | 'notify.review'
+  | 'notify.monthly'
   | 'notify.survey'
   | 'notify.habit'
   | 'notify.reminder';
@@ -78,6 +82,9 @@ export type UpcomingState = AgendaState & {
   surveyTime?: string;
   /** Sunday review on/off (default on). */
   weeklyReviewEnabled?: boolean;
+  /** Monthly review on/off (default on) and its day of the month (default 1). */
+  monthlyReviewEnabled?: boolean;
+  monthlyReviewDay?: number;
   /** What is already done TODAY (later days are never affected). */
   today: {
     /** An activity answer exists, or a gym session was finished. */
@@ -86,6 +93,8 @@ export type UpcomingState = AgendaState & {
     checkinsDone: { morning: boolean; night: boolean };
     /** Agenda item ids that are complete (e.g. the water goal reached): their reminders stop. */
     doneAgendaIds: readonly string[];
+    /** A monthly check-in already exists for the current month. */
+    monthlyDone?: boolean;
   };
 };
 
@@ -95,6 +104,7 @@ const RANK: Record<NotificationKind, number> = {
   survey: 1,
   gym: 2,
   review: 3,
+  monthly: 3,
   reminder: 4,
   habit: 5,
   water: 6,
@@ -288,6 +298,19 @@ export function buildUpcoming(
         channel: 'review',
         category: null,
         text: { type: 'key', key: 'notify.review' },
+      });
+    }
+
+    // Once a month, on the configured day, unless this month's review is already done.
+    if (
+      (state.monthlyReviewEnabled ?? true) &&
+      day.getDate() === (state.monthlyReviewDay ?? DEFAULT_MONTHLY_REVIEW_DAY) &&
+      !(isToday && state.today.monthlyDone === true)
+    ) {
+      add('monthly', 'core', 'review', MONTHLY_REVIEW_MINUTES, {
+        channel: 'review',
+        category: null,
+        text: { type: 'key', key: 'notify.monthly' },
       });
     }
   }

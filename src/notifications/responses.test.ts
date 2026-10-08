@@ -162,6 +162,10 @@ describe('routeForNotification', () => {
     expect(routeForNotification({ source: 'pomi', kind: 'review', channel: 'review' })).toEqual({
       pathname: '/revision',
     });
+    // The monthly notification opens the monthly review.
+    expect(routeForNotification({ source: 'pomi', kind: 'monthly', channel: 'review' })).toEqual({
+      pathname: '/revision-mensual',
+    });
     expect(routeForNotification({})).toBeNull();
   });
 });

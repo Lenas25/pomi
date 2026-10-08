@@ -11,6 +11,9 @@ const base: ProgressData = {
   habitDates: [],
   exerciseNames: { hip: 'Hip thrust', sq: 'Sentadilla' },
   metrics: [],
+  photos: [],
+  poses: [],
+  monthlyDone: false,
 };
 
 const set = (stepId: string, weightKg: number | null, reps: number | null) => ({

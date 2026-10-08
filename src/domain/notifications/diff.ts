@@ -1,7 +1,7 @@
 // Diffing the notifications Pomi wants against what the OS already holds. Pure.
 
 /** Ids Pomi plans start with their kind; anything else (timers, snoozes) is never touched. */
-const MANAGED = /^(gym|water|habit|checkin|reminder|review|survey):/;
+const MANAGED = /^(gym|water|habit|checkin|reminder|review|monthly|survey):/;
 
 export function isManagedId(id: string): boolean {
   return MANAGED.test(id);

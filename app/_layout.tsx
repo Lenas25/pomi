@@ -49,6 +49,8 @@ function RootStack() {
           {/* HANDOFF §5: the check-in is a bottom sheet over the app. */}
           <Stack.Screen name="checkin/[tipo]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="revision" />
+          <Stack.Screen name="revision-mensual" />
+          <Stack.Screen name="comparacion" />
           <Stack.Screen name="compartir" />
           <Stack.Screen name="permisos" />
           <Stack.Screen name="bateria" />

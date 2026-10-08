@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 import { settingsSchemas } from '../db/repositories/settings';
 
+import { PHOTO_NAME } from '../photos/photoStore';
+
 import { checkinAnswersSchema } from './payloads';
 
 export const BACKUP_FORMAT = 'pomi-backup';
@@ -112,7 +114,8 @@ export const photoRowSchema = z.strictObject({
   id: int,
   date: dayKey,
   pose: z.string(),
-  uri: z.string(),
+  /** File name in the private photo folder (the image files travel separately). */
+  uri: z.string().regex(PHOTO_NAME),
 });
 
 export const foodNoteRowSchema = z.strictObject({
@@ -173,7 +176,7 @@ export const backupSchema = z.strictObject({
   schemaVersion: z.literal(BACKUP_SCHEMA_VERSION),
   appVersion: z.string(),
   exportedAt: z.iso.datetime(),
-  /** Photo ROWS are only exported when the person opts in (the image files are v2). */
+  /** Photo ROWS are only exported when the person opts in; the image files travel separately. */
   includesPhotos: z.boolean(),
   data: backupDataSchema,
 });

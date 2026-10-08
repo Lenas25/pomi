@@ -23,6 +23,8 @@ describe('loadProgressData', () => {
     const data = await loadProgressData(repos, '2026-10-07');
     expect(data.sessions).toEqual([]);
     expect(data.habitDates).toEqual([]);
+    expect(data.photos).toEqual([]);
+    expect(data.monthlyDone).toBe(false);
     expect(data.metrics.map((metric) => metric.id)).toEqual([
       'peso',
       'cintura',
@@ -78,12 +80,17 @@ describe('loadProgressData', () => {
     await repos.metrics.upsert('peso', '2026-10-01', 62);
     await repos.metrics.upsert('peso', '2026-10-06', 61.5);
     await repos.settings.set('gymDays', [{ days: [1, 3], anchor: 'gymMorning' }]);
+    await repos.photos.add({ date: '2026-10-01', pose: 'frente', uri: 'a.jpg' });
+    await repos.checkins.upsert('2026-10-01', 'monthly', { peso: 62 });
 
     const data = await loadProgressData(repos, '2026-10-07');
     expect(data.sessions).toEqual([
       { date: '2026-10-05', sets: [{ stepId: 'hip', weightKg: 50, reps: 8 }] },
     ]);
     expect(data.habitDates).toEqual(['2026-10-06']);
+    expect(data.photos).toMatchObject([{ pose: 'frente', uri: 'a.jpg' }]);
+    expect(data.poses).toEqual(['frente', 'perfil', 'espalda']);
+    expect(data.monthlyDone).toBe(true);
     expect(data.metrics.find((metric) => metric.id === 'peso')?.entries).toEqual([
       { date: '2026-10-01', value: 62 },
       { date: '2026-10-06', value: 61.5 },

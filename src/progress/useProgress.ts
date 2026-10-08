@@ -3,6 +3,8 @@ import { useCallback, useRef, useState } from 'react';
 
 import { getRepositories } from '../db';
 import { dayKeyFor } from '../domain/time';
+import { expoPhotoFs } from '../photos/expoPhotoFs';
+import { deletePhoto } from '../photos/photoStore';
 
 import { loadProgressData, type ProgressData } from './loadProgress';
 
@@ -34,5 +36,14 @@ export function useProgress() {
     [load],
   );
 
-  return { state, load, saveMetric };
+  /** Deletes the photo row AND its file. */
+  const removePhoto = useCallback(
+    async (id: number): Promise<void> => {
+      await deletePhoto(expoPhotoFs, getRepositories().photos, id);
+      await load();
+    },
+    [load],
+  );
+
+  return { state, load, saveMetric, removePhoto };
 }

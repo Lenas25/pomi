@@ -23,7 +23,7 @@ export function toMegabytes(bytes: number): number {
   return Math.ceil(bytes / (1024 * 1024));
 }
 
-/** `pomi-backup-*.json` files this app exported earlier. */
+/** `pomi-backup-*.json` and `pomi-photos-*.json` files this app exported earlier. */
 export function isBackupExportName(name: string): boolean {
-  return /^pomi-backup-.*\.json$/.test(name);
+  return /^pomi-(backup|photos)-.*\.json$/.test(name);
 }

@@ -30,6 +30,7 @@ export async function loadNotificationPlan(
     habitLogs,
     todayState,
     shifts,
+    monthly,
   ] = await Promise.all([
     repos.templates.listModules(),
     repos.profile.get(),
@@ -46,6 +47,7 @@ export async function loadNotificationPlan(
     repos.habitLogs.forDate(today),
     repos.settings.get('todayState'),
     repos.settings.get('planShifts'),
+    repos.checkins.inRange(`${today.slice(0, 7)}-01`, today, 'monthly'),
   ]);
 
   const active = modules.filter((module) => module.active).map((module) => module.template);
@@ -88,11 +90,14 @@ export async function loadNotificationPlan(
     surveyEnabled: prefs?.survey ?? true,
     ...(prefs?.surveyTime !== undefined ? { surveyTime: prefs.surveyTime } : {}),
     weeklyReviewEnabled: prefs?.weeklyReview ?? true,
+    monthlyReviewEnabled: prefs?.monthlyReview ?? true,
+    ...(prefs?.monthlyReviewDay !== undefined ? { monthlyReviewDay: prefs.monthlyReviewDay } : {}),
     today: {
       activityLogged: activity !== undefined || gymDone,
       gymDone,
       checkinsDone: { morning: morning !== undefined, night: night !== undefined },
       doneAgendaIds: [...doneAgendaIds],
+      monthlyDone: monthly.length > 0,
     },
   };
   // Before the onboarding finishes there is no plan to remind about.

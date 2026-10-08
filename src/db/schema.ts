@@ -171,7 +171,10 @@ export const photos = sqliteTable(
     id: integer('id').primaryKey({ autoIncrement: true }),
     date: text('date').notNull(),
     pose: text('pose').notNull(),
-    /** Local file URI. */
+    /**
+     * File name inside the app's private photo folder (`photos/` under the document directory),
+     * NOT a full URI: it stays valid after a restore on another phone. See `src/photos`.
+     */
     uri: text('uri').notNull(),
   },
   (table) => [index('photos_date_idx').on(table.date)],

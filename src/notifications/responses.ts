@@ -130,6 +130,7 @@ async function perform(
 export type NotificationRoute =
   | { pathname: '/checkin/[tipo]'; params: { tipo: 'morning' | 'night' } }
   | { pathname: '/revision' }
+  | { pathname: '/revision-mensual' }
   | { pathname: '/hoy' };
 
 /** Where a plain tap on a notification goes (Hoy is the default landing). */
@@ -142,5 +143,7 @@ export function routeForNotification(data: unknown): NotificationRoute | null {
   }
   // The Sunday notification opens the weekly review.
   if (kind === 'review') return { pathname: '/revision' };
+  // The monthly notification opens the monthly review (measurements, photos).
+  if (kind === 'monthly') return { pathname: '/revision-mensual' };
   return { pathname: '/hoy' };
 }

@@ -9,6 +9,10 @@ import { hydrateStores } from '../db/useDatabaseReady';
 import { useT } from '../i18n';
 import type { TranslationKey } from '../i18n/types';
 import { requestNotificationSync } from '../notifications/sync';
+import { exportPhotoArchive, importPhotoArchive } from '../photos/photoBackup';
+import { expoPhotoFs } from '../photos/expoPhotoFs';
+import { sweepOrphanPhotos } from '../photos/photoStore';
+import { dayKeyFor } from '../domain/time';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Screen } from '../ui/Screen';
@@ -50,7 +54,7 @@ export function BackupScreen() {
   const t = useT();
   const theme = useTheme();
   const [includePhotos, setIncludePhotos] = useState(false);
-  const [busy, setBusy] = useState<'export' | 'pick' | 'restore' | null>(null);
+  const [busy, setBusy] = useState<'export' | 'pick' | 'restore' | 'photos' | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
   const [pending, setPending] = useState<Backup | null>(null);
@@ -112,6 +116,8 @@ export function BackupScreen() {
         await restoreBackupExclusive(getDatabase(), backup);
         const repositories = getRepositories();
         await hydrateStores(repositories);
+        // Files of photos the restored data no longer lists are removed (the rows were replaced).
+        await sweepOrphanPhotos(expoPhotoFs, repositories.photos).catch(() => 0);
         // The plan of reminders came from the old data.
         void requestNotificationSync('dataChanged');
         setPending(null);
@@ -125,6 +131,73 @@ export function BackupScreen() {
     },
     [t],
   );
+
+  const exportPhotos = useCallback(async () => {
+    setBusy('photos');
+    setNotice(null);
+    try {
+      const result = await exportPhotoArchive({
+        fs: expoPhotoFs,
+        photos: getRepositories().photos,
+        share: shareJsonFile,
+        dialogTitle: t('backup.photos.shareTitle'),
+        today: dayKeyFor(new Date()),
+      });
+      if (result.status === 'done') {
+        setNotice({ tone: 'success', text: t('backup.photos.exported', { count: result.photos }) });
+      } else {
+        setNotice({
+          tone: result.status === 'none' ? 'success' : 'error',
+          text: t(result.status === 'none' ? 'backup.photos.none' : 'backup.export.unavailable'),
+        });
+      }
+    } catch (error) {
+      if (__DEV__) console.error('Could not export the photos', error);
+      setNotice({ tone: 'error', text: t('backup.photos.exportFailed') });
+    } finally {
+      setBusy(null);
+    }
+  }, [t]);
+
+  const importPhotos = useCallback(async () => {
+    setBusy('photos');
+    setNotice(null);
+    try {
+      const text = await pickTextFile(MAX_BACKUP_BYTES);
+      if (text === null) return;
+      const result = await importPhotoArchive({
+        fs: expoPhotoFs,
+        photos: getRepositories().photos,
+        text,
+      });
+      if (result.status === 'restored') {
+        setNotice({
+          tone: 'success',
+          text: t('backup.photos.restored', {
+            count: result.restored,
+            part: result.part,
+            parts: result.parts,
+          }),
+        });
+      } else if (result.status === 'noMatch') {
+        setNotice({ tone: 'error', text: t('backup.photos.noMatch') });
+      } else {
+        setNotice({ tone: 'error', text: t('backup.photos.invalid') });
+      }
+    } catch (error) {
+      if (error instanceof FileTooLargeError) {
+        setNotice({
+          tone: 'error',
+          text: t('backup.import.tooLarge', { mb: toMegabytes(error.maxBytes) }),
+        });
+        return;
+      }
+      if (__DEV__) console.error('Could not restore the photos', error);
+      setNotice({ tone: 'error', text: t('backup.import.readFailed') });
+    } finally {
+      setBusy(null);
+    }
+  }, [t]);
 
   const confirmReplace = useCallback(
     (backup: Backup) => {
@@ -262,6 +335,28 @@ export function BackupScreen() {
                 />
               </View>
             ) : null}
+          </View>
+        </Card>
+
+        <Card>
+          <View style={{ gap: theme.space[3] }}>
+            <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
+              {t('backup.photos.title')}
+            </Text>
+            <Text style={muted}>{t('backup.photos.body')}</Text>
+            <Button
+              label={t('backup.photos.export')}
+              variant="secondary"
+              onPress={() => void exportPhotos()}
+              loading={busy === 'photos'}
+              disabled={busy !== null}
+            />
+            <Button
+              label={t('backup.photos.import')}
+              variant="secondary"
+              onPress={() => void importPhotos()}
+              disabled={busy !== null}
+            />
           </View>
         </Card>
 

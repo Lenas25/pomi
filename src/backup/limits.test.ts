@@ -28,6 +28,7 @@ describe('file size caps', () => {
   it('recognises only our own exported backups for the stale sweep', () => {
     expect(isBackupExportName('pomi-backup-2026-10-07-1030.json')).toBe(true);
     expect(isBackupExportName('pomi-backup-2026-10-07-1030.json.tmp')).toBe(false);
+    expect(isBackupExportName('pomi-photos-2026-10-07-1-de-2.json')).toBe(true);
     expect(isBackupExportName('mi-respaldo.json')).toBe(false);
   });
 });

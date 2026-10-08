@@ -28,7 +28,7 @@ import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, type Backup, type BackupData } fr
 
 export type ExportOptions = {
   appVersion: string;
-  /** Include the photo rows (image files are not embedded yet: v2). Default false. */
+  /** Include the photo rows (the image files are exported separately, see `src/photos`). Default false. */
   includePhotos?: boolean;
   now?: () => Date;
 };

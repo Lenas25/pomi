@@ -29,6 +29,10 @@ export const notificationPrefsSchema = z.strictObject({
   /** Fixed time for the survey; default is 90 minutes before bed. */
   surveyTime: timeSchema.optional(),
   weeklyReview: z.boolean().optional(),
+  /** Monthly review reminder on/off (default on). */
+  monthlyReview: z.boolean().optional(),
+  /** Day of the month (1-28, so every month has it) of the monthly review; default 1. */
+  monthlyReviewDay: z.number().int().min(1).max(28).optional(),
 });
 
 /** What the person did to the timeline of ONE day (`date`); a different day means a clean slate. */

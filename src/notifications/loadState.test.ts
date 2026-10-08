@@ -74,3 +74,23 @@ describe('loadNotificationPlan: what is already done stops insisting', () => {
     expect(other.state.today.doneAgendaIds).not.toContain('reminder:sueno:dormir');
   });
 });
+
+describe('loadNotificationPlan: monthly review', () => {
+  it('reads the preferences and whether this month is already done', async () => {
+    const fresh = await loadNotificationPlan(repos, TODAY);
+    expect(fresh.state.monthlyReviewEnabled).toBe(true);
+    expect(fresh.state.monthlyReviewDay).toBeUndefined();
+    expect(fresh.state.today.monthlyDone).toBe(false);
+
+    await repos.settings.set('notificationPrefs', { monthlyReview: false, monthlyReviewDay: 12 });
+    await repos.checkins.upsert('2026-10-01', 'monthly', { peso: 61 });
+    const plan = await loadNotificationPlan(repos, TODAY);
+    expect(plan.state.monthlyReviewEnabled).toBe(false);
+    expect(plan.state.monthlyReviewDay).toBe(12);
+    expect(plan.state.today.monthlyDone).toBe(true);
+
+    // A review of another month does not count.
+    const november = await loadNotificationPlan(repos, '2026-11-01');
+    expect(november.state.today.monthlyDone).toBe(false);
+  });
+});

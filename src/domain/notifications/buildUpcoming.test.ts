@@ -196,6 +196,51 @@ describe('weekly review', () => {
   });
 });
 
+describe('monthly review', () => {
+  // 2026-10-30 is a Friday; the 72 h window reaches 2026-11-02.
+  const FRIDAY_END_OF_MONTH = new Date(2026, 9, 30, 4, 0);
+
+  it('is planned once, on the first of the month at 10:00, by default', () => {
+    const monthly = ofKind(buildUpcoming(state(), FRIDAY_END_OF_MONTH), 'monthly');
+    expect(monthly.map((n) => n.id)).toEqual(['monthly:core:review:2026-11-01:10:00']);
+    expect(monthly[0]).toMatchObject({
+      channel: 'review',
+      category: null,
+      text: { type: 'key', key: 'notify.monthly' },
+      data: { kind: 'monthly', date: '2026-11-01' },
+    });
+    expect(clock(monthly[0]?.at ?? 0)).toBe('10:00');
+  });
+
+  it('follows the configured day and can be turned off', () => {
+    const FOURTEENTH = new Date(2026, 9, 14, 4, 0);
+    expect(
+      ofKind(buildUpcoming(state({ monthlyReviewDay: 15 }), FOURTEENTH), 'monthly').map(
+        (n) => n.data.date,
+      ),
+    ).toEqual(['2026-10-15']);
+    expect(ofKind(buildUpcoming(state({ monthlyReviewDay: 15 }), MONDAY), 'monthly')).toEqual([]);
+    expect(
+      ofKind(buildUpcoming(state({ monthlyReviewEnabled: false }), FRIDAY_END_OF_MONTH), 'monthly'),
+    ).toEqual([]);
+  });
+
+  it('does not repeat when this month is already done (only for today)', () => {
+    const FIRST = new Date(2026, 10, 1, 4, 0);
+    const done = state({
+      today: { ...state().today, monthlyDone: true },
+    });
+    expect(ofKind(buildUpcoming(done, FIRST), 'monthly')).toEqual([]);
+    // The done flag belongs to TODAY: a reminder planned for a later day is untouched.
+    expect(ofKind(buildUpcoming(done, FRIDAY_END_OF_MONTH), 'monthly')).toHaveLength(1);
+  });
+
+  it('is skipped inside the quiet hours', () => {
+    const lateWaker = state({ anchors: { wake: '11:00', sleepTargetH: 8 } });
+    expect(ofKind(buildUpcoming(lateWaker, FRIDAY_END_OF_MONTH), 'monthly')).toEqual([]);
+  });
+});
+
 describe('habits and reminders', () => {
   it('repeats water every repeatEveryMin until `until`', () => {
     const water = ofKind(buildUpcoming(state(), MONDAY), 'water').filter(
