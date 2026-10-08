@@ -44,6 +44,7 @@ export function Toast({ variant, title, subtitle, pose, onHide }: ToastProps) {
           damping: theme.motion.spring.damping,
           stiffness: theme.motion.spring.stiffness,
         });
+    let hideTimeout: ReturnType<typeof setTimeout> | undefined;
     const timeout = setTimeout(() => {
       visible.value = withSequence(
         withTiming(0, {
@@ -51,9 +52,13 @@ export function Toast({ variant, title, subtitle, pose, onHide }: ToastProps) {
           easing: Easing.in(Easing.ease),
         }),
       );
-      if (onHide) setTimeout(onHide, reduceMotion ? theme.motion.reducedFade : EXIT_MS);
+      if (onHide)
+        hideTimeout = setTimeout(onHide, reduceMotion ? theme.motion.reducedFade : EXIT_MS);
     }, VISIBLE_MS + ENTER_MS);
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(hideTimeout);
+    };
     // The toast animates once per mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

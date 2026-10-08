@@ -22,14 +22,23 @@ export type PhotoFs = {
   discard(uri: string): void;
   /** Writes a small JPEG (about `THUMBNAIL_WIDTH` px wide) of `name` as `thumbName`. */
   makeThumbnail(name: string, thumbName: string): Promise<void>;
+  /**
+   * Resizes `name` into a temporary file (about `THUMBNAIL_WIDTH` px wide) and returns its URI. It
+   * never touches the store, so it can run outside the photo lock; `store(tempUri, thumbName)`
+   * commits it.
+   */
+  resizeToTemp(name: string): Promise<string>;
 };
+
+/** Prefix of derived thumbnails: a backup must not be able to plant a row on one. */
+const THUMBNAIL_PREFIX = 'thumb-';
 
 /** Width of the grid thumbnails, in px (the full photo stays untouched). */
 export const THUMBNAIL_WIDTH = 320;
 
 /** File name of the thumbnail of `name`; still a safe photo name, never used by a row. */
 export function thumbnailName(name: string): string {
-  return `thumb-${name}`;
+  return `${THUMBNAIL_PREFIX}${name}`;
 }
 
 /** Name of a file and of its thumbnail, to remove them together. */
@@ -41,12 +50,19 @@ let enteringWork = false;
 /**
  * One photo operation at a time (save, delete, sweep, restore of files). Without it the orphan
  * sweep could run between "the file was stored" and "its row was inserted" and delete a photo the
- * person just took. Sequential on purpose; never call it from inside `work` (it would wait for
- * itself forever). In development the synchronous part of `work` is checked for that mistake.
+ * person just took. Sequential on purpose.
+ *
+ * NOT reentrant: calling it from inside `work` waits for itself forever. Only the SYNCHRONOUS part
+ * of `work` can be checked (in development, `enteringWork`); a nested call made after an `await`
+ * is not detected, and a run token would be needed to allow it. Keep lock users flat. A detected
+ * nested call returns a rejected promise instead of throwing, so callers handle it like any other
+ * failure.
  */
 export function withPhotoLock<T>(work: () => Promise<T>): Promise<T> {
   if (__DEV__ && enteringWork) {
-    throw new Error('withPhotoLock called from inside withPhotoLock: it would deadlock');
+    return Promise.reject(
+      new Error('withPhotoLock called from inside withPhotoLock: it would deadlock'),
+    );
   }
   const run = lockTail.then(() => {
     enteringWork = true;
@@ -64,7 +80,7 @@ export function withPhotoLock<T>(work: () => Promise<T>): Promise<T> {
 export const PHOTO_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.jpg$/;
 
 export function isSafePhotoName(name: string): boolean {
-  return PHOTO_NAME.test(name) && !name.includes('..');
+  return PHOTO_NAME.test(name) && !name.includes('..') && !name.startsWith(THUMBNAIL_PREFIX);
 }
 
 /** `2026-10-01-frente-1759300000000.jpg`: ASCII slug of the pose, so any template pose works. */
@@ -194,26 +210,73 @@ export function deleteAllPhotos(
 
 const thumbnailFailures = new Set<string>();
 
+type ThumbnailJob = { promise: Promise<boolean>; cancels: Array<() => boolean> };
+const thumbnailJobs = new Map<string, ThumbnailJob>();
+/** Tail of the low-priority thumbnail queue: at most ONE backfill resizes at a time. */
+let thumbnailTail: Promise<unknown> = Promise.resolve();
+
+export type EnsureThumbnailOptions = {
+  /** True when nobody needs the thumbnail anymore (the cell unmounted): checked before resizing. */
+  isCancelled?: () => boolean;
+};
+
 /**
  * Creates the thumbnail of `name` when the photo is there and the thumbnail is not (photos taken
  * before thumbnails existed). Returns whether a thumbnail now exists; a photo that failed once is
  * not retried until the app restarts.
+ *
+ * Backfills run in their OWN queue (one at a time), outside the photo lock: the slow resize never
+ * blocks a save, a delete or a sweep. The lock is taken only for the final write, after checking
+ * again that the photo still exists and the thumbnail is still missing. A job whose every caller
+ * is cancelled is dropped before resizing.
  */
-export function ensureThumbnail(fs: PhotoFs, name: string): Promise<boolean> {
+export function ensureThumbnail(
+  fs: PhotoFs,
+  name: string,
+  options: EnsureThumbnailOptions = {},
+): Promise<boolean> {
   const thumb = thumbnailName(name);
   if (fs.exists(thumb)) return Promise.resolve(true);
   if (thumbnailFailures.has(name)) return Promise.resolve(false);
-  return withPhotoLock(async () => {
+  const cancelled = options.isCancelled ?? (() => false);
+  const running = thumbnailJobs.get(name);
+  if (running) {
+    running.cancels.push(cancelled);
+    return running.promise;
+  }
+  const job: ThumbnailJob = { promise: Promise.resolve(false), cancels: [cancelled] };
+  const run = async (): Promise<boolean> => {
+    if (job.cancels.every((isCancelled) => isCancelled())) return false;
     if (fs.exists(thumb)) return true;
     if (!fs.exists(name)) return false;
+    let temp: string;
     try {
-      await fs.makeThumbnail(name, thumb);
-      return fs.exists(thumb);
+      temp = await fs.resizeToTemp(name);
     } catch {
       thumbnailFailures.add(name);
       return false;
     }
+    try {
+      return await withPhotoLock(async () => {
+        // The photo may have been deleted (or the thumbnail made) while resizing.
+        if (!fs.exists(name)) return false;
+        if (fs.exists(thumb)) return true;
+        await fs.store(temp, thumb);
+        return fs.exists(thumb);
+      });
+    } catch {
+      thumbnailFailures.add(name);
+      return false;
+    } finally {
+      fs.discard(temp);
+    }
+  };
+  job.promise = thumbnailTail.then(run).finally(() => {
+    thumbnailJobs.delete(name);
   });
+  thumbnailJobs.set(name, job);
+  thumbnailTail = job.promise.catch(() => undefined);
+  return job.promise;
 }
 
 /** The most recent photo of `pose` taken BEFORE `date` (the one drawn over the camera). */

@@ -1,5 +1,6 @@
 import {
   HEAVY_INTERVAL_MS,
+  HEAVY_SLACK_MS,
   intervalFor,
   isHeavyDue,
   runBackgroundJob,
@@ -36,8 +37,10 @@ function deps(overrides: Partial<JobDeps> = {}) {
 describe('background policy', () => {
   it('heavy work is due after 6 h, never before, and after a clock set back', () => {
     expect(isHeavyDue(undefined, NOW)).toBe(true);
-    expect(isHeavyDue(NOW - HEAVY_INTERVAL_MS + 1, NOW)).toBe(false);
-    expect(isHeavyDue(NOW - HEAVY_INTERVAL_MS, NOW)).toBe(true);
+    expect(isHeavyDue(NOW - HEAVY_INTERVAL_MS + HEAVY_SLACK_MS + 1, NOW)).toBe(false);
+    expect(isHeavyDue(NOW - HEAVY_INTERVAL_MS + HEAVY_SLACK_MS, NOW)).toBe(true);
+    // A wake that drifted 10 minutes early still counts as due.
+    expect(isHeavyDue(NOW - HEAVY_INTERVAL_MS + 10 * 60_000, NOW)).toBe(true);
     expect(isHeavyDue(NOW + 1000, NOW)).toBe(true);
   });
 
@@ -66,14 +69,46 @@ describe('background policy', () => {
     expect(calls).toEqual(['bootstrap', 'nudge']);
   });
 
-  it('a failing sync does not skip the nudge nor fail the job', async () => {
+  it('a failing sync still runs the nudge, rewinds the stamp and fails the job', async () => {
+    const stamps: number[] = [];
     const { calls, deps: d } = deps({
+      lastHeavyRunAt: async () => NOW - HEAVY_INTERVAL_MS - 1,
+      saveHeavyRunAt: async (ms) => {
+        stamps.push(ms);
+      },
       sync: async () => {
         throw new Error('boom');
       },
     });
-    expect(await runBackgroundJob(d)).toBe('success');
+    expect(await runBackgroundJob(d)).toBe('failed');
     expect(calls).toContain('nudge');
+    expect(stamps).toEqual([NOW, NOW - HEAVY_INTERVAL_MS - 1]);
+  });
+
+  it('a failed first sync rewinds the stamp to 0 so it is due again', async () => {
+    const stamps: number[] = [];
+    const { deps: d } = deps({
+      saveHeavyRunAt: async (ms) => {
+        stamps.push(ms);
+      },
+      sync: async () => {
+        throw new Error('boom');
+      },
+    });
+    await runBackgroundJob(d);
+    expect(stamps).toEqual([NOW, 0]);
+    expect(isHeavyDue(0, NOW)).toBe(true);
+  });
+
+  it('runs the permission check after the nudge and isolates its failure', async () => {
+    const { calls, deps: d } = deps({
+      permissionCheck: async () => {
+        calls.push('permission');
+        throw new Error('x');
+      },
+    });
+    expect(await runBackgroundJob(d)).toBe('success');
+    expect(calls.slice(-2)).toEqual(['nudge', 'permission']);
   });
 
   it('fails only when the database cannot open', async () => {

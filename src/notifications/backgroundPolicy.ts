@@ -13,10 +13,13 @@ export const FREQUENT_INTERVAL_MIN = 15;
 /** Minutes between runs of the job when the nudge does not need it. */
 export const RELAXED_INTERVAL_MIN = 6 * 60;
 
-/** Whether the heavy work is due (never ran, a clock set back, or `HEAVY_INTERVAL_MS` elapsed). */
+/** WorkManager wakes drift by minutes; without slack a 6 h interval would often skip a whole cycle. */
+export const HEAVY_SLACK_MS = 20 * 60_000;
+
+/** Whether the heavy work is due (never ran, a clock set back, or the interval minus slack elapsed). */
 export function isHeavyDue(lastRunAt: number | undefined, nowMs: number): boolean {
   if (lastRunAt === undefined || lastRunAt > nowMs) return true;
-  return nowMs - lastRunAt >= HEAVY_INTERVAL_MS;
+  return nowMs - lastRunAt >= HEAVY_INTERVAL_MS - HEAVY_SLACK_MS;
 }
 
 /**
@@ -52,12 +55,15 @@ export type JobDeps = {
   suggestions: () => Promise<unknown>;
   sync: () => Promise<unknown>;
   nudge: () => Promise<unknown>;
+  /** After the nudge: detects revoked Health Connect permissions (turns the nudge off, relaxes the cadence). */
+  permissionCheck?: () => Promise<unknown>;
   report?: (what: string, error: unknown) => void;
 };
 
 /**
- * One run of the job. Only a database that cannot open fails the run; every step is isolated so a
- * failing sync never keeps the nudge from being attempted.
+ * One run of the job. A database that cannot open or a failing heavy sync fails the run (the sync
+ * rewinds the heavy stamp); every step is isolated so a failing sync never keeps the nudge from
+ * being attempted.
  */
 export async function runBackgroundJob(deps: JobDeps): Promise<'success' | 'failed'> {
   const report = deps.report ?? (() => undefined);
@@ -68,13 +74,22 @@ export async function runBackgroundJob(deps: JobDeps): Promise<'success' | 'fail
   }
   const nowMs = deps.now().getTime();
   const last = await deps.lastHeavyRunAt().catch(() => undefined);
+  let heavyFailed = false;
   if (isHeavyDue(last, nowMs)) {
     // Stamped first: a run that crashes midway is not retried every 15 minutes.
     await deps.saveHeavyRunAt(nowMs).catch((error: unknown) => report('stamp', error));
     await deps.suggestions().catch((error: unknown) => report('suggestions', error));
     // Same mutex as the foreground triggers; its own failure never skips the nudge.
-    await deps.sync().catch((error: unknown) => report('sync', error));
+    await deps.sync().catch((error: unknown) => {
+      heavyFailed = true;
+      report('sync', error);
+    });
+    // A failed sync rewinds the stamp so the next wake retries instead of waiting ~6 h.
+    if (heavyFailed) {
+      await deps.saveHeavyRunAt(last ?? 0).catch((error: unknown) => report('rewind', error));
+    }
   }
   await deps.nudge().catch((error: unknown) => report('nudge', error));
-  return 'success';
+  await deps.permissionCheck?.().catch((error: unknown) => report('permission', error));
+  return heavyFailed ? 'failed' : 'success';
 }

@@ -1,6 +1,6 @@
 // Export and restore of ALL user data. Pure over a `Db` (no Expo imports), so it is tested on the
 // in-memory test database; `files.ts` and the screens wire it to the file system.
-import { asc } from 'drizzle-orm';
+import { asc, notInArray } from 'drizzle-orm';
 
 import {
   activityLogs,
@@ -26,6 +26,15 @@ import type { Db } from '../db/types';
 
 import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, type Backup, type BackupData } from './schema';
 
+/**
+ * Device-local bookkeeping of the background job: not user data, and wrong on another phone (a
+ * restored interval would stop the job from registering; a restored stamp would skip the heavy run).
+ */
+export const DEVICE_LOCAL_SETTINGS: readonly string[] = [
+  'backgroundIntervalMin',
+  'backgroundLastHeavyRunAt',
+];
+
 export type ExportOptions = {
   appVersion: string;
   /** Include the photo rows (the image files are exported separately, see `src/photos`). Default false. */
@@ -39,7 +48,9 @@ export async function createBackup(db: Db, options: ExportOptions): Promise<Back
   const now = options.now ?? (() => new Date());
   const data: BackupData = {
     profile: await db.select().from(profile),
-    settings: await db.select().from(settings).orderBy(asc(settings.key)),
+    settings: (await db.select().from(settings).orderBy(asc(settings.key))).filter(
+      (row) => !DEVICE_LOCAL_SETTINGS.includes(row.key),
+    ),
     templates: await db.select().from(templates).orderBy(asc(templates.id)),
     workoutSessions: await db.select().from(workoutSessions).orderBy(asc(workoutSessions.id)),
     setLogs: await db.select().from(setLogs).orderBy(asc(setLogs.id)),
@@ -107,10 +118,14 @@ export async function restoreBackup(target: Db | Tx, backup: Backup): Promise<vo
     await db.delete(reminders);
     await db.delete(templates);
     await db.delete(profile);
-    await db.delete(settings);
+    // Device-local keys stay as they are on this phone.
+    await db.delete(settings).where(notInArray(settings.key, [...DEVICE_LOCAL_SETTINGS]));
 
     await insertChunks(data.profile, (rows) => db.insert(profile).values(rows));
-    await insertChunks(data.settings, (rows) => db.insert(settings).values(rows));
+    await insertChunks(
+      data.settings.filter((row) => !DEVICE_LOCAL_SETTINGS.includes(row.key)),
+      (rows) => db.insert(settings).values(rows),
+    );
     await insertChunks(data.templates, (rows) => db.insert(templates).values(rows));
     await insertChunks(data.workoutSessions, (rows) => db.insert(workoutSessions).values(rows));
     await insertChunks(data.setLogs, (rows) => db.insert(setLogs).values(rows));

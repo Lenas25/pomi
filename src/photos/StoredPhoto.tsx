@@ -36,7 +36,7 @@ export function StoredPhoto({ name, label, thumbnail = false }: StoredPhotoProps
   useEffect(() => {
     if (!needsBackfill) return;
     let cancelled = false;
-    void ensureThumbnail(expoPhotoFs, name).then((made) => {
+    void ensureThumbnail(expoPhotoFs, name, { isCancelled: () => cancelled }).then((made) => {
       if (made && !cancelled) setBackfilled((value) => value + 1);
     });
     return () => {

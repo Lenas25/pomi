@@ -818,6 +818,7 @@ export const es = {
       'Tu versión de Health Connect no permite la lectura en segundo plano, así que no podemos activar el aviso. Actualiza Health Connect e inténtalo de nuevo.',
     missingPermission:
       'Apagamos el aviso porque falta un permiso de Health Connect. Puedes volver a activarlo cuando quieras.',
+    requestFailed: 'No se pudo pedir el permiso. Inténtalo de nuevo.',
     openHealthSettings: 'Abrir ajustes de Health Connect',
     saveFailed: 'No pudimos guardar el cambio.',
     window: 'Mirar los últimos',

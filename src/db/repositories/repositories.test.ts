@@ -25,6 +25,19 @@ beforeEach(async () => {
 afterEach(() => close());
 
 describe('settings', () => {
+  it('update is a serialized read-modify-write: concurrent patches all land', async () => {
+    await Promise.all([
+      repos.settings.update('sedentaryNudge', (c) => ({ ...c, windowMin: 90 })),
+      repos.settings.update('sedentaryNudge', (c) => ({ ...c, maxPerDay: 3 })),
+      repos.settings.update('sedentaryNudge', (c) => ({ ...c, enabled: true })),
+    ]);
+    expect(await repos.settings.get('sedentaryNudge')).toEqual({
+      windowMin: 90,
+      maxPerDay: 3,
+      enabled: true,
+    });
+  });
+
   it('round trips typed values and ignores missing or invalid ones', async () => {
     expect(await repos.settings.get('themeMode')).toBeUndefined();
     await repos.settings.set('themeMode', 'dark');

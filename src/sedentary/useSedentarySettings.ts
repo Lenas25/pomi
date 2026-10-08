@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
 import { getRepositories } from '../db';
@@ -7,7 +7,7 @@ import type { SedentaryConfig } from '../domain/sedentary';
 import { getHealthAdapter } from '../health';
 import { refreshBackgroundSchedule } from '../notifications/backgroundTasks';
 
-import { ensureNudgePermissions } from './enable';
+import { ensureNudgePermissions, nudgePermissionState } from './enable';
 import { resolveSedentaryConfig } from './runNudge';
 
 type Stored = SettingsValue<'sedentaryNudge'>;
@@ -18,6 +18,7 @@ export type SedentaryNotice =
   | 'bgDenied'
   | 'featureUnavailable'
   | 'missingPermission'
+  | 'requestFailed'
   | 'saveFailed'
   | null;
 
@@ -44,9 +45,11 @@ export function useSedentarySettings() {
   const save = useCallback(async (patch: Partial<SedentaryConfig>) => {
     const settings = getRepositories().settings;
     try {
-      const stored: Stored = (await settings.get('sedentaryNudge')) ?? {};
-      const next = { ...stored, ...patch } as Stored;
-      await settings.set('sedentaryNudge', next);
+      // Read-modify-write inside the settings mutex: fast toggles never lose each other's patch.
+      const next = await settings.update(
+        'sedentaryNudge',
+        (stored) => ({ ...(stored ?? {}), ...patch }) as Stored,
+      );
       setConfig(resolveSedentaryConfig(next));
       // 15 minutes while the nudge is on, 6 hours otherwise.
       await refreshBackgroundSchedule().catch(() => undefined);
@@ -74,8 +77,9 @@ export function useSedentarySettings() {
         return;
       }
       const outcome = await ensureNudgePermissions(getHealthAdapter());
+      if (outcome === 'cancelled') return;
       if (outcome !== 'granted') {
-        setNotice(outcome);
+        setNotice(outcome === 'transient' ? 'requestFailed' : outcome);
         return;
       }
       await save({ enabled: true });
@@ -83,34 +87,47 @@ export function useSedentarySettings() {
     [save],
   );
 
-  const awaitingReturn = useRef(false);
-
-  /** Re-checks both permissions; if one is gone while the nudge is on, turns it off and says why. */
+  /**
+   * Re-checks both permissions; turns the nudge off (and says why) only when both calls answered
+   * and one of them is false. A failing call keeps the state as it is.
+   */
   const recheck = useCallback(async () => {
     const stored = await getRepositories().settings.get('sedentaryNudge');
     if (!resolveSedentaryConfig(stored).enabled) return;
-    const adapter = getHealthAdapter();
-    const ok = await Promise.all([adapter.hasPermission(), adapter.hasBackgroundPermission()])
-      .then(([steps, background]) => steps && background)
-      .catch(() => false);
-    if (ok) return;
+    if ((await nudgePermissionState(getHealthAdapter())) !== 'missing') return;
     await save({ enabled: false });
     setNotice('missingPermission');
   }, [save]);
 
+  // The background job may have found the permission gone while the app was closed.
+  useEffect(() => {
+    let cancelled = false;
+    const settings = getRepositories().settings;
+    settings
+      .get('sedentaryPermissionLost')
+      .then(async (lost) => {
+        if (!lost) return;
+        await settings.remove('sedentaryPermissionLost');
+        if (cancelled) return;
+        setConfig((current) => (current ? { ...current, enabled: false } : current));
+        setNotice('missingPermission');
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Every return to the app: permissions can be revoked from the system settings at any time.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && awaitingReturn.current) {
-        awaitingReturn.current = false;
-        void recheck();
-      }
+      if (state === 'active') void recheck().catch(() => undefined);
     });
     return () => subscription.remove();
   }, [recheck]);
 
-  /** Opens Health Connect; when the person comes back the permissions are checked again. */
+  /** Opens Health Connect; the permissions are checked again when the app becomes active. */
   const openHealthSettings = useCallback(() => {
-    awaitingReturn.current = true;
     getHealthAdapter().openSettings();
   }, []);
 

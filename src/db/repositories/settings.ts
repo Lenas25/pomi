@@ -111,6 +111,8 @@ export const settingsSchemas = {
   backupReminder: z.boolean(),
   sedentaryNudge: sedentaryNudgeSchema,
   sedentaryHistory: sedentaryHistorySchema,
+  /** The background job found a revoked Health Connect permission and turned the nudge off; shown once. */
+  sedentaryPermissionLost: z.boolean(),
   /** Epoch ms of the last heavy background run (suggestions + notification sync, at most every ~6 h). */
   backgroundLastHeavyRunAt: z.number().nonnegative(),
   /** Interval (minutes) the periodic job was last registered with; re-registering resets its period. */
@@ -219,19 +221,31 @@ export function createSettingsRepository(db: Db, now: () => number = Date.now) {
     }
   }
 
+  async function get<K extends SettingsKey>(key: K): Promise<SettingsValue<K> | undefined> {
+    const rows = await db.select().from(settings).where(eq(settings.key, key));
+    const row = rows[0];
+    if (!row) return undefined;
+    try {
+      const parsed = settingsSchemas[key].safeParse(JSON.parse(row.value));
+      return parsed.success ? (parsed.data as SettingsValue<K>) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  function enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const previous = setLocks.get(db) ?? Promise.resolve();
+    const run = previous.then(task, task);
+    setLocks.set(
+      db,
+      run.catch(() => undefined),
+    );
+    return run;
+  }
+
   return {
     /** Returns `undefined` when the key is missing or its stored value no longer matches the schema. */
-    async get<K extends SettingsKey>(key: K): Promise<SettingsValue<K> | undefined> {
-      const rows = await db.select().from(settings).where(eq(settings.key, key));
-      const row = rows[0];
-      if (!row) return undefined;
-      try {
-        const parsed = settingsSchemas[key].safeParse(JSON.parse(row.value));
-        return parsed.success ? (parsed.data as SettingsValue<K>) : undefined;
-      } catch {
-        return undefined;
-      }
-    },
+    get,
 
     /**
      * Writes a value. Two plan keys also stamp WHEN they changed, whoever changed them
@@ -240,16 +254,23 @@ export function createSettingsRepository(db: Db, now: () => number = Date.now) {
      * it never judges a new plan by the old one.
      */
     set<K extends SettingsKey>(key: K, value: SettingsValue<K>): Promise<void> {
-      const previous = setLocks.get(db) ?? Promise.resolve();
-      const run = previous.then(
-        () => setUnlocked(key, value),
-        () => setUnlocked(key, value),
-      );
-      setLocks.set(
-        db,
-        run.catch(() => undefined),
-      );
-      return run;
+      return enqueue(() => setUnlocked(key, value));
+    },
+
+    /**
+     * Read-modify-write of one key inside the settings mutex, so two fast callers never lose an
+     * update. `fn` receives the stored value (or `undefined`) and returns the next one. Same
+     * limitation as `set`: the mutex does not cover a caller's `withTransaction` (see CLAUDE.md).
+     */
+    update<K extends SettingsKey>(
+      key: K,
+      fn: (current: SettingsValue<K> | undefined) => SettingsValue<K>,
+    ): Promise<SettingsValue<K>> {
+      return enqueue(async () => {
+        const next = fn(await get(key));
+        await setUnlocked(key, next);
+        return next;
+      });
     },
 
     /**

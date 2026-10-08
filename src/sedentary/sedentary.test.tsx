@@ -7,7 +7,7 @@ import { DEFAULT_SEDENTARY, type NudgeHistory } from '../domain/sedentary';
 import { es } from '../i18n/es';
 import { en } from '../i18n/en';
 
-import { ensureNudgePermissions } from './enable';
+import { ensureNudgePermissions, nudgePermissionState } from './enable';
 import {
   nudgeNeedsFrequentWorker,
   resolveSedentaryConfig,
@@ -209,7 +209,7 @@ describe('ensureNudgePermissions', () => {
         adapter({
           hasBackgroundPermission: async () => false,
           requestBackgroundPermission: jest.fn(async () => {
-            throw new Error('feature missing');
+            throw new Error('feature not supported');
           }),
         }),
       ),
@@ -222,7 +222,51 @@ describe('ensureNudgePermissions', () => {
           },
         }),
       ),
-    ).toBe('denied');
+    ).toBe('transient');
+  });
+
+  it('separates a dismissed dialog and a failed request from a missing feature', async () => {
+    const failing = (message: string) =>
+      adapter({
+        hasBackgroundPermission: async () => false,
+        requestBackgroundPermission: jest.fn(async () => {
+          throw new Error(message);
+        }),
+      });
+    expect(await ensureNudgePermissions(failing('User cancelled'))).toBe('cancelled');
+    expect(await ensureNudgePermissions(failing('permission denied'))).toBe('bgDenied');
+    expect(await ensureNudgePermissions(failing('Something odd'))).toBe('transient');
+    expect(
+      await ensureNudgePermissions(
+        adapter({
+          hasPermission: async () => false,
+          requestPermission: jest.fn(async () => {
+            throw new Error('Activity not found');
+          }),
+        }),
+      ),
+    ).toBe('transient');
+  });
+});
+
+describe('nudgePermissionState', () => {
+  const state = (steps: () => Promise<boolean>, background: () => Promise<boolean>) =>
+    nudgePermissionState({ hasPermission: steps, hasBackgroundPermission: background });
+  const yes = async () => true;
+  const no = async () => false;
+  const boom = async (): Promise<boolean> => {
+    throw new Error('x');
+  };
+
+  it('reports missing only when both calls resolve and one is false', async () => {
+    expect(await state(yes, yes)).toBe('ok');
+    expect(await state(yes, no)).toBe('missing');
+    expect(await state(no, yes)).toBe('missing');
+  });
+
+  it('keeps the state when a call fails, even if the other one says false', async () => {
+    expect(await state(no, boom)).toBe('unknown');
+    expect(await state(boom, yes)).toBe('unknown');
   });
 });
 

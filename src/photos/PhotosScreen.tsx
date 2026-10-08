@@ -67,7 +67,11 @@ export function PhotosScreen() {
     try {
       const { photos } = getRepositories();
       const next = await photos.pageAfter(PHOTOS_PAGE_SIZE, cursorOf(state.rows));
-      setState({ status: 'ready', rows: appendPage(state.rows, next), total: state.total });
+      const rows = appendPage(state.rows, next);
+      // A short page means there is nothing after it: the stored count was stale (photos removed
+      // elsewhere), so trust what was read and stop offering "load more".
+      const total = next.length < PHOTOS_PAGE_SIZE ? rows.length : state.total;
+      setState({ status: 'ready', rows, total });
     } catch (error) {
       if (__DEV__) console.error('Could not load more photos', error);
       setNotice({ tone: 'error', text: t('photosScreen.loadFailed') });

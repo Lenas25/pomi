@@ -74,6 +74,21 @@ describe('PhotosScreen', () => {
     expect(screen.queryByRole('button', { name: 'Ver más' })).toBeNull();
   });
 
+  it('hides "Ver más" and fixes the count when a page comes back short', async () => {
+    await seed(PHOTOS_PAGE_SIZE + 2);
+    await renderScreen();
+    expect(await screen.findByText(`Fotos: ${PHOTOS_PAGE_SIZE + 2}`)).toBeTruthy();
+    // Two photos disappear elsewhere (a restore, another screen): the count read earlier is stale.
+    const { photos } = mockEnv.repos!;
+    const stale = await photos.pageAfter(PHOTOS_PAGE_SIZE + 2);
+    await photos.removeMany(stale.slice(-2).map((row) => row.id));
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: 'Ver más' }));
+    });
+    expect(screen.queryByRole('button', { name: 'Ver más' })).toBeNull();
+    expect(screen.getByText(`Fotos: ${PHOTOS_PAGE_SIZE}`)).toBeTruthy();
+  });
+
   it('deletes every file and row after an explicit confirmation', async () => {
     await seed(3);
     mockEnv.files.set('stray.jpg', 'y');

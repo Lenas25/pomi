@@ -36,7 +36,10 @@ const JPEG_A = '/9j/QUJD';
 const JPEG_B = '/9j/REVG';
 
 /** In-memory file system: the "cache" holds captures, `files` is the private photo folder. */
-function fakeFs(cache: Record<string, string> = {}, opts: { failThumbnails?: boolean } = {}) {
+function fakeFs(
+  cache: Record<string, string> = {},
+  opts: { failThumbnails?: boolean; onResize?: (name: string) => void } = {},
+) {
   const files = new Map<string, string>();
   const fs: PhotoFs = {
     async store(sourceUri, name) {
@@ -57,6 +60,14 @@ function fakeFs(cache: Record<string, string> = {}, opts: { failThumbnails?: boo
       if (opts.failThumbnails) throw new Error('no thumbnail');
       if (!files.has(name)) throw new Error('no photo');
       files.set(thumbName, `thumb of ${files.get(name)}`);
+    },
+    resizeToTemp: async (name) => {
+      if (opts.failThumbnails) throw new Error('no thumbnail');
+      if (!files.has(name)) throw new Error('no photo');
+      const uri = `cache://thumb-${name}`;
+      cache[uri] = `thumb of ${files.get(name)}`;
+      opts.onResize?.(name);
+      return uri;
     },
   };
   return { fs, files, cache };
@@ -83,7 +94,16 @@ describe('photo file names', () => {
 
   it('accepts only plain jpg names (no folders or tricks)', () => {
     expect(isSafePhotoName('2026-10-01-frente-5.jpg')).toBe(true);
-    for (const bad of ['../x.jpg', 'a/b.jpg', 'a\\b.jpg', 'x.png', '.hidden.jpg', 'a..b.jpg', '']) {
+    for (const bad of [
+      '../x.jpg',
+      'a/b.jpg',
+      'a\\b.jpg',
+      'x.png',
+      '.hidden.jpg',
+      'a..b.jpg',
+      '',
+      'thumb-2026-10-01-frente-5.jpg',
+    ]) {
       expect(isSafePhotoName(bad)).toBe(false);
     }
   });
@@ -322,6 +342,76 @@ describe('thumbnails', () => {
     expect(await ensureThumbnail(fs, 'old.jpg')).toBe(true);
     expect(files.has('thumb-old.jpg')).toBe(true);
     expect(await ensureThumbnail(fs, 'missing.jpg')).toBe(false);
+  });
+
+  it('backfills outside the photo lock and writes under it only at the end', async () => {
+    const order: string[] = [];
+    const { fs, files } = fakeFs({}, { onResize: (name) => order.push(`resize ${name}`) });
+    files.set('a.jpg', 'x');
+    let release: () => void = () => undefined;
+    const held = withPhotoLock(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const pending = ensureThumbnail(fs, 'a.jpg');
+    // The resize does not wait for the lock held by another photo operation.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(order).toEqual(['resize a.jpg']);
+    expect(files.has('thumb-a.jpg')).toBe(false);
+    release();
+    await held;
+    expect(await pending).toBe(true);
+    expect(files.get('thumb-a.jpg')).toBe('thumb of x');
+  });
+
+  it('does not write a thumbnail for a photo deleted while it was resizing', async () => {
+    const { fs, files, cache } = fakeFs({}, { onResize: (name) => files.delete(name) });
+    files.set('gone.jpg', 'x');
+    expect(await ensureThumbnail(fs, 'gone.jpg')).toBe(false);
+    expect(files.size).toBe(0);
+    expect(Object.keys(cache)).toEqual([]);
+  });
+
+  it('skips the resize when the cell unmounted and runs one backfill at a time', async () => {
+    const resized: string[] = [];
+    let active = 0;
+    let maxActive = 0;
+    const base = fakeFs({}, { onResize: (name) => resized.push(name) });
+    const slow: PhotoFs = {
+      ...base.fs,
+      resizeToTemp: async (name) => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        active -= 1;
+        return base.fs.resizeToTemp(name);
+      },
+    };
+    for (const name of ['b1.jpg', 'b2.jpg', 'b3.jpg']) base.files.set(name, 'x');
+    let unmounted = false;
+    const results = await Promise.all([
+      ensureThumbnail(slow, 'b1.jpg'),
+      ensureThumbnail(slow, 'b2.jpg', { isCancelled: () => unmounted }),
+      ensureThumbnail(slow, 'b3.jpg'),
+      (async () => {
+        unmounted = true;
+        return undefined;
+      })(),
+    ]);
+    expect(results.slice(0, 3)).toEqual([true, false, true]);
+    expect(resized).toEqual(['b1.jpg', 'b3.jpg']);
+    expect(maxActive).toBe(1);
+  });
+
+  it('withPhotoLock rejects (does not throw) when called from inside the lock', async () => {
+    const nested = withPhotoLock(async () => {
+      const inner = withPhotoLock(async () => 'never');
+      await expect(inner).rejects.toThrow(/deadlock/);
+      return 'ok';
+    });
+    expect(await nested).toBe('ok');
   });
 
   it('a retake removes the earlier thumbnail and the sweep keeps used thumbnails', async () => {

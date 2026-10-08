@@ -820,6 +820,7 @@ export const en: Messages = {
       'Your Health Connect version does not allow background reads, so we cannot turn the reminder on. Update Health Connect and try again.',
     missingPermission:
       'We turned the reminder off because a Health Connect permission is missing. You can turn it on again any time.',
+    requestFailed: 'We could not ask for the permission. Please try again.',
     openHealthSettings: 'Open Health Connect settings',
     saveFailed: 'We could not save the change.',
     window: 'Look at the last',

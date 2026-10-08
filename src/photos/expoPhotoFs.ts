@@ -59,19 +59,9 @@ export const expoPhotoFs: PhotoFs = {
       throw error;
     }
   },
+  resizeToTemp: (name) => resizeToJpeg(fileOf(name).uri, THUMBNAIL_WIDTH),
   async makeThumbnail(name, thumbName) {
-    const resized = await resizeToJpeg(fileOf(name).uri, THUMBNAIL_WIDTH);
-    const cacheFile = new File(resized);
-    try {
-      await cacheFile.move(fileOf(thumbName), { overwrite: true });
-    } catch (error) {
-      try {
-        if (cacheFile.exists) cacheFile.delete();
-      } catch {
-        // The cache is cleaned by the system anyway.
-      }
-      throw error;
-    }
+    await expoPhotoFs.store(await expoPhotoFs.resizeToTemp(name), thumbName);
   },
   discard(uri) {
     try {

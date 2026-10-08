@@ -8,6 +8,7 @@ import { getDatabase, getRepositories } from '../db';
 import { hydrateStores } from '../db/useDatabaseReady';
 import { useT } from '../i18n';
 import type { TranslationKey } from '../i18n/types';
+import { refreshBackgroundSchedule } from '../notifications/backgroundTasks';
 import { requestNotificationSync } from '../notifications/sync';
 import { MAX_PHOTO_PART_BYTES } from '../photos/photoArchive';
 import { exportPhotoArchive, importPhotoArchive } from '../photos/photoBackup';
@@ -155,6 +156,8 @@ export function BackupScreen() {
         if (backup.includesPhotos) {
           await sweepOrphanPhotos(expoPhotoFs, repositories.photos).catch(() => 0);
         }
+        // The nudge settings came from the backup: register the periodic job again.
+        await refreshBackgroundSchedule({ force: true }).catch(() => undefined);
         // The plan of reminders came from the old data.
         void requestNotificationSync('dataChanged');
         setNotice({ tone: 'success', text: t('backup.import.restored') });

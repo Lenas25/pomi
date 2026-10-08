@@ -21,6 +21,7 @@ import * as TaskManager from 'expo-task-manager';
 import { getDatabase, getRepositories } from '../db';
 import { bootstrapDatabase } from '../db/useDatabaseReady';
 import { getHealthAdapter } from '../health';
+import { nudgePermissionState } from '../sedentary/enable';
 import { nudgeNeedsFrequentWorker } from '../sedentary/runNudge';
 import { runSedentaryNudgeForReal } from '../sedentary/nudgeTask';
 import { runDailySuggestions } from '../suggestions/run';
@@ -59,6 +60,7 @@ TaskManager.defineTask(NOTIFICATION_SYNC_TASK, async () => {
     suggestions: () => runDailySuggestions(getDatabase(), getRepositories()),
     sync: runNotificationSync,
     nudge: runSedentaryNudgeForReal,
+    permissionCheck: checkNudgePermissionLoss,
     report: (what, error) => {
       if (__DEV__) console.warn(`Background job: ${what} failed`, error);
     },
@@ -67,6 +69,19 @@ TaskManager.defineTask(NOTIFICATION_SYNC_TASK, async () => {
     ? BackgroundTask.BackgroundTaskResult.Success
     : BackgroundTask.BackgroundTaskResult.Failed;
 });
+
+/**
+ * The nudge is on but a Health Connect permission is gone: turn it off, leave a flag so the
+ * settings screen explains it once, and drop the cadence back to 6 h. Errors keep the state.
+ */
+async function checkNudgePermissionLoss(): Promise<void> {
+  const settings = getRepositories().settings;
+  if (!nudgeNeedsFrequentWorker(await settings.get('sedentaryNudge'))) return;
+  if ((await nudgePermissionState(getHealthAdapter())) !== 'missing') return;
+  await settings.update('sedentaryNudge', (stored) => ({ ...(stored ?? {}), enabled: false }));
+  await settings.set('sedentaryPermissionLost', true);
+  await refreshBackgroundSchedule();
+}
 
 /** Registers both tasks (persisted by the OS; calling it again is harmless). */
 export async function registerBackgroundTasks(): Promise<void> {
@@ -78,9 +93,10 @@ export async function registerBackgroundTasks(): Promise<void> {
  * Registers the periodic job with the cadence the current settings need (15 minutes while the
  * nudge can run, 6 hours otherwise). The registration is remembered: registering again resets the
  * WorkManager period, so it only happens when the cadence flips or the job is not registered
- * (fresh install, restored backup on another phone). Call it after the nudge settings change.
+ * (fresh install). `force` registers anyway (after a backup restore). Call it after the nudge
+ * settings change.
  */
-export async function refreshBackgroundSchedule(): Promise<void> {
+export async function refreshBackgroundSchedule(options: { force?: boolean } = {}): Promise<void> {
   if ((await BackgroundTask.getStatusAsync()) !== BackgroundTask.BackgroundTaskStatus.Available) {
     return;
   }
@@ -93,7 +109,12 @@ export async function refreshBackgroundSchedule(): Promise<void> {
     : false;
   const wanted = intervalFor(config, permitted);
   const registered = await TaskManager.isTaskRegisteredAsync(NOTIFICATION_SYNC_TASK);
-  if (!shouldRegister(wanted, await settings.get('backgroundIntervalMin'), registered)) return;
+  if (
+    !options.force &&
+    !shouldRegister(wanted, await settings.get('backgroundIntervalMin'), registered)
+  ) {
+    return;
+  }
   await BackgroundTask.registerTaskAsync(NOTIFICATION_SYNC_TASK, { minimumInterval: wanted });
   await settings.set('backgroundIntervalMin', wanted);
 }

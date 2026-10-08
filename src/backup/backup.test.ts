@@ -124,6 +124,32 @@ describe('backup export / restore', () => {
     expect((await target.repos.workouts.getSession(1))?.sets).toHaveLength(2);
   });
 
+  it('keeps the background job bookkeeping out of the export and out of a restore', async () => {
+    await source.repos.settings.set('backgroundIntervalMin', 15);
+    await source.repos.settings.set('backgroundLastHeavyRunAt', 111);
+    const exported = await createBackup(source.db, OPTIONS);
+    expect(exported.data.settings.map((row) => row.key)).not.toContain('backgroundIntervalMin');
+    expect(exported.data.settings.map((row) => row.key)).not.toContain('backgroundLastHeavyRunAt');
+
+    // An older file that still carries them must not overwrite this phone's values.
+    const withLocal = parse({
+      ...exported,
+      data: {
+        ...exported.data,
+        settings: [
+          ...exported.data.settings,
+          { key: 'backgroundIntervalMin', value: '360' },
+          { key: 'backgroundLastHeavyRunAt', value: '999' },
+        ],
+      },
+    });
+    await target.repos.settings.set('backgroundIntervalMin', 15);
+    await target.repos.settings.set('backgroundLastHeavyRunAt', 222);
+    await restoreBackup(target.db, withLocal);
+    expect(await target.repos.settings.get('backgroundIntervalMin')).toBe(15);
+    expect(await target.repos.settings.get('backgroundLastHeavyRunAt')).toBe(222);
+  });
+
   it('restores a file written before habit events existed (no habitEvents key)', async () => {
     const original = await createBackup(source.db, OPTIONS);
     const { habitEvents: _omitted, ...dataWithout } = original.data;
