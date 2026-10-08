@@ -146,7 +146,7 @@ describe('loadInsightData', () => {
     expect((await loadInsightData(repos, today)).freeWeekdays).toEqual([5, 6]);
   });
 
-  it('counts as "no gym" only answered non-gym days and unplanned days without a session', async () => {
+  it('counts as "no gym" only explicit answers and planned-off weekdays without a session', async () => {
     await repos.settings.set('gymDays', [{ days: [1], anchor: 'gymMorning' }]);
     const data = await loadInsightData(repos, today);
     const noGym = new Set(data.noGymDates);
@@ -154,12 +154,30 @@ describe('loadInsightData', () => {
       generateSyntheticDays({ days: 60, seed: 1 }).map((d) => [d.date, d.activity]),
     );
     for (const [date, kind] of answers) {
-      if (kind === 'gym') expect(noGym.has(date)).toBe(false);
+      if (kind === 'gym' || date === today) expect(noGym.has(date)).toBe(false);
       else expect(noGym.has(date)).toBe(true);
     }
-    // Days with no answer: unplanned weekdays count, the planned Monday does not.
+    // Days with no answer: with a plan, an unplanned weekday counts, the planned Monday does not.
     expect(noGym.has('2025-11-06')).toBe(true); // Thursday, no data
     expect(noGym.has('2025-11-03')).toBe(false); // Monday, planned, no data
+  });
+
+  it('never counts today as "no gym", even with an answer or an unplanned weekday', async () => {
+    await repos.settings.set('gymDays', [{ days: [1], anchor: 'gymMorning' }]);
+    await repos.activity.upsert(today, 'walk', 'manual');
+    expect(new Set((await loadInsightData(repos, today)).noGymDates).has(today)).toBe(false);
+  });
+
+  it('with no gym plan only explicit non-gym answers count (silence is unknown)', async () => {
+    const data = await loadInsightData(repos, today);
+    const noGym = new Set(data.noGymDates);
+    expect(noGym.has('2025-11-06')).toBe(false); // no data, no plan
+    const answered = generateSyntheticDays({ days: 60, seed: 1 }).filter(
+      (d) => d.activity !== 'gym' && d.date !== today,
+    );
+    expect(answered.length).toBeGreaterThan(0);
+    for (const d of answered) expect(noGym.has(d.date)).toBe(true);
+    expect(noGym.size).toBe(answered.length);
   });
 });
 

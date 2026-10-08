@@ -26,10 +26,10 @@ export const QUALITY_GOOD_MIN = 4;
 export const QUALITY_POOR_MAX = 2;
 /** Consistency: share (0-1) of observed days with movement that a weekday must lead the rest by. */
 export const WEEKDAY_SHARE_DIFF_MIN = 0.2;
-/** Observed days a weekday needs (about 10 weeks of that weekday) before it can be named the most active. */
 /** ...and by this much over the second-best weekday (a runner-up close behind is not a clear winner). */
 export const WEEKDAY_LEAD_OVER_SECOND_MIN = 0.25;
-export const WEEKDAY_MIN_OBSERVED = 10;
+/** Observed days a weekday needs (7 of the ~13 occurrences in the 90-day window) before it can be named the most active. */
+export const WEEKDAY_MIN_OBSERVED = 7;
 
 /** The same kind is not repeated within this many days unless its value changed meaningfully. */
 export const REPEAT_BLOCK_DAYS = 28;

@@ -114,3 +114,22 @@ export function settledSnoozeIds(
     (id) => done.has(id) || state.acked.includes(id) || state.skipped.includes(id),
   );
 }
+
+/** The insight shown this session, with the logical day it belongs to. */
+export type SessionInsight<T> = { day: string; insight: T };
+
+/**
+ * The insight card must stay on Hoy for the session even after it is marked seen, but only for the
+ * day it was shown: when the logical day changes it is dropped. Returns what to remember and what
+ * to keep showing when the load itself brought no insight/suggestion.
+ */
+export function resolveSessionInsight<T>(
+  previous: SessionInsight<T> | undefined,
+  loaded: { day: string; insight: T | undefined; hasSuggestion: boolean },
+): { remembered: SessionInsight<T> | undefined; keep: T | undefined } {
+  if (loaded.insight) {
+    return { remembered: { day: loaded.day, insight: loaded.insight }, keep: undefined };
+  }
+  const remembered = previous && previous.day === loaded.day ? previous : undefined;
+  return { remembered, keep: loaded.hasSuggestion ? undefined : remembered?.insight };
+}

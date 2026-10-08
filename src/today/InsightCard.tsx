@@ -3,7 +3,7 @@
 // of the person: its screen focused and the card mounted for `SEEN_AFTER_MS` (not on mount).
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
-import { Text, View } from 'react-native';
+import { AppState, Text, View } from 'react-native';
 
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -39,16 +39,33 @@ export function InsightCard({
   useEffect(() => {
     onSeenRef.current = onSeen;
   });
-  // The timer restarts each time the screen regains focus and is cancelled when it loses it or
-  // the card unmounts; once reported it never fires again (the screen keys the card by id).
+  // The timer restarts each time the screen regains focus or the app returns to the foreground,
+  // and is cancelled when the screen loses focus, the app goes to the background or the card
+  // unmounts; once reported it never fires again (the screen keys the card by id).
   useFocusEffect(
     useCallback(() => {
       if (reported.current) return undefined;
-      const timer = setTimeout(() => {
-        reported.current = true;
-        onSeenRef.current();
-      }, SEEN_AFTER_MS);
-      return () => clearTimeout(timer);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const stop = () => {
+        if (timer !== undefined) clearTimeout(timer);
+        timer = undefined;
+      };
+      const start = () => {
+        stop();
+        timer = setTimeout(() => {
+          reported.current = true;
+          onSeenRef.current();
+        }, SEEN_AFTER_MS);
+      };
+      if (AppState.currentState === 'active') start();
+      const subscription = AppState.addEventListener('change', (next) => {
+        if (next === 'active') start();
+        else stop();
+      });
+      return () => {
+        stop();
+        subscription.remove();
+      };
     }, []),
   );
   return (

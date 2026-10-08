@@ -35,10 +35,10 @@ describe('resolveStepMuscles', () => {
     const exercise = loadExerciseLibrary()[0];
     if (!exercise) throw new Error('empty library');
     const resolved = resolveStepMuscles([], [`${exercise.id}@db~s`, 'ghost']);
-    expect(resolved[`${exercise.id}@db~s`]).toEqual([
-      ...exercise.muscles.primary,
-      ...exercise.muscles.secondary,
-    ]);
+    expect(resolved[`${exercise.id}@db~s`]).toEqual({
+      direct: exercise.muscles.primary,
+      indirect: exercise.muscles.secondary,
+    });
     expect(resolved['ghost']).toBeUndefined();
   });
 });

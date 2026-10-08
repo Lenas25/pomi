@@ -27,6 +27,16 @@ describe('weeklyVolume', () => {
     expect(week?.isCurrent).toBe(true);
   });
 
+  it('counts every primary muscle of an explicit spec as direct and the secondary as 0.5', () => {
+    const [week] = weeklyVolume({
+      today,
+      weeks: 1,
+      stepMuscles: { press: { direct: ['pecho', 'triceps'], indirect: ['hombro', 'pecho'] } },
+      sets: [{ stepId: 'press', doneAt: at('2026-10-06T10:00:00') }],
+    });
+    expect(week?.sets).toEqual({ pecho: 1, triceps: 1, hombro: 0.5 });
+  });
+
   it('resolves generated step ids stored with @db/~s suffixes', () => {
     const [week] = weeklyVolume({
       today,

@@ -110,7 +110,13 @@ export function useSedentarySettings() {
         if (!lost || cancelled) return;
         setConfig((current) => (current ? { ...current, enabled: false } : current));
         setNotice('missingPermission');
-        await settings.remove('sedentaryPermissionLost');
+        // A failed removal would show the notice again on every mount: retry once, then log.
+        await settings.remove('sedentaryPermissionLost').catch(async (error: unknown) => {
+          if (__DEV__) console.warn('Could not clear the permission-lost flag, retrying', error);
+          await settings.remove('sedentaryPermissionLost').catch((retry: unknown) => {
+            if (__DEV__) console.warn('Could not clear the permission-lost flag', retry);
+          });
+        });
       })
       .catch(() => undefined);
     return () => {

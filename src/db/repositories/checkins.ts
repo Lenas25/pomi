@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lte } from 'drizzle-orm';
+import { and, asc, countDistinct, eq, gte, lte } from 'drizzle-orm';
 
 import { checkins } from '../schema';
 import type { Db } from '../types';
@@ -31,6 +31,15 @@ export function createCheckinsRepository(db: Db) {
         .from(checkins)
         .where(kind === undefined ? range : and(range, eq(checkins.kind, kind)))
         .orderBy(asc(checkins.date));
+    },
+
+    /** Distinct days with at least one check-in in the range (no answers loaded). */
+    async countDays(from: string, to: string): Promise<number> {
+      const rows = await db
+        .select({ days: countDistinct(checkins.date) })
+        .from(checkins)
+        .where(and(gte(checkins.date, from), lte(checkins.date, to)));
+      return rows[0]?.days ?? 0;
     },
   };
 }

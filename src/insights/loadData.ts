@@ -81,14 +81,17 @@ export async function loadInsightData(repos: Repositories, today: string): Promi
     if (row.kind === 'gym') gymDates.add(row.date);
     if (row.kind === 'gym' || row.kind === 'walk') moved.add(row.date);
   }
-  // POSITIVE evidence of no gym: an answer of another kind, or a day that was not a planned gym day
-  // and has no session. A planned day with nothing logged is unknown, not "no gym".
+  // POSITIVE evidence of no gym only: an explicit answer of another kind, or (when a gym plan
+  // exists) a planned-off weekday with no session. With no plan only explicit answers count.
+  // Today is excluded: the day is not over, a session may still happen.
   const noGym = new Set<string>();
   const answered = new Set(activityRows.map((row) => row.date));
-  for (const row of activityRows) if (row.kind !== 'gym') noGym.add(row.date);
-  for (let offset = INSIGHTS_WINDOW_DAYS - 1; offset >= 0; offset -= 1) {
-    const date = key(offset);
-    if (!answered.has(date) && !plannedWeekdays.has(getDay(parseISO(date)))) noGym.add(date);
+  for (const row of activityRows) if (row.kind !== 'gym' && row.date < today) noGym.add(row.date);
+  if (plannedWeekdays.size > 0) {
+    for (let offset = INSIGHTS_WINDOW_DAYS - 1; offset >= 1; offset -= 1) {
+      const date = key(offset);
+      if (!answered.has(date) && !plannedWeekdays.has(getDay(parseISO(date)))) noGym.add(date);
+    }
   }
   for (const date of gymDates) noGym.delete(date);
   const stepsByDate = new Map(stepRows.filter((r) => r.steps > 0).map((r) => [r.date, r.steps]));

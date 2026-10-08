@@ -116,6 +116,40 @@ describe('background policy', () => {
     expect(retries).toEqual({ windowStart: NOW + HEAVY_INTERVAL_MS + 31 * 60_000, count: 1 });
   });
 
+  it('writes the retry counter before the rewind and skips the rewind when the write fails', async () => {
+    const order: string[] = [];
+    const base = {
+      lastHeavyRunAt: async () => NOW - HEAVY_INTERVAL_MS - 1,
+      saveHeavyRunAt: async (ms: number) => {
+        order.push(`stamp:${ms === NOW ? 'now' : 'rewind'}`);
+      },
+      heavyRetries: async () => undefined,
+      sync: async () => {
+        throw new Error('boom');
+      },
+    };
+    await runBackgroundJob(
+      deps({
+        ...base,
+        saveHeavyRetries: async () => {
+          order.push('counter');
+        },
+      }).deps,
+    );
+    expect(order).toEqual(['stamp:now', 'counter', 'stamp:rewind']);
+
+    order.length = 0;
+    await runBackgroundJob(
+      deps({
+        ...base,
+        saveHeavyRetries: async () => {
+          throw new Error('disk full');
+        },
+      }).deps,
+    );
+    expect(order).toEqual(['stamp:now']);
+  });
+
   it('a failed first sync rewinds the stamp to 0 so it is due again', async () => {
     const stamps: number[] = [];
     const { deps: d } = deps({

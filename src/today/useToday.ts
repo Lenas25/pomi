@@ -29,7 +29,13 @@ import {
   type TodayActionDeps,
 } from './todayActions';
 import { loadTodayData, type TodayData } from './todayData';
-import { progressFrom, settledSnoozeIds, todayStateFor } from './todayView';
+import {
+  progressFrom,
+  resolveSessionInsight,
+  settledSnoozeIds,
+  todayStateFor,
+  type SessionInsight,
+} from './todayView';
 
 const SNOOZE_PREFIX = 'snooze:timeline:';
 
@@ -67,7 +73,9 @@ export function useToday() {
   const loadedDay = useRef<string | undefined>(undefined);
   // The insight card of this session: once shown it is marked seen, and the next load no longer
   // returns it, but it must stay on Hoy until the app is closed (it would vanish under the reader).
-  const sessionInsight = useRef<TodayData['insight']>(undefined);
+  const sessionInsight = useRef<SessionInsight<NonNullable<TodayData['insight']>> | undefined>(
+    undefined,
+  );
 
   const reload = useCallback(async (): Promise<void> => {
     const ticket = (generation.current += 1);
@@ -76,8 +84,12 @@ export function useToday() {
       await runDailySuggestions(getDatabase(), getRepositories()).catch(() => []);
       await runWeeklyInsights(getDatabase(), getRepositories()).catch(() => []);
       const loaded = await loadTodayData(getRepositories(), new Date());
-      if (loaded.insight) sessionInsight.current = loaded.insight;
-      const keep = !loaded.insight && !loaded.suggestion ? sessionInsight.current : undefined;
+      const { remembered, keep } = resolveSessionInsight(sessionInsight.current, {
+        day: loaded.today,
+        insight: loaded.insight,
+        hasSuggestion: Boolean(loaded.suggestion),
+      });
+      sessionInsight.current = remembered;
       const data: TodayData = keep
         ? { ...loaded, insight: keep, companionCard: undefined }
         : loaded;

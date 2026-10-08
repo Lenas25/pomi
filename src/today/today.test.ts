@@ -14,6 +14,7 @@ import { loadTodayData } from './todayData';
 import {
   emptyTodayState,
   progressFrom,
+  resolveSessionInsight,
   settledSnoozeIds,
   todayStateFor,
   type TodayState,
@@ -299,5 +300,41 @@ describe('snoozeContent', () => {
       expect([...title].length).toBeLessThanOrEqual(30);
       expect([...body].length).toBeLessThanOrEqual(80);
     }
+  });
+});
+
+describe('resolveSessionInsight', () => {
+  const shown = { day: '2026-10-05', insight: 'card' };
+
+  it('remembers a loaded insight and keeps showing it once the load no longer returns it', () => {
+    const first = resolveSessionInsight(undefined, {
+      day: '2026-10-05',
+      insight: 'card',
+      hasSuggestion: false,
+    });
+    expect(first.remembered).toEqual(shown);
+    const later = resolveSessionInsight(first.remembered, {
+      day: '2026-10-05',
+      insight: undefined,
+      hasSuggestion: false,
+    });
+    expect(later.keep).toBe('card');
+  });
+
+  it('does not keep it over a suggestion', () => {
+    expect(
+      resolveSessionInsight(shown, { day: '2026-10-05', insight: undefined, hasSuggestion: true })
+        .keep,
+    ).toBeUndefined();
+  });
+
+  it('clears it when the logical day changes', () => {
+    const next = resolveSessionInsight(shown, {
+      day: '2026-10-06',
+      insight: undefined,
+      hasSuggestion: false,
+    });
+    expect(next.keep).toBeUndefined();
+    expect(next.remembered).toBeUndefined();
   });
 });

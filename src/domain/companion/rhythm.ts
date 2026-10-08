@@ -67,7 +67,7 @@ export type Rhythm = {
 
 const mean = (values: readonly number[]) =>
   values.reduce((sum, value) => sum + value, 0) / values.length;
-const round2 = (value: number) => Math.round(value * 100) / 100;
+const round2 = (value: number) => Math.round((value + Math.sign(value) * 1e-9) * 100) / 100;
 const oneDecimal = (value: number) => Math.round(value * 10) / 10;
 
 /** Tendency from the mid-sleep of free days. Before 03:30 morning, until 05:00 intermediate. */
@@ -98,9 +98,9 @@ export function energyBySleep(
   if (enough.length < RHYTHM_MIN_GROUP || short.length < RHYTHM_MIN_GROUP) {
     return { status: 'insufficient' };
   }
-  // The means are compared at two decimals (float noise must not decide the boundary: a gap of
-  // exactly 0.5 passes) and the shown difference is rounded from that same value.
-  const gap = round2(round2(mean(enough)) - round2(mean(short)));
+  // The gap is rounded to two decimals AFTER subtracting the raw means (rounding each mean first
+  // could move the gap by up to 0.01); float noise must not decide the boundary: exactly 0.5 passes.
+  const gap = round2(mean(enough) - mean(short));
   const value: EnergyBySleep = {
     enoughAvg: oneDecimal(mean(enough)),
     shortAvg: oneDecimal(mean(short)),

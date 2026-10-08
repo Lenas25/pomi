@@ -316,6 +316,22 @@ describe('weekday with the most consistency', () => {
     ).toEqual([]);
   });
 
+  it('needs 7 observed days for a weekday: 6 is too few, 7 is enough', () => {
+    const build = (weeks: number) => {
+      const all = dates(weeks * 7);
+      return {
+        ...empty,
+        checkinDates: all,
+        activity: all.map((date) => ({ date, moved: getDay(parseISO(date)) === 3 })),
+      };
+    };
+    expect(buildInsights(build(6), TODAY)).toEqual([]);
+    expect(buildInsights(build(7), TODAY)[0]).toMatchObject({
+      kind: 'bestWeekday',
+      evidence: { weekdayDays: 7 },
+    });
+  });
+
   it('a tie at the top is no finding, and a close runner-up either', () => {
     // Tuesday and Friday tie at 1.0: neither stands out from the other.
     expect(
@@ -331,24 +347,6 @@ describe('weekday with the most consistency', () => {
         TODAY,
       ),
     ).toEqual([]);
-  });
-
-  it('needs 10 observed days of that weekday', () => {
-    const nine = (offset: number) => {
-      const all = dates(63);
-      const seen = new Map<number, number>();
-      return {
-        ...empty,
-        checkinDates: all,
-        activity: all.map((date) => {
-          const weekday = getDay(parseISO(date));
-          const n = seen.get(weekday) ?? 0;
-          seen.set(weekday, n + 1);
-          return { date, moved: weekday === 3 ? true : n < offset };
-        }),
-      };
-    };
-    expect(buildInsights(nine(0), TODAY)).toEqual([]);
   });
 });
 

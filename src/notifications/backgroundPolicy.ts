@@ -106,10 +106,21 @@ export async function runBackgroundJob(deps: JobDeps): Promise<'success' | 'fail
         nowMs - spent.windowStart < HEAVY_INTERVAL_MS;
       const used = open ? spent.count : 0;
       if (!deps.heavyRetries || used < MAX_HEAVY_REWINDS) {
-        await deps.saveHeavyRunAt(last ?? 0).catch((error: unknown) => report('rewind', error));
-        await deps
-          .saveHeavyRetries?.({ windowStart: open ? spent.windowStart : nowMs, count: used + 1 })
-          .catch((error: unknown) => report('retries', error));
+        // The counter is written BEFORE the rewind: if it cannot be saved, the rewind is skipped,
+        // otherwise a failing write would leave an uncapped retry every wake.
+        let counted = true;
+        if (deps.saveHeavyRetries) {
+          counted = await deps
+            .saveHeavyRetries({ windowStart: open ? spent.windowStart : nowMs, count: used + 1 })
+            .then(() => true)
+            .catch((error: unknown) => {
+              report('retries', error);
+              return false;
+            });
+        }
+        if (counted) {
+          await deps.saveHeavyRunAt(last ?? 0).catch((error: unknown) => report('rewind', error));
+        }
       }
     }
   }

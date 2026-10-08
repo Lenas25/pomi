@@ -1,6 +1,13 @@
 // Runs the insights engine once per ISO week and stores what it finds. Pure over `Db` +
 // `Repositories` (no Expo imports), so it is tested on the in-memory database.
-import { buildInsights, hasEnoughCheckinDays, isoWeekStart } from '../domain/insights';
+import { shiftDay } from '../domain/companion/sleepDebt';
+import {
+  buildInsights,
+  hasEnoughCheckinDays,
+  INSIGHTS_WINDOW_DAYS,
+  isoWeekStart,
+  MIN_CHECKIN_DAYS,
+} from '../domain/insights';
 import { dayKeyFor } from '../domain/time';
 import type { Repositories } from '../db/repositories';
 import { waitForMaintenance } from '../db/maintenance';
@@ -31,6 +38,10 @@ export async function runWeeklyInsights(
   return withTransaction(db, async () => {
     if ((await repos.settings.get('onboardingComplete')) !== true) return [];
     if ((await repos.settings.get('insightsLastRun')) === week) return [];
+
+    // Cheap count first: most runs stop here and never load the 90-day data.
+    const from = shiftDay(today, -(INSIGHTS_WINDOW_DAYS - 1));
+    if ((await repos.checkins.countDays(from, today)) < MIN_CHECKIN_DAYS) return [];
 
     const data = await loadInsightData(repos, today);
     // Below the 21-day threshold nothing is compared and the week is NOT marked: the run that

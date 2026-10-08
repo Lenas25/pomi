@@ -20,8 +20,16 @@ export const DEFAULT_VOLUME_WEEKS = 8;
 /** A completed set: only its step and the moment it was done. */
 export type VolumeSet = { stepId: string; doneAt: number };
 
-/** Muscles listed by each step id (first = direct). Ids that are missing are ignored. */
-export type StepMuscles = Readonly<Record<string, readonly string[]>>;
+/**
+ * Muscles of a step. A plain list (program steps) means FIRST = direct, the rest indirect. The
+ * explicit form (library fallback) lists every primary mover as direct and the secondary ones as
+ * indirect, so an exercise with two primaries counts both as 1 set.
+ */
+export type StepMuscleSpec =
+  readonly string[] | { readonly direct: readonly string[]; readonly indirect: readonly string[] };
+
+/** Muscles by step id. Ids that are missing are ignored. */
+export type StepMuscles = Readonly<Record<string, StepMuscleSpec>>;
 
 export type VolumeWeek = {
   /** Monday of the ISO week, `yyyy-MM-dd`. */
@@ -36,6 +44,22 @@ const KNOWN = new Set<string>(MUSCLES);
 const isMuscle = (value: string): value is Muscle => KNOWN.has(value);
 
 const weekOf = (day: string) => format(startOfISOWeek(parseISO(day)), 'yyyy-MM-dd');
+
+function splitMuscles(spec: StepMuscleSpec): { direct: Muscle[]; indirect: Muscle[] } {
+  if (!Array.isArray(spec)) {
+    const { direct, indirect } = spec as Exclude<StepMuscleSpec, readonly string[]>;
+    const directSet = new Set(direct.filter(isMuscle));
+    return {
+      direct: [...directSet],
+      indirect: [...new Set(indirect.filter(isMuscle))].filter((m) => !directSet.has(m)),
+    };
+  }
+  // The direct muscle is the FIRST one listed. If that name is unknown the step is skipped:
+  // promoting the next muscle to "direct" would count a set that was never meant for it.
+  const [first, ...others] = [...new Set(spec as readonly string[])];
+  if (first === undefined || !isMuscle(first)) return { direct: [], indirect: [] };
+  return { direct: [first], indirect: others.filter(isMuscle) };
+}
 
 export type WeeklyVolumeInput = {
   /** Logical day `yyyy-MM-dd`. */
@@ -64,13 +88,9 @@ export function weeklyVolume(input: WeeklyVolumeInput): VolumeWeek[] {
     if (listed === undefined) continue;
     const week = byStart.get(weekOf(dayKeyFor(new Date(set.doneAt), rollover)));
     if (week === undefined) continue;
-    const distinct = [...new Set(listed)];
-    // The direct muscle is the FIRST one listed. If that name is unknown the step is skipped:
-    // promoting the next muscle to "direct" would count a set that was never meant for it.
-    const [first, ...others] = distinct;
-    if (first === undefined || !isMuscle(first)) continue;
-    week.sets[first] = (week.sets[first] ?? 0) + DIRECT_WEIGHT;
-    for (const muscle of others.filter(isMuscle)) {
+    const { direct, indirect } = splitMuscles(listed);
+    for (const muscle of direct) week.sets[muscle] = (week.sets[muscle] ?? 0) + DIRECT_WEIGHT;
+    for (const muscle of indirect) {
       week.sets[muscle] = (week.sets[muscle] ?? 0) + INDIRECT_WEIGHT;
     }
   }

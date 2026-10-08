@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import { buildTimeline } from '../domain/today/timeline';
 import { buildAgenda } from '../domain/agenda/buildAgenda';
@@ -111,7 +112,11 @@ function renderThemed(ui: ReactElement) {
   return render(<ThemeProvider mode="light">{ui}</ThemeProvider>);
 }
 
+const setAppState = (value: AppStateStatus) =>
+  Object.defineProperty(AppState, 'currentState', { value, configurable: true });
+
 beforeEach(() => {
+  setAppState('active');
   setLanguage('es');
 });
 
@@ -291,6 +296,21 @@ describe('TodayScreen', () => {
       await jest.advanceTimersByTimeAsync(600);
       view.unmount();
       await jest.advanceTimersByTimeAsync(1000);
+      expect(handlers.markInsightSeen).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('an insight card is not marked as seen while the app is in the background', async () => {
+    jest.useFakeTimers();
+    try {
+      setAppState('background');
+      const handlers = mockToday(dataWith(), {
+        insight: { id: 9, text: 'Notamos algo.', evidence: 'Basado en 24 días' },
+      });
+      await renderThemed(<TodayScreen />);
+      await jest.advanceTimersByTimeAsync(3000);
       expect(handlers.markInsightSeen).not.toHaveBeenCalled();
     } finally {
       jest.useRealTimers();

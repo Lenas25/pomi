@@ -9,6 +9,7 @@ import {
   buildRhythm,
   chronotypeOf,
   circularMean,
+  energyBySleep,
   midSleepMin,
   pickTodayCard,
   sleepDebt,
@@ -321,5 +322,20 @@ describe('buildCompanion and the card of Hoy', () => {
     expect(companion.water).toBeNull();
     expect(companion.rhythm.ready).toBe(false);
     expect(pickTodayCard(companion)).toBeNull();
+  });
+});
+
+describe('energyBySleep rounding', () => {
+  it('rounds the gap of the raw means, not of means rounded one by one', () => {
+    // Means 19/9 (2.111...) and 21/13 (1.615...): gap 0.4957 -> 0.50 (found). Rounding each mean
+    // first would give 2.11 - 1.62 = 0.49 and miss the 0.5 threshold.
+    const long = Array.from({ length: 9 }, (_, i) => night(`2026-01-${10 + i}`, '07:00', 480));
+    const short = Array.from({ length: 13 }, (_, i) => night(`2026-02-${10 + i}`, '07:00', 360));
+    const energy = new Map<string, number>();
+    long.forEach((n, i) => energy.set(n.date, i === 0 ? 3 : 2));
+    short.forEach((n, i) => energy.set(n.date, i < 5 ? 1 : 2));
+    const found = energyBySleep([...long, ...short], energy);
+    expect(found.status).toBe('found');
+    if (found.status === 'found') expect(found.value.diff).toBe(0.5);
   });
 });
