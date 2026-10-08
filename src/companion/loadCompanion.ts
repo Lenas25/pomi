@@ -5,6 +5,7 @@ import type { Repositories } from '../db/repositories';
 import { resolveAnchors } from '../domain/agenda/buildAgenda';
 import {
   RHYTHM_WINDOW_DAYS,
+  resolveFreeWeekdays,
   WATER_CURVE_WINDOW_DAYS,
   buildCompanion,
   type Companion,
@@ -28,13 +29,14 @@ export async function loadCompanionData(
   const key = (offset: number) => format(subDays(parseISO(today), offset), 'yyyy-MM-dd');
   const from = key(RHYTHM_WINDOW_DAYS - 1);
 
-  const [modules, profile, anchors, shifts, gymDays, goals] = await Promise.all([
+  const [modules, profile, anchors, shifts, gymDays, goals, freeDays] = await Promise.all([
     repos.templates.listModules(),
     repos.profile.get(),
     repos.settings.get('anchors'),
     repos.settings.get('planShifts'),
     repos.settings.get('gymDays'),
     repos.settings.get('goals'),
+    repos.settings.get('freeDays'),
   ]);
   const active = modules.filter((module) => module.active);
   const morningQuestions = active.find((module) => module.template.checkins?.morning)?.template
@@ -108,6 +110,7 @@ export async function loadCompanionData(
     checkinDates: [...morningRows, ...nightRows].map((row) => row.date),
     activity,
     water: { events, targets, wakeMin: resolved.wake, bedMin: resolved.bed },
+    freeWeekdays: resolveFreeWeekdays(freeDays),
   };
 }
 

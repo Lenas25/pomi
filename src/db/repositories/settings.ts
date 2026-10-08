@@ -85,6 +85,8 @@ export const sedentaryHistorySchema = z.strictObject({
 export const settingsSchemas = {
   anchors: anchorsSchema,
   gymDays: gymDaysSchema,
+  /** Weekdays (0 = Sunday) the person usually has free: the "free days" of social jetlag and "Tu ritmo". */
+  freeDays: z.array(z.number().int().min(0).max(6)),
   themeMode: themeModeSchema,
   language: languageSchema,
   activeModules: z.array(z.string()),

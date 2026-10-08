@@ -266,6 +266,11 @@ export const es = {
       dePie: 'De pie',
       activa: 'Físicamente activo',
     },
+    freeDays: {
+      title: '¿Qué días sueles tener libres?',
+      hint: 'Los días sin horario de trabajo. Puedes cambiarlo luego en Ajustes.',
+      label: 'Días libres',
+    },
     sleepClock: {
       title: '¿A qué hora te despiertas y te duermes?',
       hint: 'Tus horas de siempre, aunque no sean perfectas.',
@@ -534,6 +539,11 @@ export const es = {
     back: 'Volver',
   },
   settings: {
+    freeDays: {
+      title: 'Mis días libres',
+      hint: 'Los días sin horario de trabajo. Se usan para comparar tu sueño entre semana y el fin de semana.',
+      saveFailed: 'No pudimos guardar el cambio.',
+    },
     title: 'Ajustes',
     permissions: { title: 'Permisos y avisos', body: 'Notificaciones, alarmas exactas y batería.' },
     notifications: {

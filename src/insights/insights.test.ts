@@ -141,6 +141,11 @@ describe('loadInsightData', () => {
     expect((await loadInsightData(repos, today)).freeWeekdays).toEqual([6, 0]);
   });
 
+  it('uses the free days from settings', async () => {
+    await repos.settings.set('freeDays', [5, 6]);
+    expect((await loadInsightData(repos, today)).freeWeekdays).toEqual([5, 6]);
+  });
+
   it('counts as "no gym" only answered non-gym days and unplanned days without a session', async () => {
     await repos.settings.set('gymDays', [{ days: [1], anchor: 'gymMorning' }]);
     const data = await loadInsightData(repos, today);

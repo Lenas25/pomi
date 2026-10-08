@@ -267,6 +267,11 @@ export const en: Messages = {
       dePie: 'On my feet',
       activa: 'Physically active',
     },
+    freeDays: {
+      title: 'Which days are usually free for you?',
+      hint: 'The days without a work schedule. You can change it later in Settings.',
+      label: 'Free days',
+    },
     sleepClock: {
       title: 'When do you wake up and go to sleep?',
       hint: 'Your usual times, even if they are not perfect.',
@@ -535,6 +540,11 @@ export const en: Messages = {
     back: 'Back',
   },
   settings: {
+    freeDays: {
+      title: 'My free days',
+      hint: 'The days without a work schedule. They are used to compare your sleep on work days and free days.',
+      saveFailed: 'We could not save the change.',
+    },
     title: 'Settings',
     permissions: {
       title: 'Permissions and alerts',

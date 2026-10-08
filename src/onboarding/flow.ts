@@ -5,6 +5,7 @@ export const QUESTION_IDS = [
   'body',
   'age',
   'work',
+  'freeDays',
   'sleepClock',
   'sleepHours',
   'gym',

@@ -3,7 +3,7 @@ import { format, getDay, parseISO, subDays } from 'date-fns';
 
 import type { Repositories } from '../db/repositories';
 import type { InsightRow } from '../db/repositories/insights';
-import { DEFAULT_FREE_WEEKDAYS } from '../domain/companion/limits';
+import { resolveFreeWeekdays } from '../domain/companion/limits';
 import { toMorningCheckin } from '../domain/habits/checkins';
 import {
   INSIGHTS_WINDOW_DAYS,
@@ -48,10 +48,11 @@ export async function loadInsightData(repos: Repositories, today: string): Promi
   const from = key(INSIGHTS_WINDOW_DAYS - 1);
   const sessionsFrom = key(INSIGHTS_WINDOW_DAYS - 1 + SESSIONS_EXTRA_DAYS);
 
-  const [modules, past, plannedGym] = await Promise.all([
+  const [modules, past, plannedGym, freeDays] = await Promise.all([
     repos.templates.listModules(),
     repos.insights.all(),
     repos.settings.get('gymDays'),
+    repos.settings.get('freeDays'),
   ]);
   const plannedWeekdays = new Set((plannedGym ?? []).flatMap((entry) => entry.days));
   const morningQuestions = modules
@@ -104,8 +105,7 @@ export async function loadInsightData(repos: Repositories, today: string): Promi
     checkinDates: [...morningRows, ...nightRows].map((row) => row.date),
     gymDates: [...gymDates],
     noGymDates: [...noGym],
-    // The companion/rhythm code has no setting for free days either: both use the default.
-    freeWeekdays: DEFAULT_FREE_WEEKDAYS,
+    freeWeekdays: resolveFreeWeekdays(freeDays),
     steps: stepRows,
     activity: [...observed].map((date) => ({
       date,

@@ -32,6 +32,7 @@ export type SettingsPatch = {
   gymDays: GymDays;
   checkinPrefs: CheckinPrefs;
   stepsEstimate?: number;
+  freeDays?: number[];
   goals: StoredGoals;
 };
 
@@ -96,6 +97,9 @@ export function mapDraftToPersistence(draft: OnboardingDraft): OnboardingPersist
   const name = draft.name?.trim();
   if (name) settings.userName = name;
   if (draft.stepsEstimate !== undefined) settings.stepsEstimate = draft.stepsEstimate;
+  if (draft.freeDays !== undefined) {
+    settings.freeDays = [...new Set(draft.freeDays)].sort((a, b) => a - b);
+  }
 
   return { profile, settings };
 }

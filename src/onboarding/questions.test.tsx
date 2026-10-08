@@ -9,7 +9,7 @@ import { setLanguage } from '../i18n';
 import { es } from '../i18n/es';
 import { ThemeProvider } from '../ui/theme';
 import { useOnboardingDraft } from './draftStore';
-import { BodyQuestion, NameQuestion, WorkQuestion } from './questions';
+import { BodyQuestion, FreeDaysQuestion, NameQuestion, WorkQuestion } from './questions';
 
 jest.mock('../notifications/PermissionsPanel', () => ({ PermissionsPanel: () => null }));
 
@@ -43,14 +43,14 @@ beforeEach(() => {
 describe('WorkQuestion', () => {
   it('shows progress, saves the choice and moves on with "Siguiente"', async () => {
     await renderScreen(<WorkQuestion />);
-    expect(screen.getByRole('progressbar', { name: 'Pregunta 4 de 12' })).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: 'Pregunta 4 de 13' })).toBeTruthy();
 
     await fireEvent.press(screen.getByRole('radio', { name: es.onboarding.work.sentada }));
     expect(screen.getByRole('radio', { name: es.onboarding.work.sentada })).toBeChecked();
     await fireEvent.press(screen.getByRole('button', { name: es.onboarding.next }));
 
     expect(useOnboardingDraft.getState().draft.workType).toBe('sentada');
-    expect(mockPush).toHaveBeenCalledWith('/onboarding/sleepClock');
+    expect(mockPush).toHaveBeenCalledWith('/onboarding/freeDays');
   });
 
   it('clears the answer and moves on with "Saltar"', async () => {
@@ -60,7 +60,7 @@ describe('WorkQuestion', () => {
     await fireEvent.press(screen.getByRole('button', { name: es.onboarding.skip }));
 
     expect(useOnboardingDraft.getState().draft.workType).toBeUndefined();
-    expect(mockPush).toHaveBeenCalledWith('/onboarding/sleepClock');
+    expect(mockPush).toHaveBeenCalledWith('/onboarding/freeDays');
   });
 
   it('goes back through the router and exposes 48 dp targets', async () => {
@@ -69,6 +69,25 @@ describe('WorkQuestion', () => {
     expect(backButton).toHaveStyle({ width: 48, height: 48 });
     await fireEvent.press(backButton);
     expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('FreeDaysQuestion', () => {
+  it('starts on Saturday and Sunday, saves the edited days and can be skipped', async () => {
+    await renderScreen(<FreeDaysQuestion />);
+    expect(screen.getByRole('checkbox', { name: 'sábado' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'domingo' })).toBeChecked();
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'domingo' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'viernes' }));
+    await fireEvent.press(screen.getByRole('button', { name: es.onboarding.next }));
+    expect(useOnboardingDraft.getState().draft.freeDays).toEqual([5, 6]);
+    expect(mockPush).toHaveBeenCalledWith('/onboarding/sleepClock');
+  });
+
+  it('leaves the answer empty when skipped', async () => {
+    await renderScreen(<FreeDaysQuestion />);
+    await fireEvent.press(screen.getByRole('button', { name: es.onboarding.skip }));
+    expect(useOnboardingDraft.getState().draft.freeDays).toBeUndefined();
   });
 });
 

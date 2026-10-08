@@ -44,3 +44,9 @@ export const EVENING_MIDSLEEP_AFTER_MIN = 5 * 60;
 /** A weekday is among "the days you move most" with this share of observed days moving. */
 export const ACTIVE_WEEKDAY_MIN_SHARE = 0.5;
 export const ACTIVE_WEEKDAY_MIN_OBSERVED = 3;
+
+/** The stored free days (settings `freeDays`) or the default; unique and sorted, Sunday = 0. */
+export function resolveFreeWeekdays(stored: readonly number[] | undefined): readonly number[] {
+  if (stored === undefined) return DEFAULT_FREE_WEEKDAYS;
+  return [...new Set(stored)].sort((a, b) => a - b);
+}

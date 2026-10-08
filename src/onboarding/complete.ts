@@ -28,6 +28,9 @@ export async function completeOnboarding(
     if (settings.stepsEstimate !== undefined) {
       await repositories.settings.set('stepsEstimate', settings.stepsEstimate);
     } else await repositories.settings.remove('stepsEstimate');
+    if (settings.freeDays !== undefined) {
+      await repositories.settings.set('freeDays', settings.freeDays);
+    } else await repositories.settings.remove('freeDays');
     await repositories.settings.set('startedOn', today);
     await repositories.settings.set('onboardingComplete', true);
   });

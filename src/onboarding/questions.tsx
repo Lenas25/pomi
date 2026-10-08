@@ -19,6 +19,7 @@ import {
   type Level,
   type WorkType,
 } from '../domain/onboarding/draft';
+import { DEFAULT_FREE_WEEKDAYS } from '../domain/companion/limits';
 import { useT, type TranslationKey } from '../i18n';
 import { Card } from '../ui/Card';
 import { Chip } from '../ui/Chip';
@@ -27,6 +28,7 @@ import { NumberStepper, TimeStepper } from '../ui/Stepper';
 import { OptionRow } from '../ui/OptionRow';
 import { TextField } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
+import { WeekdayChips } from '../ui/WeekdayChips';
 import { useOnboardingDraft } from './draftStore';
 import { PermissionsPanel } from '../notifications/PermissionsPanel';
 import { QuestionScreen, QuestionTextField } from './QuestionScreen';
@@ -228,6 +230,32 @@ export function WorkQuestion() {
         labels={WORK_LABELS}
         value={workType}
         onChange={(value) => update({ workType: value })}
+      />
+    </QuestionScreen>
+  );
+}
+
+/** Q4b: the days usually free (optional; Saturday and Sunday unless answered). */
+export function FreeDaysQuestion() {
+  const t = useT();
+  const draft = useOnboardingDraft((state) => state.draft);
+  const update = useOnboardingDraft((state) => state.update);
+  const [days, setDays] = useState<number[]>([...(draft.freeDays ?? DEFAULT_FREE_WEEKDAYS)]);
+  return (
+    <QuestionScreen
+      id="freeDays"
+      title={t('onboarding.freeDays.title')}
+      hint={t('onboarding.freeDays.hint')}
+      onNext={() => {
+        update({ freeDays: days });
+        return true;
+      }}
+      onSkip={() => update({ freeDays: undefined })}
+    >
+      <WeekdayChips
+        selected={days}
+        onChange={setDays}
+        accessibilityLabel={t('onboarding.freeDays.label')}
       />
     </QuestionScreen>
   );
@@ -571,6 +599,7 @@ export const QUESTION_COMPONENTS: Record<QuestionId, ComponentType> = {
   body: BodyQuestion,
   age: AgeQuestion,
   work: WorkQuestion,
+  freeDays: FreeDaysQuestion,
   sleepClock: SleepClockQuestion,
   sleepHours: SleepHoursQuestion,
   gym: GymQuestion,

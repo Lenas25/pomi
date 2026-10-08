@@ -46,6 +46,8 @@ export type OnboardingDraft = {
   heightCm?: number;
   ageYears?: number;
   workType?: WorkType;
+  /** Weekdays (0 = Sunday) usually free; `undefined` = not answered (the default Sat/Sun applies). */
+  freeDays?: number[];
   /** Usual wake time `HH:mm`. */
   wake?: string;
   /** Usual bedtime `HH:mm`. Only used to show how much the person sleeps now; bedtime is derived. */

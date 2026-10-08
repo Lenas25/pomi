@@ -8,17 +8,19 @@ import { completeOnboarding } from './complete';
 import { QUESTION_IDS, TOTAL_QUESTIONS, nextHref, questionHref, questionNumber } from './flow';
 
 describe('question flow', () => {
-  it('has the 12 questions of PLAN §8 in order and numbers them from 1', () => {
-    expect(TOTAL_QUESTIONS).toBe(12);
+  it('has the 13 questions of PLAN §8 in order and numbers them from 1', () => {
+    expect(TOTAL_QUESTIONS).toBe(13);
     expect(QUESTION_IDS[0]).toBe('name');
     expect(QUESTION_IDS[TOTAL_QUESTIONS - 1]).toBe('permissions');
     expect(questionNumber('name')).toBe(1);
-    expect(questionNumber('permissions')).toBe(12);
+    expect(questionNumber('permissions')).toBe(13);
   });
 
   it('chains every question to the next and the last one to the summary', () => {
     expect(questionHref('name')).toBe('/onboarding');
     expect(nextHref('name')).toBe('/onboarding/body');
+    expect(nextHref('work')).toBe('/onboarding/freeDays');
+    expect(nextHref('freeDays')).toBe('/onboarding/sleepClock');
     expect(nextHref('checkins')).toBe('/onboarding/permissions');
     expect(nextHref('permissions')).toBe('/onboarding/summary');
   });
@@ -84,6 +86,13 @@ describe('completeOnboarding', () => {
     });
     expect(await repos.settings.get('startedOn')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(await repos.settings.get('onboardingComplete')).toBe(true);
+  });
+
+  it('stores the free days only when answered', async () => {
+    await completeOnboarding(db, repos, { ...answered, freeDays: [6, 5, 5] });
+    expect(await repos.settings.get('freeDays')).toEqual([5, 6]);
+    await completeOnboarding(db, repos, answered);
+    expect(await repos.settings.get('freeDays')).toBeUndefined();
   });
 
   it('works when every question was skipped', async () => {
