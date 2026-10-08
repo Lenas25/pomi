@@ -88,6 +88,11 @@ export const settingsSchemas = {
   gymDays: gymDaysSchema,
   /** Per-day gym times; when absent the plan is derived from `gymDays` + anchors (`effectiveGymPlan`). */
   gymPlan: gymPlanSchema,
+  /**
+   * One-week overrides of the usual plan from the weekly review, keyed by the Monday of their ISO
+   * week (`effectiveGymPlan(settings, date)`); old weeks are pruned on write.
+   */
+  gymWeekPlans: z.record(z.string().regex(/^\d{4}-\d{2}-\d{2}$/), gymPlanSchema),
   /** Weekdays (0 = Sunday) the person usually has free: the "free days" of social jetlag and "Tu ritmo". */
   freeDays: z.array(z.number().int().min(0).max(6)),
   themeMode: themeModeSchema,
@@ -112,7 +117,7 @@ export const settingsSchemas = {
   insightsLastRun: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Day the gym plan (`gymDays`) last changed: accepted suggestion, onboarding or a manual edit. */
   gymDaysChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  /** Day the steps goal (`goals.stepsGoal`) last changed, whichever way it changed. */
+  /** Day a steps or water goal (`goals`) last changed, whichever way it changed. */
   goalsChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Gentle "export your backup" line in the monthly review (default on). */
   backupReminder: z.boolean(),
@@ -197,12 +202,14 @@ export function createSettingsRepository(db: Db, now: () => number = Date.now) {
     }
   }
 
-  /** The steps goal inside a stored `goals` value (`undefined` when absent or unreadable). */
-  function stepsGoalOf(json: string | undefined): number | undefined {
+  /** The steps and water goals inside a stored `goals` value, as a comparable string. */
+  function trackedGoalsOf(json: string | undefined): string | undefined {
     if (json === undefined) return undefined;
     try {
       const parsed = goalsSchema.safeParse(JSON.parse(json));
-      return parsed.success ? parsed.data.stepsGoal : undefined;
+      if (!parsed.success) return undefined;
+      const { stepsGoal, waterGlassesRest, waterGlassesGym } = parsed.data;
+      return JSON.stringify([stepsGoal ?? null, waterGlassesRest ?? null, waterGlassesGym ?? null]);
     } catch {
       return undefined;
     }
@@ -232,7 +239,7 @@ export function createSettingsRepository(db: Db, now: () => number = Date.now) {
       if (key === 'gymPlan' && normalizedGymPlan(before) !== normalizedGymPlan(json)) {
         await write('gymDaysChangedOn', JSON.stringify(today));
       }
-      if (key === 'goals' && stepsGoalOf(before) !== stepsGoalOf(json)) {
+      if (key === 'goals' && trackedGoalsOf(before) !== trackedGoalsOf(json)) {
         await write('goalsChangedOn', JSON.stringify(today));
       }
       await db.run(sql.raw(`release savepoint ${savepoint}`));
@@ -279,7 +286,7 @@ export function createSettingsRepository(db: Db, now: () => number = Date.now) {
     /**
      * Writes a value. Two plan keys also stamp WHEN they changed, whoever changed them
      * (accepted suggestion, onboarding, a manual edit): `gymDays` -> `gymDaysChangedOn`, and a
-     * different `goals.stepsGoal` -> `goalsChangedOn`. The suggestions engine reads the stamps so
+     * different steps or water goal (`goals`) -> `goalsChangedOn`. The suggestions engine reads the stamps so
      * it never judges a new plan by the old one.
      */
     set<K extends SettingsKey>(key: K, value: SettingsValue<K>): Promise<void> {

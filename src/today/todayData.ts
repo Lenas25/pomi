@@ -6,6 +6,7 @@ import type { Repositories } from '../db/repositories';
 import type { SuggestionRow } from '../db/repositories/suggestions';
 import { pickTodayCard, type TodayCard } from '../domain/companion';
 import { buildAgenda, type AgendaItem } from '../domain/agenda/buildAgenda';
+import { plannedGymWeekdays } from '../domain/gym/gymPlan';
 import { todaysRoutineId } from '../domain/gym/rotation';
 import { dayKeyFor, dayStartFor } from '../domain/time';
 import type { ActivityKind } from '../domain/habits/activity';
@@ -93,6 +94,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     habits,
     anchors,
     gymPlan,
+    gymWeekPlans,
     shifts,
     userName,
     stored,
@@ -105,6 +107,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     loadHabitsData(repos, today),
     repos.settings.get('anchors'),
     repos.settings.get('gymPlan'),
+    repos.settings.get('gymWeekPlans'),
     repos.settings.get('planShifts'),
     repos.settings.get('userName'),
     repos.settings.get('todayState'),
@@ -137,6 +140,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     ...(shifts ? { shifts } : {}),
     gymDays: habits.gymDays,
     ...(gymPlan ? { gymPlan } : {}),
+    ...(gymWeekPlans ? { gymWeekPlans } : {}),
     checkinPrefs: habits.checkinPrefs,
     modules: habits.modules.filter((module) => module.active).map((module) => module.template),
     ...(routine ? { todayRoutine: { id: routine.id, steps: routine.steps } } : {}),
@@ -168,13 +172,14 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     activityToday: view.activityToday,
     routineName: routine?.name,
     gymGoal,
-    reviewEntry: getDay(midnight) === 0 && (prefs?.weeklyReview ?? true),
+    // The weekly review (and its "Planifica tu semana") is offered on Sunday and Monday.
+    reviewEntry: [0, 1].includes(getDay(midnight)) && (prefs?.weeklyReview ?? true),
     suggestion,
     insight,
     companionCard,
     identity: {
       gymDates,
-      plannedGymDays: new Set(habits.gymDays.flatMap((entry) => entry.days)).size,
+      plannedGymDays: plannedGymWeekdays({ gymDays: habits.gymDays, gymWeekPlans }, today).size,
       waterDays: view.water?.consistency?.done ?? null,
       firstDay: habits.startedOn === today,
     },

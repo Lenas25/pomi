@@ -312,6 +312,22 @@ describe('gymDayRule', () => {
     expect(gymDayRule(data({ gymDates: trainedExcept(3, 2) }), TODAY)).toBeNull();
   });
 
+  it('a day planned off by a week override is not "missed"', () => {
+    // Week of Monday 01-26: only Monday and Friday, so Wednesday 01-28 was planned off.
+    const gymWeekPlans = {
+      '2026-01-26': [
+        { weekday: 1, time: '07:00' },
+        { weekday: 5, time: '07:00' },
+      ],
+    };
+    expect(gymDayRule(data({ gymDates: trainedExcept(3, 3), gymWeekPlans }), TODAY)).toBeNull();
+    // An override of another week changes nothing.
+    const other = { '2026-02-02': [] };
+    expect(
+      gymDayRule(data({ gymDates: trainedExcept(3, 3), gymWeekPlans: other }), TODAY)?.params,
+    ).toMatchObject({ missed: 3 });
+  });
+
   it('moves to the free weekday the person already trains on, else the next free one', () => {
     const base = trainedExcept(3, 4);
     const next = gymDayRule(data({ gymDates: base }), TODAY);

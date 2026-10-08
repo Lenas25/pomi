@@ -94,6 +94,7 @@ export async function loadSuggestionData(
     suggestions,
     gymPlanChangedOn,
     goalsChangedOn,
+    gymWeekPlans,
   ] = await Promise.all([
     repos.templates.listModules(),
     repos.profile.get(),
@@ -107,6 +108,7 @@ export async function loadSuggestionData(
     repos.suggestions.all(),
     repos.settings.get('gymDaysChangedOn'),
     repos.settings.get('goalsChangedOn'),
+    repos.settings.get('gymWeekPlans'),
   ]);
   const active = modules.filter((module) => module.active);
 
@@ -209,6 +211,7 @@ export async function loadSuggestionData(
     anchors: anchors ?? {},
     shifts: shifts ?? {},
     gymDays: gymDays ?? [],
+    ...(gymWeekPlans ? { gymWeekPlans } : {}),
     startedOn,
     gymPlanChangedOn,
     goalsChangedOn,

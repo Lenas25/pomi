@@ -1,8 +1,20 @@
 // The per-day gym model. Stored as `gymPlan` ({weekday, time}[]; a weekday may appear twice for a
 // morning AND evening session); stores written before it existed only have `gymDays` (weekdays
 // grouped by a morning/evening slot) + the slot anchors.
+import { addDays, format, getDay, parseISO, subDays } from 'date-fns';
+
 import { clockToMinutes } from '../time';
 import type { Anchors, GymDays, GymPlan } from '../../templates/schema';
+
+/**
+ * One-week overrides of the usual plan, set in the weekly review ("Planifica tu semana"), keyed by
+ * the Monday (`yyyy-MM-dd`, a logical day key) of the ISO week they apply to. An empty plan means
+ * "no gym this week" (planned off, never "missed").
+ */
+export type GymWeekPlans = Record<string, GymPlan>;
+
+/** Weeks of overrides kept before the current one (insights and reviews look back at most this far). */
+export const GYM_WEEK_PLANS_KEEP_WEEKS = 8;
 
 type GymSlot = 'gymMorning' | 'gymEvening';
 
@@ -39,17 +51,63 @@ export function sortGymPlan<T extends EffectiveGymDay>(plan: readonly T[]): T[] 
   );
 }
 
+/** Monday (`yyyy-MM-dd`) of the ISO week of a logical day key (use `dayKeyFor` to get one). */
+export function gymWeekStart(day: string): string {
+  const date = parseISO(day);
+  return format(subDays(date, (getDay(date) + 6) % 7), 'yyyy-MM-dd');
+}
+
 /**
- * The gym plan EVERY reader of gym times uses. `gymDays` stays the source of WHICH weekdays (an
+ * The week the review plans: on Sunday the week that starts tomorrow, any other day the current
+ * one (the review is reachable from Hoy on Sunday AND Monday).
+ */
+export function planningWeekStart(today: string): string {
+  return gymWeekStart(format(addDays(parseISO(today), 1), 'yyyy-MM-dd'));
+}
+
+/** Drops overrides older than `GYM_WEEK_PLANS_KEEP_WEEKS` weeks before the week of `today`. */
+export function pruneGymWeekPlans(plans: GymWeekPlans, today: string): GymWeekPlans {
+  const cutoff = format(
+    subDays(parseISO(gymWeekStart(today)), GYM_WEEK_PLANS_KEEP_WEEKS * 7),
+    'yyyy-MM-dd',
+  );
+  return Object.fromEntries(Object.entries(plans).filter(([week]) => week >= cutoff));
+}
+
+export type GymPlanSettings = {
+  gymPlan?: GymPlan | undefined;
+  gymDays?: GymDays | undefined;
+  anchors?: Anchors | undefined;
+  gymWeekPlans?: GymWeekPlans | undefined;
+};
+
+/**
+ * The plan for the week of `date` (logical day key): that week's override when there is one,
+ * else the usual plan (`usualGymPlan`). Without a date it is always the usual plan.
+ */
+export function effectiveGymPlan(input: GymPlanSettings, date?: string): EffectiveGymDay[] {
+  const override = date === undefined ? undefined : input.gymWeekPlans?.[gymWeekStart(date)];
+  return override ? sortGymPlan(override) : usualGymPlan(input);
+}
+
+/** Whether a gym session is planned on `date` (logical day key), override-aware. */
+export function isGymPlannedOn(input: GymPlanSettings, date: string): boolean {
+  const weekday = getDay(parseISO(date));
+  return effectiveGymPlan(input, date).some((entry) => entry.weekday === weekday);
+}
+
+/** Distinct planned weekdays of the week of `date`, override-aware. */
+export function plannedGymWeekdays(input: GymPlanSettings, date: string): Set<number> {
+  return new Set(effectiveGymPlan(input, date).map((entry) => entry.weekday));
+}
+
+/**
+ * The usual gym plan (no week override). `gymDays` stays the source of WHICH weekdays (an
  * accepted suggestion edits it); times come from `gymPlan` where the weekday matches, a moved day
  * inherits the time of the day it replaced, and anything else falls back to its slot anchor (the
  * migration of old stores and backups).
  */
-export function effectiveGymPlan(input: {
-  gymPlan?: GymPlan | undefined;
-  gymDays?: GymDays | undefined;
-  anchors?: Anchors | undefined;
-}): EffectiveGymDay[] {
+export function usualGymPlan(input: GymPlanSettings): EffectiveGymDay[] {
   const stored = new Map<number, string[]>();
   for (const entry of input.gymPlan ?? []) {
     stored.set(entry.weekday, [...(stored.get(entry.weekday) ?? []), entry.time]);

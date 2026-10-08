@@ -20,6 +20,8 @@ import { parsePayload, type SuggestionPayload } from '../suggestions/payload';
 import { toHistory, waterHabit } from '../suggestions/loadData';
 import { isKindAvailable } from '../domain/suggestions/buildSuggestions';
 
+import { loadWeekPlanStep, type WeekPlanStep } from './weekPlan';
+
 /**
  * Question ids of `templates/metricas.json` that carry the 1-5 scales. A template without one of
  * them simply has no line for it.
@@ -36,6 +38,8 @@ export type ReviewScreenData = {
   suggestions: { id: number; payload: SuggestionPayload }[];
   /** The insight found during the reviewed week, if any (PLAN §12: at most one per week). */
   insight?: StoredInsight | undefined;
+  /** "Planifica tu semana": the week to plan, prefilled from the usual plan. */
+  weekPlan: WeekPlanStep;
 };
 
 function ratingsOf(
@@ -103,9 +107,11 @@ export async function loadReview(repos: Repositories, now: Date): Promise<Review
   const night = checkins.filter((row) => row.kind === 'night');
   const anchors = (await repos.settings.get('anchors')) ?? {};
   const goalsChangedOn = await repos.settings.get('goalsChangedOn');
+  const gymWeekPlans = await repos.settings.get('gymWeekPlans');
 
   const data: WeeklyReviewData = {
     gymDays: habits.gymDays,
+    ...(gymWeekPlans ? { gymWeekPlans } : {}),
     anchors,
     gymDates,
     sleepEarlierAvailable: isKindAvailable('sleepEarlier', history, today),
@@ -145,6 +151,7 @@ export async function loadReview(repos: Repositories, now: Date): Promise<Review
   return {
     review: buildWeeklyReview(data, weekStart, today),
     insight,
+    weekPlan: await loadWeekPlanStep(repos, today),
     suggestions: pending.flatMap((row) => {
       const payload = parsePayload(row.payload);
       return payload ? [{ id: row.id, payload }] : [];

@@ -461,17 +461,19 @@ describe('plan change stamps', () => {
     expect(await repos.settings.get('gymDaysChangedOn')).toBe('2026-10-05');
   });
 
-  it('stamps goalsChangedOn when the steps goal changes, not for the water goals', async () => {
+  it('stamps goalsChangedOn when the steps or a water goal changes, not when nothing changed', async () => {
     clock = new Date(2026, 9, 5, 10).getTime();
     await repos.settings.set('goals', { waterGlassesRest: 8 });
-    expect(await repos.settings.get('goalsChangedOn')).toBeUndefined();
-    await repos.settings.set('goals', { waterGlassesRest: 8, stepsGoal: 7000 });
+    expect(await repos.settings.get('goalsChangedOn')).toBe('2026-10-05');
+    clock = new Date(2026, 9, 8, 10).getTime();
+    await repos.settings.set('goals', { waterGlassesRest: 8 });
     expect(await repos.settings.get('goalsChangedOn')).toBe('2026-10-05');
     clock = new Date(2026, 9, 12, 10).getTime();
-    await repos.settings.set('goals', { waterGlassesRest: 9, stepsGoal: 7000 });
-    expect(await repos.settings.get('goalsChangedOn')).toBe('2026-10-05');
-    await repos.settings.set('goals', { stepsGoal: 7500 });
+    await repos.settings.set('goals', { waterGlassesRest: 9 });
     expect(await repos.settings.get('goalsChangedOn')).toBe('2026-10-12');
+    clock = new Date(2026, 9, 14, 10).getTime();
+    await repos.settings.set('goals', { waterGlassesRest: 9, stepsGoal: 7500 });
+    expect(await repos.settings.get('goalsChangedOn')).toBe('2026-10-14');
   });
 });
 

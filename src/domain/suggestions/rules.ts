@@ -5,6 +5,7 @@ import { format, getDay, parseISO, subDays } from 'date-fns';
 
 import { circularRange, sleepDurationMin } from '../formulas/sleep';
 import { proposeStepsAdjustment } from '../formulas/steps';
+import { isGymPlannedOn } from '../gym/gymPlan';
 import { isStalled } from '../gym/todayTarget';
 import { clockToMinutes, minutesToClock } from '../time';
 
@@ -265,7 +266,13 @@ export const gymDayRule: Rule = (data, today) => {
   const candidates = [...planned]
     .map((weekday) => {
       const occurrences = dates.filter((date) => getDay(parseISO(date)) === weekday);
-      return { weekday, missed: occurrences.filter((date) => !trained.has(date)).length };
+      // A day the weekly review planned off (week override) is not "missed".
+      const missed = occurrences.filter(
+        (date) =>
+          !trained.has(date) &&
+          isGymPlannedOn({ gymDays: data.gymDays, gymWeekPlans: data.gymWeekPlans }, date),
+      );
+      return { weekday, missed: missed.length };
     })
     .filter((entry) => entry.missed >= GYM_MISSED)
     // A weekday whose move was rejected is skipped, so the next-worst one can still be offered.

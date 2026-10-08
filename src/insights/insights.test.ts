@@ -162,6 +162,24 @@ describe('loadInsightData', () => {
     expect(noGym.has('2025-11-03')).toBe(false); // Monday, planned, no data
   });
 
+  it('a week override decides the planned-off days of its week only', async () => {
+    await repos.settings.set('gymDays', [{ days: [1], anchor: 'gymMorning' }]);
+    // Week of Monday 2025-11-03: Thursday instead of Monday.
+    await repos.settings.set('gymWeekPlans', { '2025-11-03': [{ weekday: 4, time: '18:00' }] });
+    const noGym = new Set((await loadInsightData(repos, today)).noGymDates);
+    expect(noGym.has('2025-11-03')).toBe(true); // Monday, planned off by the override
+    expect(noGym.has('2025-11-06')).toBe(false); // Thursday, planned by the override
+    expect(noGym.has('2025-11-13')).toBe(true); // next week's Thursday: usual plan again
+  });
+
+  it('an empty week override makes every day of that week planned off, even without a usual plan', async () => {
+    await repos.settings.set('gymWeekPlans', { '2025-11-03': [] });
+    const noGym = new Set((await loadInsightData(repos, today)).noGymDates);
+    expect(noGym.has('2025-11-03')).toBe(true);
+    expect(noGym.has('2025-11-06')).toBe(true);
+    expect(noGym.has('2025-11-13')).toBe(false); // outside the week: no plan, silence is unknown
+  });
+
   it('never counts today as "no gym", even with an answer or an unplanned weekday', async () => {
     await repos.settings.set('gymDays', [{ days: [1], anchor: 'gymMorning' }]);
     await repos.activity.upsert(today, 'walk', 'manual');

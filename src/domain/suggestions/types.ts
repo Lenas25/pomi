@@ -3,6 +3,7 @@
 import type { Anchors, GymDays } from '../../templates/schema';
 import type { PlanShifts } from '../agenda/buildAgenda';
 import type { MorningCheckin } from '../formulas/sleep';
+import type { GymWeekPlans } from '../gym/gymPlan';
 import type { ExerciseSession, TargetRules } from '../gym/todayTarget';
 import type { StepsPlan } from '../habits/stepsPlan';
 
@@ -102,6 +103,8 @@ export type SuggestionData = {
   anchors: Anchors;
   shifts: PlanShifts;
   gymDays: GymDays;
+  /** One-week overrides from the weekly review; a day planned off there is not "missed". */
+  gymWeekPlans?: GymWeekPlans | undefined;
   /** Day the onboarding finished (the gym rule needs four full weeks after it). */
   startedOn?: string | undefined;
   /** Day the gym plan last changed (accepted suggestion or manual edit); judged only after it. */

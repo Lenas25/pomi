@@ -1,9 +1,10 @@
 // Reads everything `buildInsights` needs from the repositories (all local, near instant).
-import { format, getDay, parseISO, subDays } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 
 import type { Repositories } from '../db/repositories';
 import type { InsightRow } from '../db/repositories/insights';
 import { resolveFreeWeekdays } from '../domain/companion/limits';
+import { gymWeekStart, isGymPlannedOn } from '../domain/gym/gymPlan';
 import { toMorningCheckin } from '../domain/habits/checkins';
 import {
   INSIGHTS_WINDOW_DAYS,
@@ -48,12 +49,14 @@ export async function loadInsightData(repos: Repositories, today: string): Promi
   const from = key(INSIGHTS_WINDOW_DAYS - 1);
   const sessionsFrom = key(INSIGHTS_WINDOW_DAYS - 1 + SESSIONS_EXTRA_DAYS);
 
-  const [modules, past, plannedGym, freeDays] = await Promise.all([
+  const [modules, past, plannedGym, freeDays, gymWeekPlans] = await Promise.all([
     repos.templates.listModules(),
     repos.insights.all(),
     repos.settings.get('gymDays'),
     repos.settings.get('freeDays'),
+    repos.settings.get('gymWeekPlans'),
   ]);
+  const planInput = { gymDays: plannedGym ?? [], gymWeekPlans };
   const plannedWeekdays = new Set((plannedGym ?? []).flatMap((entry) => entry.days));
   const morningQuestions = modules
     .filter((module) => module.active)
@@ -82,16 +85,16 @@ export async function loadInsightData(repos: Repositories, today: string): Promi
     if (row.kind === 'gym' || row.kind === 'walk') moved.add(row.date);
   }
   // POSITIVE evidence of no gym only: an explicit answer of another kind, or (when a gym plan
-  // exists) a planned-off weekday with no session. With no plan only explicit answers count.
+  // exists) a planned-off weekday with no session. With no plan only explicit answers count. A
+  // week override from the weekly review decides that week's planned days (an empty one = all off).
   // Today is excluded: the day is not over, a session may still happen.
   const noGym = new Set<string>();
   const answered = new Set(activityRows.map((row) => row.date));
   for (const row of activityRows) if (row.kind !== 'gym' && row.date < today) noGym.add(row.date);
-  if (plannedWeekdays.size > 0) {
-    for (let offset = INSIGHTS_WINDOW_DAYS - 1; offset >= 1; offset -= 1) {
-      const date = key(offset);
-      if (!answered.has(date) && !plannedWeekdays.has(getDay(parseISO(date)))) noGym.add(date);
-    }
+  for (let offset = INSIGHTS_WINDOW_DAYS - 1; offset >= 1; offset -= 1) {
+    const date = key(offset);
+    const hasPlan = plannedWeekdays.size > 0 || gymWeekPlans?.[gymWeekStart(date)] !== undefined;
+    if (hasPlan && !answered.has(date) && !isGymPlannedOn(planInput, date)) noGym.add(date);
   }
   for (const date of gymDates) noGym.delete(date);
   const stepsByDate = new Map(stepRows.filter((r) => r.steps > 0).map((r) => [r.date, r.steps]));

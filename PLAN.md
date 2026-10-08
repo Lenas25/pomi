@@ -242,6 +242,7 @@ Además:
 - **Noche** (aviso 30 minutos antes de `bed`): energía 1–5, ánimo 1–5 y una nota opcional, más la nota de comida si el módulo está activo. Al terminar: "Listo por hoy. Cierra la app y descansa".
 - **Revisión mensual** (día configurable, por defecto el día 1): peso y medidas, fotos con la foto anterior en transparencia para alinear la pose, y la pantalla **"Tú hace 30 días vs. hoy"**: fuerza, medidas, fotos lado a lado, constancia y hallazgos del mes.
 - **Revisión semanal** (domingo): resumen de la semana y las sugerencias pendientes.
+- **Planifica tu semana** (paso de la revisión semanal, también desde Hoy el domingo y el lunes): qué días piensa entrenar y la hora aproximada (chips de días + hora por día), precargado con el plan de siempre, atajo "Igual que siempre" y se puede saltar. Se guarda como plan de esa semana (`gymWeekPlans`, por lunes de la semana ISO, respetando el cambio de día a las 04:00), va en el respaldo y las semanas viejas se borran. Agenda, recordatorios del gym, Hoy, la sugerencia "Día del gym", los hallazgos y las sesiones planeadas de la revisión usan ese plan solo en su semana; un día libre por ese plan no cuenta como "faltado".
 
 ## 11. Motor de sugerencias (local, por reglas)
 

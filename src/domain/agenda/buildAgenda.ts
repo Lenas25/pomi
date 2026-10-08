@@ -1,5 +1,5 @@
 // Ordered timeline for the "Hoy" screen (PLAN §13). Pure: everything it needs comes in `state`.
-import { getDay } from 'date-fns';
+import { format, getDay } from 'date-fns';
 
 import type {
   Anchors,
@@ -14,7 +14,7 @@ import type {
 } from '../../templates/schema';
 import { waterGoal } from '../formulas/water';
 import { bedtimeFor } from '../formulas/sleep';
-import { effectiveGymPlan } from '../gym/gymPlan';
+import { effectiveGymPlan, type GymWeekPlans } from '../gym/gymPlan';
 import { MINUTES_PER_DAY, clockToMinutes, wrapMinutes } from '../time';
 import { evaluateOnlyIf, evaluateWhen, type Profile } from './conditions';
 
@@ -62,6 +62,8 @@ export type AgendaState = {
   gymDays: GymDays;
   /** Per-day gym times (`gymPlan` setting); without it the times come from the slot anchors. */
   gymPlan?: GymPlan;
+  /** One-week overrides from the weekly review; the week of `date` wins over the usual plan. */
+  gymWeekPlans?: GymWeekPlans;
   checkinPrefs?: Pick<CheckinPrefs, 'morning' | 'night'>;
   /** Active modules (installed + enabled). */
   modules: readonly ModuleBody[];
@@ -195,13 +197,17 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
   const anchors = resolveAnchors(state.anchors, state.shifts);
   const items: AgendaItem[] = [];
 
-  // Gym: weekdays and per-day times come from settings (`effectiveGymPlan`), not from
-  // `program.schedules`.
-  const gymToday = effectiveGymPlan({
-    gymPlan: state.gymPlan,
-    gymDays: state.gymDays,
-    anchors: state.anchors,
-  }).filter((entry) => entry.weekday === weekday);
+  // Gym: weekdays and per-day times come from settings (`effectiveGymPlan`, override-aware for the
+  // week of `date`), not from `program.schedules`.
+  const gymToday = effectiveGymPlan(
+    {
+      gymPlan: state.gymPlan,
+      gymDays: state.gymDays,
+      anchors: state.anchors,
+      gymWeekPlans: state.gymWeekPlans,
+    },
+    format(date, 'yyyy-MM-dd'),
+  ).filter((entry) => entry.weekday === weekday);
   if (gymToday.length > 0) {
     // A migrated day without its slot anchor keeps the item, without a time.
     const occurrences = [

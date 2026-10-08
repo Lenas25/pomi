@@ -15,6 +15,7 @@ import { useTheme } from '../ui/theme';
 
 import { reviewLineText, weekRangeText } from './text';
 import { useReview } from './useReview';
+import { WeekPlanCard } from './WeekPlanCard';
 
 function leave(): void {
   if (router.canGoBack()) router.back();
@@ -30,7 +31,7 @@ export function ReviewScreen() {
   const theme = useTheme();
   const t = useT();
   const language = useLocaleStore((state) => state.language);
-  const { load, reload, suggestions } = useReview();
+  const { load, reload, saveWeek, suggestions } = useReview();
 
   if (load.status === 'error') {
     return (
@@ -45,7 +46,7 @@ export function ReviewScreen() {
   }
   if (load.status === 'loading') return <Screen>{null}</Screen>;
 
-  const { review, suggestions: pending, insight } = load.data;
+  const { review, suggestions: pending, insight, weekPlan } = load.data;
 
   return (
     <Screen scroll edges={['top', 'bottom', 'left', 'right']}>
@@ -149,6 +150,8 @@ export function ReviewScreen() {
             })
           )}
         </View>
+
+        <WeekPlanCard step={weekPlan} onSave={saveWeek} />
 
         <Button label={t('review.close')} variant="ghost" onPress={leave} />
       </View>

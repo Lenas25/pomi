@@ -104,6 +104,31 @@ describe('loadReview', () => {
   });
 });
 
+describe('weekly plan in the review', () => {
+  const MONDAY = new Date(2026, 1, 2, 9, 0);
+
+  it("counts the planned sessions from the reviewed week's override", async () => {
+    const usual = (await loadReview(repos, MONDAY)).review.training;
+    await session('2026-01-30', 6);
+    await repos.settings.set('gymWeekPlans', { '2026-01-26': [{ weekday: 5, time: '07:00' }] });
+    const planned = (await loadReview(repos, MONDAY)).review.training;
+    expect(planned).toEqual({ done: 1, planned: 1 });
+    expect(usual?.planned ?? 0).not.toBe(1);
+  });
+
+  it('plans next week on Sunday and the current week on Monday, prefilled from the usual plan', async () => {
+    const sunday = await loadReview(repos, SUNDAY);
+    expect(sunday.weekPlan.weekStart).toBe('2026-02-02');
+    expect(sunday.weekPlan.override).toBeUndefined();
+    expect(sunday.weekPlan.usual.length).toBeGreaterThan(0);
+    // Before the 04:00 rollover Monday still belongs to Sunday: next week is still planned.
+    expect((await loadReview(repos, new Date(2026, 1, 2, 2, 0))).weekPlan.weekStart).toBe(
+      '2026-02-02',
+    );
+    expect((await loadReview(repos, MONDAY)).weekPlan.weekStart).toBe('2026-02-02');
+  });
+});
+
 describe('loadReview on the last day of the review', () => {
   it('leaves out Sunday itself, which is still going', async () => {
     await session('2026-01-26', 6);

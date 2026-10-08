@@ -5,6 +5,7 @@ import { addDays, format, getDay, parseISO, subDays } from 'date-fns';
 
 import type { Anchors, GymDays } from '../../templates/schema';
 import { sleepDurationMin, type MorningCheckin } from '../formulas/sleep';
+import { isGymPlannedOn, type GymWeekPlans } from '../gym/gymPlan';
 
 export type ReviewKey = `review.${string}`;
 export type ReviewLine = { key: ReviewKey; params: Record<string, string | number> };
@@ -35,6 +36,8 @@ export type DayRating = { date: string; value: number };
 
 export type WeeklyReviewData = {
   gymDays: GymDays;
+  /** One-week overrides from the weekly review: the reviewed week's override sets its plan. */
+  gymWeekPlans?: GymWeekPlans | undefined;
   anchors: Anchors;
   /** Days (`yyyy-MM-dd`) the person trained: a finished session or a "Fui al gym" answer. */
   gymDates: readonly string[];
@@ -105,9 +108,9 @@ export function buildWeeklyReview(
   const dates = today === undefined ? allDates : allDates.filter((date) => date < today);
   const inWeek = (date: string) => date >= weekStart && date <= weekEnd && dates.includes(date);
 
-  // Training: sessions done against the weekdays of the plan.
-  const plannedWeekdays = new Set(data.gymDays.flatMap((entry) => entry.days));
-  const planned = dates.filter((date) => plannedWeekdays.has(getDay(parseISO(date)))).length;
+  // Training: sessions done against the days of the plan (that week's override when there is one).
+  const planInput = { gymDays: data.gymDays, gymWeekPlans: data.gymWeekPlans };
+  const planned = dates.filter((date) => isGymPlannedOn(planInput, date)).length;
   const trained = [...new Set(data.gymDates.filter(inWeek))];
   const training = planned > 0 || trained.length > 0 ? { done: trained.length, planned } : null;
 
