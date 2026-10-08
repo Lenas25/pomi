@@ -1,5 +1,4 @@
-import { SectionPlaceholder } from '../src/ui/SectionPlaceholder';
+import { ShareScreen } from '../src/reports/ShareScreen';
 
-export default function Compartir() {
-  return <SectionPlaceholder section="compartir" />;
-}
+/** `/compartir`: choose what to share, see the preview, send text or a PDF. */
+export default ShareScreen;

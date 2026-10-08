@@ -12,9 +12,9 @@ import { assertFileSize, isBackupExportName } from './limits';
  * for example) may still be reading the file through its content URI. So a successful share is only
  * deleted after this delay; the next export also sweeps whatever is left.
  */
-const SHARED_FILE_GRACE_MS = 60_000;
+export const SHARED_FILE_GRACE_MS = 60_000;
 
-function safely(action: () => void): void {
+export function safely(action: () => void): void {
   try {
     action();
   } catch {
@@ -22,13 +22,23 @@ function safely(action: () => void): void {
   }
 }
 
-/** Removes `pomi-backup-*.json` / `pomi-photos-*.json` files left in the cache by earlier exports. */
-function removeStaleBackups(): void {
+/** Removes the files of the cache directory whose name `isOurs` recognises (left by earlier exports). */
+export function removeStaleCacheFiles(isOurs: (name: string) => boolean): void {
   safely(() => {
     for (const entry of new Directory(Paths.cache).list()) {
-      if (entry instanceof File && isBackupExportName(entry.name)) safely(() => entry.delete());
+      if (entry instanceof File && isOurs(entry.name)) safely(() => entry.delete());
     }
   });
+}
+
+/** Deletes a shared file after the grace period (the receiving app may still be reading it). */
+export function deleteAfterGrace(file: File): void {
+  setTimeout(() => safely(() => file.delete()), SHARED_FILE_GRACE_MS);
+}
+
+/** Removes `pomi-backup-*.json` / `pomi-photos-*.json` files left in the cache by earlier exports. */
+function removeStaleBackups(): void {
+  removeStaleCacheFiles(isBackupExportName);
 }
 
 /** Writes `contents` to the cache directory and opens the share sheet. The file does not outlive it. */
@@ -50,7 +60,7 @@ export async function shareJsonFile(
     keepForGrace = true;
     return 'shared';
   } finally {
-    if (keepForGrace) setTimeout(() => safely(() => file.delete()), SHARED_FILE_GRACE_MS);
+    if (keepForGrace) deleteAfterGrace(file);
     else safely(() => file.delete());
   }
 }

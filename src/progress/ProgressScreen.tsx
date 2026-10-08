@@ -437,6 +437,12 @@ export function ProgressScreen() {
                 />
               </Card>
             </View>
+
+            <Button
+              label={t('share.cta')}
+              variant="secondary"
+              onPress={() => router.push('/compartir')}
+            />
           </>
         ) : null}
       </View>

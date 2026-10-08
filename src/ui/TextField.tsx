@@ -14,6 +14,7 @@ type TextFieldProps = Pick<
   | 'onSubmitEditing'
   | 'returnKeyType'
   | 'blurOnSubmit'
+  | 'multiline'
 > & {
   label: string;
   /** Error text; also flips the border to the error color and is announced. */
@@ -47,7 +48,10 @@ export function TextField({
         style={[
           theme.text('body'),
           {
-            minHeight: Math.max(theme.control.md, theme.touch.gym),
+            minHeight: Math.max(theme.control.md, theme.touch.gym) * (input.multiline ? 2 : 1),
+            ...(input.multiline
+              ? { textAlignVertical: 'top' as const, paddingVertical: theme.space[3] }
+              : null),
             borderRadius: theme.radius.md,
             borderWidth: theme.stroke.bold,
             borderColor: error ? theme.color.error : theme.color.border,

@@ -456,7 +456,7 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 - [x] Revisión semanal.
 - [x] Progreso: constancia, gráficos de fuerza y medidas.
 - [x] Revisión mensual con fotos y "Tú hace 30 días vs. hoy".
-- [ ] Compartir: texto y PDF (Entrenador, Nutricionista, IA).
+- [x] Compartir: texto y PDF (Entrenador, Nutricionista, IA).
 - [ ] Acompañamiento (sección 14b): deuda de sueño, jetlag social, curva de agua por hora, "Tu ritmo", Carta de Pomi del domingo y aviso de sedentarismo configurable.
 - [ ] Generador de rutinas basado en evidencia (sección 14c): biblioteca de ejercicios, `generateProgram`, cribado PAR-Q+, vista previa editable y aceptación.
 
