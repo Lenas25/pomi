@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNotNull, lte, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, ne } from 'drizzle-orm';
 
 import { setLogs, workoutSessions } from '../schema';
 import type { Db } from '../types';
@@ -122,6 +122,74 @@ export function createWorkoutsRepository(db: Db) {
       if (!match) return undefined;
       const sets = (await setsFor([match.session.id])).filter((set) => set.stepId === stepId);
       return { session: match.session, sets };
+    },
+
+    /**
+     * Same as `lastSessionForStep` but returns up to `limit` FINISHED sessions, most recent first
+     * (the history `todayTarget` needs: stall detection looks at several sessions).
+     */
+    async recentSessionsForStep(
+      stepId: string,
+      limit: number,
+      excludeSessionId?: number,
+    ): Promise<SessionWithSets[]> {
+      const conditions = [eq(setLogs.stepId, stepId), isNotNull(workoutSessions.finishedAt)];
+      if (excludeSessionId !== undefined) conditions.push(ne(workoutSessions.id, excludeSessionId));
+
+      const rows = await db
+        .selectDistinct({ session: workoutSessions })
+        .from(setLogs)
+        .innerJoin(workoutSessions, eq(setLogs.sessionId, workoutSessions.id))
+        .where(and(...conditions))
+        .orderBy(desc(workoutSessions.startedAt), desc(workoutSessions.id))
+        .limit(limit);
+
+      const sessions = rows.map((row) => row.session);
+      const sets = (await setsFor(sessions.map((session) => session.id))).filter(
+        (set) => set.stepId === stepId,
+      );
+      return sessions.map((session) => ({
+        session,
+        sets: sets.filter((set) => set.sessionId === session.id),
+      }));
+    },
+
+    /**
+     * The latest UNFINISHED session started on `date` (to resume it), if any; `routineId` limits it
+     * to that routine.
+     */
+    async unfinishedSessionOn(
+      date: string,
+      routineId?: string,
+    ): Promise<WorkoutSessionRow | undefined> {
+      const conditions = [eq(workoutSessions.date, date), isNull(workoutSessions.finishedAt)];
+      if (routineId !== undefined) conditions.push(eq(workoutSessions.routineId, routineId));
+      const rows = await db
+        .select()
+        .from(workoutSessions)
+        .where(and(...conditions))
+        .orderBy(desc(workoutSessions.startedAt), desc(workoutSessions.id))
+        .limit(1);
+      return rows[0];
+    },
+
+    /** The most recent sessions (any state), newest first, with their sets: rotation input. */
+    async recentSessions(limit: number): Promise<SessionWithSets[]> {
+      const sessions = await db
+        .select()
+        .from(workoutSessions)
+        .orderBy(desc(workoutSessions.startedAt), desc(workoutSessions.id))
+        .limit(limit);
+      const sets = await setsFor(sessions.map((session) => session.id));
+      return sessions.map((session) => ({
+        session,
+        sets: sets.filter((set) => set.sessionId === session.id),
+      }));
+    },
+
+    /** Discards a session (and, by cascade, its sets), e.g. one abandoned without any set. */
+    async deleteSession(sessionId: number): Promise<void> {
+      await db.delete(workoutSessions).where(eq(workoutSessions.id, sessionId));
     },
 
     /** Sessions with `from <= date <= to` (day keys), oldest first, with all their sets. */

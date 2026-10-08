@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "test": "jest",
     "assets:generate": "node scripts/generate-placeholder-assets.js",
+    "assets:sounds": "node scripts/generate-timer-sounds.js",
     "db:generate": "drizzle-kit generate && node scripts/build-migrations.js"
   },
   "dependencies": {

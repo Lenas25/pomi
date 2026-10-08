@@ -191,6 +191,51 @@ describe('workouts', () => {
     expect(await repos.workouts.lastSessionForStep('bench')).toBeUndefined();
   });
 
+  it('returns several finished sessions for a step, most recent first, with only that step', async () => {
+    await makeSession('2026-10-01', 1, 'squat');
+    const second = await makeSession('2026-10-03', 3, 'squat');
+    const third = await makeSession('2026-10-05', 5, 'squat');
+    await repos.workouts.logSet({
+      sessionId: third,
+      stepId: 'other',
+      setIndex: 0,
+      weightKg: 5,
+      reps: 5,
+      doneAt: 6,
+    });
+    await makeSession('2026-10-06', 6, 'squat', { finished: false });
+    const current = await makeSession('2026-10-07', 7, 'squat');
+
+    const recent = await repos.workouts.recentSessionsForStep('squat', 2, current);
+    expect(recent.map((entry) => entry.session.id)).toEqual([third, second]);
+    expect(recent.every((entry) => entry.sets.every((set) => set.stepId === 'squat'))).toBe(true);
+    expect(await repos.workouts.recentSessionsForStep('nope', 3)).toEqual([]);
+  });
+
+  it('finds the unfinished session of a day to resume it', async () => {
+    expect(await repos.workouts.unfinishedSessionOn('2026-10-05')).toBeUndefined();
+    await makeSession('2026-10-05', 1, 'squat');
+    const open = await makeSession('2026-10-05', 2, 'squat', { finished: false });
+    await makeSession('2026-10-04', 3, 'squat', { finished: false });
+    expect((await repos.workouts.unfinishedSessionOn('2026-10-05'))?.id).toBe(open);
+    expect(await repos.workouts.unfinishedSessionOn('2026-10-05', 'r')).toMatchObject({ id: open });
+    expect(await repos.workouts.unfinishedSessionOn('2026-10-05', 'other')).toBeUndefined();
+    await repos.workouts.finishSession(open, 99);
+    expect(await repos.workouts.unfinishedSessionOn('2026-10-05')).toBeUndefined();
+  });
+
+  it('lists recent sessions with their sets and deletes a session with its sets', async () => {
+    const a = await makeSession('2026-10-01', 1, 'squat');
+    const b = await makeSession('2026-10-02', 2, 'squat');
+    const recent = await repos.workouts.recentSessions(1);
+    expect(recent.map((entry) => entry.session.id)).toEqual([b]);
+    expect(recent[0]?.sets).toHaveLength(1);
+
+    await repos.workouts.deleteSession(a);
+    expect(await repos.workouts.getSession(a)).toBeUndefined();
+    expect((await repos.workouts.recentSessions(5)).map((entry) => entry.session.id)).toEqual([b]);
+  });
+
   it('breaks startedAt ties deterministically by the highest session id', async () => {
     await makeSession('2026-10-02', 7, 'squat');
     const later = await makeSession('2026-10-02', 7, 'squat');
