@@ -79,7 +79,9 @@ export function mapDraftToPersistence(draft: OnboardingDraft): OnboardingPersist
   if (!point.water.fromDefault || point.water.gymGlasses.edited) {
     goals.waterGlassesGym = point.water.gymGlasses.value;
   }
-  if (point.steps.goal) goals.stepsGoal = point.steps.goal.value;
+  // The suggested steps goal is NOT stored: it is fixed after the baseline week (`stepsPlan`).
+  // Only a goal the person edited is kept.
+  if (point.steps.goal?.edited) goals.stepsGoal = point.steps.goal.value;
 
   const settings: SettingsPatch = {
     anchors,

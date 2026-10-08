@@ -81,8 +81,8 @@ describe('completeOnboarding', () => {
     expect(await repos.settings.get('goals')).toEqual({
       waterGlassesRest: 8,
       waterGlassesGym: 10,
-      stepsGoal: 7000,
     });
+    expect(await repos.settings.get('startedOn')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(await repos.settings.get('onboardingComplete')).toBe(true);
   });
 

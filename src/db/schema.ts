@@ -105,6 +105,23 @@ export const stepsDaily = sqliteTable(
   ],
 );
 
+/** Answers to "¿Te moviste hoy?": one per day (a later answer replaces the earlier one). */
+export const activityLogs = sqliteTable(
+  'activity_logs',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    date: text('date').notNull(),
+    kind: text('kind', { enum: ['gym', 'walk', 'none'] }).notNull(),
+    source: text('source', { enum: ['notification', 'manual'] }).notNull(),
+    loggedAt: integer('logged_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('activity_logs_date_idx').on(table.date),
+    check('activity_logs_kind_check', sql`${table.kind} in ('gym', 'walk', 'none')`),
+    check('activity_logs_source_check', sql`${table.source} in ('notification', 'manual')`),
+  ],
+);
+
 export const checkins = sqliteTable(
   'checkins',
   {

@@ -42,7 +42,8 @@ function RootStack() {
         <Stack.Protected guard={guards.app}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="gym/session" />
-          <Stack.Screen name="checkin/[tipo]" />
+          {/* HANDOFF §5: the check-in is a bottom sheet over the app. */}
+          <Stack.Screen name="checkin/[tipo]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="compartir" />
         </Stack.Protected>
       </Stack>

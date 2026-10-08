@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+
 import { mapDraftToPersistence } from '../domain/onboarding/mapDraft';
 import type { OnboardingDraft } from '../domain/onboarding/draft';
 import { withTransaction } from '../db/transaction';
@@ -12,6 +14,7 @@ export async function completeOnboarding(
   db: Db,
   repositories: Repositories,
   draft: OnboardingDraft,
+  today: string = format(new Date(), 'yyyy-MM-dd'),
 ): Promise<void> {
   const { profile, settings } = mapDraftToPersistence(draft);
   await withTransaction(db, async () => {
@@ -26,6 +29,7 @@ export async function completeOnboarding(
     if (settings.stepsEstimate !== undefined) {
       await repositories.settings.set('stepsEstimate', settings.stepsEstimate);
     } else await repositories.settings.remove('stepsEstimate');
+    await repositories.settings.set('startedOn', today);
     await repositories.settings.set('onboardingComplete', true);
   });
 }

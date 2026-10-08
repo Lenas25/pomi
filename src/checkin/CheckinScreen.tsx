@@ -1,0 +1,168 @@
+import { useCallback, useEffect, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
+import { ArrowLeft } from 'phosphor-react-native';
+
+import { getDatabase, getRepositories } from '../db';
+import type { AnswerValue, CheckinKind } from '../domain/habits/checkins';
+import { dayKey } from '../habits/habitsData';
+import { useT } from '../i18n';
+import { Button } from '../ui/Button';
+import { CheckinSheet } from '../ui/CheckinSheet';
+import { EmptyState } from '../ui/EmptyState';
+import { Mascot } from '../ui/Mascot';
+import { MascotBubble } from '../ui/MascotBubble';
+import { Screen } from '../ui/Screen';
+import { TextField } from '../ui/TextField';
+import { useTheme } from '../ui/theme';
+import { loadCheckin, saveCheckin, type CheckinPlan, type LoadedCheckin } from './checkinFlow';
+
+type Load = { status: 'loading' } | { status: 'error' } | LoadedCheckin;
+
+function leave(): void {
+  if (router.canGoBack()) router.back();
+  else router.replace('/(tabs)/habitos');
+}
+
+/** Morning / night check-in (PLAN §10): prefilled, a couple of taps, done in under 10 seconds. */
+export function CheckinScreen({ kind }: { kind: CheckinKind }) {
+  const theme = useTheme();
+  const t = useT();
+  const [load, setLoad] = useState<Load>({ status: 'loading' });
+  const [answers, setAnswers] = useState<Record<string, AnswerValue | undefined>>({});
+  const [foodNote, setFoodNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadCheckin(getRepositories(), kind, dayKey()).then(
+      (loaded) => {
+        if (cancelled) return;
+        if (loaded.status === 'ready') {
+          setAnswers(loaded.plan.answers);
+          setFoodNote(loaded.plan.foodNote);
+        }
+        setLoad(loaded);
+      },
+      (failure: unknown) => {
+        if (__DEV__) console.error('Could not load the check-in', failure);
+        if (!cancelled) setLoad({ status: 'error' });
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [kind]);
+
+  const submit = useCallback(
+    async (plan: CheckinPlan) => {
+      setSubmitting(true);
+      setError(undefined);
+      try {
+        const result = await saveCheckin(
+          getDatabase(),
+          getRepositories(),
+          plan,
+          dayKey(),
+          answers,
+          foodNote,
+        );
+        if (!result.ok) {
+          setError(t('checkin.missing', { question: result.question.label }));
+          return;
+        }
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setDone(true);
+      } catch (failure) {
+        if (__DEV__) console.error('Could not save the check-in', failure);
+        setError(t('checkin.saveError'));
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [answers, foodNote, t],
+  );
+
+  const title = t(kind === 'morning' ? 'checkin.morningTitle' : 'checkin.nightTitle');
+
+  if (load.status === 'loading')
+    return <Screen edges={['top', 'bottom', 'left', 'right']}>{null}</Screen>;
+  if (load.status !== 'ready') {
+    return (
+      <Screen edges={['top', 'bottom', 'left', 'right']}>
+        <EmptyState
+          title={t(load.status === 'disabled' ? 'checkin.disabled' : 'checkin.loadError')}
+          body={t(load.status === 'disabled' ? 'checkin.disabledBody' : 'checkin.loadErrorBody')}
+          action={{ label: t('checkin.close'), onPress: leave }}
+        />
+      </Screen>
+    );
+  }
+
+  if (done) {
+    return (
+      <Screen edges={['top', 'bottom', 'left', 'right']}>
+        <View style={{ flex: 1, justifyContent: 'center', gap: theme.space[6] }}>
+          <MascotBubble
+            pose={kind === 'morning' ? 'hola' : 'descansa'}
+            message={t(kind === 'morning' ? 'checkin.doneMorning' : 'checkin.doneNight')}
+            size="lg"
+          />
+          <Button label={t('checkin.close')} onPress={leave} variant="secondary" size="lg" />
+        </View>
+      </Screen>
+    );
+  }
+
+  const { plan } = load;
+  return (
+    <KeyboardAvoidingView
+      // Android is edge-to-edge in SDK 57: set `behavior` on both platforms.
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1, backgroundColor: theme.color.bg }}
+    >
+      <Screen scroll edges={['top', 'bottom', 'left', 'right']}>
+        <View style={{ gap: theme.space[5], paddingVertical: theme.space[4] }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('checkin.close')}
+              onPress={leave}
+              style={{
+                width: theme.touch.gym,
+                height: theme.touch.gym,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <ArrowLeft color={theme.color.text} />
+            </Pressable>
+            <Mascot pose={kind === 'morning' ? 'hola' : 'descansa'} size="sm" />
+            <Text
+              accessibilityRole="header"
+              style={[theme.text('title-lg'), { color: theme.color.text, flex: 1 }]}
+            >
+              {title}
+            </Text>
+          </View>
+          <CheckinSheet
+            questions={plan.questions}
+            answers={answers}
+            onAnswer={(id, value) => setAnswers((current) => ({ ...current, [id]: value }))}
+            onSubmit={() => void submit(plan)}
+            submitting={submitting}
+            error={error}
+            extra={
+              plan.foodPrompt === null ? null : (
+                <TextField label={plan.foodPrompt} value={foodNote} onChangeText={setFoodNote} />
+              )
+            }
+          />
+        </View>
+      </Screen>
+    </KeyboardAvoidingView>
+  );
+}

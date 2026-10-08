@@ -1,5 +1,5 @@
-import { SectionPlaceholder } from '../../src/ui/SectionPlaceholder';
+import { HabitsScreen } from '../../src/habits/HabitsScreen';
 
 export default function Habitos() {
-  return <SectionPlaceholder section="habitos" />;
+  return <HabitsScreen />;
 }

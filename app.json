@@ -13,7 +13,8 @@
         "foregroundImage": "./assets/icons/adaptive-foreground.png",
         "backgroundImage": "./assets/icons/adaptive-background.png",
         "monochromeImage": "./assets/icons/adaptive-monochrome.png"
-      }
+      },
+      "permissions": ["android.permission.health.READ_STEPS"]
     },
     "plugins": [
       "expo-router",
@@ -45,6 +46,7 @@
           }
         }
       ],
+      "react-native-health-connect",
       "expo-sqlite",
       "expo-audio"
     ]

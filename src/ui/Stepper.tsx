@@ -12,7 +12,7 @@ type StepButtonProps = {
   kind: 'minus' | 'plus';
 };
 
-function StepButton({ label, onPress, disabled, kind }: StepButtonProps) {
+export function StepButton({ label, onPress, disabled, kind }: StepButtonProps) {
   const theme = useTheme();
   const IconComponent = kind === 'plus' ? Plus : Minus;
   return (

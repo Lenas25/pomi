@@ -32,6 +32,8 @@ export const settingsSchemas = {
   /** Rough "steps per day" answer from the onboarding, the baseline until real data exists. */
   stepsEstimate: z.number().nonnegative(),
   goals: goalsSchema,
+  /** Day (`yyyy-MM-dd`) the person finished the onboarding: the start of the step baseline week. */
+  startedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 } as const;
 
 export type SettingsKey = keyof typeof settingsSchemas;

@@ -61,8 +61,9 @@ describe('mapDraftToPersistence', () => {
     ]);
     expect(settings.checkinPrefs).toEqual({ morning: true, night: true, monthlyReviewDay: 1 });
     expect(settings.stepsEstimate).toBe(6200);
-    // 60 kg: 1,980 ml -> 8 glasses; gym day 2,480 ml -> 10 glasses. 6,200 + 1,000 -> 7,000 (7,200 to the nearest 500).
-    expect(settings.goals).toEqual({ waterGlassesRest: 8, waterGlassesGym: 10, stepsGoal: 7000 });
+    // 60 kg: 1,980 ml -> 8 glasses; gym day 2,480 ml -> 10 glasses. The steps goal (6,200 + 1,000
+    // -> 7,000) is NOT stored: it is fixed after the baseline week.
+    expect(settings.goals).toEqual({ waterGlassesRest: 8, waterGlassesGym: 10 });
   });
 
   it('leaves skipped answers out and only anchors the slots that are used', () => {
