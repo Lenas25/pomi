@@ -306,7 +306,7 @@ Pomi acompaña: pregunta con cariño, calcula con datos reales y nunca juzga. To
 **Calculadora de ciclos de sueño**
 
 - Ciclos de 90 minutos. Horas de dormir sugeridas: `despertar − n × 90 min − 15 min` (15 min para conciliar el sueño), con `n` = 4, 5 y 6.
-- Se muestran junto a la meta de sueño ("tu meta: 7 h 30 min; opciones por ciclos: 23:25, 21:55, 20:25"). Es una guía: la meta de horas sigue mandando.
+- Se muestran junto a la meta de sueño ("despertando a las 5:10 — tu meta: 7 h 30 min; opciones por ciclos: 22:55, 21:25 o 19:55"). Es una guía: la meta de horas sigue mandando.
 - Cruza la medianoche correctamente (la hora de dormir puede ser del día anterior).
 
 ### v2: aprender de tu ritmo

@@ -83,6 +83,27 @@ export const es = {
       value: 'otro tipo de valor',
     },
   },
+  agenda: {
+    gym: 'Gym',
+    checkin: {
+      morning: 'Check-in de la mañana',
+      night: 'Check-in de la noche',
+    },
+  },
+  gym: {
+    target: {
+      weightUp:
+        'Hoy: {{weightKg}} kg × {{reps}}. La última vez: {{lastWeightKg}} kg × {{lastReps}} en todas.',
+      addRep: 'Hoy: {{weightKg}} kg, intenta llegar a {{reps}} repeticiones.',
+      noHistory: 'Sin historial todavía. Sugerencia de la plantilla: {{weightHint}}',
+      chooseWeight: 'Elige un peso con el que te queden 1 o 2 repeticiones en reserva.',
+      stalled:
+        'Llevas {{sessions}} sesiones sin mejorar. Revisa tu sueño y descanso, o prueba una semana más ligera.',
+      deload: 'Semana ligera: {{weightKg}} kg (−{{pct}}%).',
+      weightUpSuggested:
+        'Te quedaron muchas repeticiones en reserva. ¿Probamos con {{weightKg}} kg?',
+    },
+  },
   database: {
     errorTitle: 'No pudimos abrir tus datos',
     errorBody: 'Cierra la app y vuelve a abrirla. Tus datos siguen en tu teléfono.',

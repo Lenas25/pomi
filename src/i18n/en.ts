@@ -85,6 +85,26 @@ export const en: Messages = {
       value: 'a different kind of value',
     },
   },
+  agenda: {
+    gym: 'Gym',
+    checkin: {
+      morning: 'Morning check-in',
+      night: 'Evening check-in',
+    },
+  },
+  gym: {
+    target: {
+      weightUp:
+        'Today: {{weightKg}} kg × {{reps}}. Last time: {{lastWeightKg}} kg × {{lastReps}} on every set.',
+      addRep: 'Today: {{weightKg}} kg, aim for {{reps}} reps.',
+      noHistory: 'No history yet. Template suggestion: {{weightHint}}',
+      chooseWeight: 'Pick a weight that leaves you 1 or 2 reps in reserve.',
+      stalled:
+        "You've gone {{sessions}} sessions without improving. Check your sleep and rest, or try a lighter week.",
+      deload: 'Lighter week: {{weightKg}} kg (−{{pct}}%).',
+      weightUpSuggested: 'You had plenty of reps in reserve. Shall we try {{weightKg}} kg?',
+    },
+  },
   database: {
     errorTitle: 'We could not open your data',
     errorBody: 'Close the app and open it again. Your data is still on your phone.',
