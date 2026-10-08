@@ -466,7 +466,7 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 ### v3: descubrirte
 
 - [x] Motor de hallazgos (sección 12): `buildInsights` puro, semanal, máximo 1 por semana ISO, mínimo 21 días y 7 por grupo, umbrales por variable, tarjeta en Hoy, lista en Progreso, carta semanal, `/comparacion` y sección «Hallazgos» del reporte.
-- [ ] Volumen semanal por músculo.
+- [x] Volumen semanal por músculo: `weeklyVolume` puro (series completadas por músculo y semana ISO con el cambio de día; 1 serie directa para el primer músculo del paso, 0,5 para los demás), gráfico de barras en Gym (esta semana) y en Progreso (4 u 8 semanas por músculo), con la referencia general por nivel solo como información, nunca como meta.
 - [ ] Editor de programas de gym dentro de la app.
 - [ ] Inglés completo; CSV y JSON en reportes; importar programas de un entrenador.
 - [ ] Opcional: "Conectar mi IA" (sección 14d): proveedor propio (adaptadores OpenAI-compatible y Anthropic), clave en `expo-secure-store`, vista previa de los datos antes de cada envío.

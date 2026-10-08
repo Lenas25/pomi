@@ -25,6 +25,7 @@ import {
   type StoredSet,
 } from './sessionViewModel';
 import { createKeyedQueue, memoizeUntilFailure } from './asyncControl';
+import { loadVolumeData, type VolumeData } from '../volume/loadVolume';
 import { createSetActions, nextLabelFor } from './setActions';
 
 const ROTATION_LOOKBACK = 40;
@@ -38,6 +39,8 @@ export type GymTabState =
       todayRoutineId: string | null;
       /** Routine of an unfinished session of today that already has sets (can be resumed). */
       resumableRoutineId: string | null;
+      /** Weekly volume per muscle; `null` when it could not be computed (never blocks the tab). */
+      volume: VolumeData | null;
     };
 
 /** Loads the program, today's routine (rotation) and any resumable session; call `reload` on focus. */
@@ -58,6 +61,7 @@ export function useGymTab(): GymTabState & { reload: () => void } {
               program: null,
               todayRoutineId: null,
               resumableRoutineId: null,
+              volume: null,
             });
           }
           return;
@@ -68,6 +72,10 @@ export function useGymTab(): GymTabState & { reload: () => void } {
         const recent = await repos.workouts.recentSessions(ROTATION_LOOKBACK);
         const routineIds = program.routines.map((routine) => routine.id);
         const open = await repos.workouts.unfinishedSessionOn(today);
+        const volume = await loadVolumeData(repos, today).catch((error: unknown) => {
+          if (__DEV__) console.warn('Could not compute the weekly volume', error);
+          return null;
+        });
         const openWithSets = open
           ? recent.find((entry) => entry.session.id === open.id && entry.sets.length > 0)
           : undefined;
@@ -80,6 +88,7 @@ export function useGymTab(): GymTabState & { reload: () => void } {
               openWithSets && routineIds.includes(openWithSets.session.routineId)
                 ? openWithSets.session.routineId
                 : null,
+            volume,
           });
         }
       } catch (error) {

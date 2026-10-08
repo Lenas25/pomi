@@ -11,6 +11,7 @@ import type { MetricFrequency, MetricPoint } from '../domain/progress/metrics';
 import type { SessionSets } from '../domain/progress/strength';
 import { DEFAULT_WEEKS } from '../domain/progress/weekly';
 import { pickProgram } from '../gym/program';
+import { loadVolumeData, type VolumeData } from '../volume/loadVolume';
 import type { GymDays } from '../templates/schema';
 
 /** How far back the strength history reaches (26 weeks). */
@@ -49,6 +50,8 @@ export type ProgressData = {
   companion?: Companion | null | undefined;
   /** Every readable insight, newest first (PLAN §12). */
   insights?: StoredInsight[] | undefined;
+  /** Weekly volume per muscle (PLAN §9.4); `null` when it could not be computed. */
+  volume?: VolumeData | null | undefined;
 };
 
 const key = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -110,6 +113,11 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
       return [];
     });
 
+  const volume = await loadVolumeData(repos, today).catch((error: unknown) => {
+    if (__DEV__) console.warn('Could not compute the weekly volume', error);
+    return null;
+  });
+
   return {
     today,
     startedOn,
@@ -129,5 +137,6 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
     monthlyDone: monthly.length > 0,
     companion,
     insights,
+    volume,
   };
 }

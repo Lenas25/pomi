@@ -5,6 +5,7 @@ import { Play } from 'phosphor-react-native';
 
 import { useGymTab } from '../../src/gym/useGym';
 import { useT } from '../../src/i18n';
+import { WeekVolumeCard } from '../../src/volume/VolumeSection';
 import { Button } from '../../src/ui/Button';
 import { Card } from '../../src/ui/Card';
 import { EmptyState } from '../../src/ui/EmptyState';
@@ -131,6 +132,8 @@ export default function Gym() {
             );
           })}
         </View>
+
+        {tab.volume ? <WeekVolumeCard data={tab.volume} /> : null}
 
         <Button
           label={t('creator.cta')}

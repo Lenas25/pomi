@@ -18,6 +18,7 @@ import { LineChart } from '../ui/LineChart';
 import { Screen } from '../ui/Screen';
 import { Skeleton } from '../ui/Skeleton';
 import { useTheme } from '../ui/theme';
+import { VolumeProgressSection } from '../volume/VolumeSection';
 import { useDelayedFlag } from '../ui/useDelayedFlag';
 
 import { MeasurementCard } from './MeasurementCard';
@@ -433,6 +434,9 @@ export function ProgressScreen() {
               selectedId={selectedStepId}
               onSelect={setSelectedStepId}
             />
+            {state.status === 'ready' && state.data.volume ? (
+              <VolumeProgressSection data={state.data.volume} />
+            ) : null}
 
             <View style={{ gap: theme.space[3] }}>
               <SectionTitle>{t('progress.measurements.title')}</SectionTitle>
