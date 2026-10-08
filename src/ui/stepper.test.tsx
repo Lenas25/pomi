@@ -38,6 +38,30 @@ describe('TimeStepper', () => {
   });
 });
 
+describe('TimeStepper carry', () => {
+  it('carries minutes into the hour across midnight in both directions', async () => {
+    await render(
+      <ThemeProvider mode="light">
+        <Time initial="23:55" />
+      </ThemeProvider>,
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Increase Wake, minutes' }));
+    expect(screen.getByLabelText('Wake 00:00')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Decrease Wake, minutes' }));
+    expect(screen.getByLabelText('Wake 23:55')).toBeTruthy();
+  });
+
+  it('gives each value a label with its context for screen readers', async () => {
+    await render(
+      <ThemeProvider mode="light">
+        <Time initial="07:30" />
+      </ThemeProvider>,
+    );
+    expect(screen.getByLabelText('Wake, hour: 07')).toBeTruthy();
+    expect(screen.getByLabelText('Wake, minutes: 30')).toBeTruthy();
+  });
+});
+
 describe('NumberStepper', () => {
   it('stops at its limits and disables the matching button', async () => {
     await render(

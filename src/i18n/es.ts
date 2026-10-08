@@ -222,6 +222,7 @@ export const es = {
     increase: 'Subir {{label}}',
     decrease: 'Bajar {{label}}',
     hours: '{{value}} h',
+    suggestedValue: 'Valor sugerido. «Siguiente» lo confirma y «Saltar» lo deja sin responder.',
     hourLabel: 'hora',
     minuteLabel: 'minutos',
     welcome: {
@@ -327,13 +328,14 @@ export const es = {
       glasses: '{{count}} vasos',
       waterExplain:
         '33 ml por kg × {{kg}} kg = {{rawMl}} ml, redondeado hacia arriba a vasos de {{glassMl}} ml. En días de gym sumamos 500 ml por hora de ejercicio (calculamos 1 hora). Es una guía general: ajústala según tu sed y el color de tu orina.',
-      waterNoWeight: 'Cuéntanos tu peso en Ajustes y calcularemos tu meta de agua.',
+      waterNoWeight:
+        'Sin tu peso no podemos calcular tu meta, así que partimos de un valor general que puedes ajustar. Cuando agregues tu peso en Ajustes la calcularemos.',
       stepsTitle: 'Pasos',
       stepsValue: '{{steps}} pasos',
       stepsExplain:
         'Partimos de unos {{baseline}} pasos al día y sumamos 1,000, redondeado a 500. Después de una semana la ajustamos con tus pasos reales.',
       stepsNoBaseline:
-        'Esta primera semana medimos cuántos pasos das de verdad y con eso te proponemos una meta.',
+        'Esta primera semana medimos cuántos pasos das de verdad y con eso te proponemos una meta. Después podrás cambiarla en Ajustes.',
       sleepTitle: 'Sueño',
       sleepTarget: 'Meta de sueño',
       sleepBedtime: 'Hora de dormir sugerida: {{bedtime}}',
@@ -350,6 +352,8 @@ export const es = {
   },
   database: {
     errorTitle: 'No pudimos abrir tus datos',
-    errorBody: 'Cierra la app y vuelve a abrirla. Tus datos siguen en tu teléfono.',
+    errorBody:
+      'Tus datos siguen en tu teléfono. Prueba de nuevo; si sigue igual, cierra la app y vuelve a abrirla.',
+    retry: 'Reintentar',
   },
 } as const;

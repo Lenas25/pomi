@@ -7,6 +7,7 @@ import {
   currentSleepHours,
   parseDecimal,
   parseOptionalNumber,
+  applyDraftPatch,
   LIMITS,
   type OnboardingDraft,
 } from './draft';
@@ -99,8 +100,8 @@ describe('mapDraftToPersistence', () => {
 describe('buildStartingPoint', () => {
   it('computes the goals with the domain formulas and explains them', () => {
     const point = buildStartingPoint(full);
-    expect(point.water?.restGlasses).toEqual({ value: 8, suggested: 8, edited: false });
-    expect(point.water?.gymGlasses.value).toBe(10);
+    expect(point.water.restGlasses).toEqual({ value: 8, suggested: 8, edited: false });
+    expect(point.water.gymGlasses.value).toBe(10);
     expect(point.waterExplanation).toEqual({
       key: 'onboarding.summary.waterExplain',
       params: { kg: 60, rawMl: 1980, glassMl: 250 },
@@ -127,13 +128,15 @@ describe('buildStartingPoint', () => {
       sleepTargetH: 8,
       goalOverrides: { waterRestGlasses: 7 },
     });
-    expect(point.water?.restGlasses).toEqual({ value: 7, suggested: 8, edited: true });
+    expect(point.water.restGlasses).toEqual({ value: 7, suggested: 8, edited: true });
     expect(point.sleep.bedtime).toBe('21:10');
   });
 
   it('degrades gracefully when answers were skipped', () => {
     const point = buildStartingPoint(emptyDraft());
-    expect(point.water).toBeNull();
+    expect(point.water.fromDefault).toBe(true);
+    expect(point.water.restGlasses).toEqual({ value: 8, suggested: 8, edited: false });
+    expect(point.water.gymGlasses.value).toBe(10);
     expect(point.waterExplanation.key).toBe('onboarding.summary.waterNoWeight');
     expect(point.steps.goal).toBeNull();
     expect(point.steps.explanation.key).toBe('onboarding.summary.stepsNoBaseline');
@@ -198,5 +201,39 @@ describe('typed answers', () => {
     expect(currentSleepHours({ wake: '05:10', bed: '22:00' })).toBe(7);
     expect(currentSleepHours({ wake: '06:30', bed: '23:00' })).toBe(7.5);
     expect(currentSleepHours({ wake: '06:30' })).toBeNull();
+  });
+});
+
+describe('applyDraftPatch', () => {
+  const edited = draftWith({
+    weightKg: 60,
+    stepsEstimate: 6000,
+    goalOverrides: { waterRestGlasses: 9, waterGymGlasses: 11, stepsGoal: 8000 },
+  });
+
+  it('drops water overrides when the weight changes, and only then', () => {
+    const same = applyDraftPatch(edited, { weightKg: 60 });
+    expect(same.goalOverrides).toEqual(edited.goalOverrides);
+    const changed = applyDraftPatch(edited, { weightKg: 70 });
+    expect(changed.goalOverrides).toEqual({ stepsGoal: 8000 });
+  });
+
+  it('drops the steps override when the estimate changes or is cleared', () => {
+    expect(
+      applyDraftPatch(edited, { stepsEstimate: 7000 }).goalOverrides.stepsGoal,
+    ).toBeUndefined();
+    expect(
+      applyDraftPatch(edited, { stepsEstimate: undefined }).goalOverrides.stepsGoal,
+    ).toBeUndefined();
+    expect(applyDraftPatch(edited, { name: 'Lena' }).goalOverrides).toEqual(edited.goalOverrides);
+  });
+});
+
+describe('skipped weight', () => {
+  it('offers editable defaults but stores them only once edited', () => {
+    const untouched = mapDraftToPersistence(emptyDraft());
+    expect(untouched.settings.goals).toEqual({});
+    const touched = mapDraftToPersistence(draftWith({ goalOverrides: { waterRestGlasses: 9 } }));
+    expect(touched.settings.goals).toEqual({ waterGlassesRest: 9 });
   });
 });

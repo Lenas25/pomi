@@ -89,30 +89,26 @@ export function StartingPointScreen({ onFinish, saving, failed }: StartingPointS
         </Text>
 
         <GoalCard title={t('onboarding.summary.waterTitle')}>
-          {point.water ? (
-            <>
-              <NumberStepper
-                label={t('onboarding.summary.waterRest')}
-                value={point.water.restGlasses.value}
-                onChange={(value) => setOverride({ waterRestGlasses: value })}
-                step={1}
-                min={1}
-                max={30}
-                format={glasses}
-              />
-              <EditedBadge goal={point.water.restGlasses} />
-              <NumberStepper
-                label={t('onboarding.summary.waterGym')}
-                value={point.water.gymGlasses.value}
-                onChange={(value) => setOverride({ waterGymGlasses: value })}
-                step={1}
-                min={1}
-                max={30}
-                format={glasses}
-              />
-              <EditedBadge goal={point.water.gymGlasses} />
-            </>
-          ) : null}
+          <NumberStepper
+            label={t('onboarding.summary.waterRest')}
+            value={point.water.restGlasses.value}
+            onChange={(value) => setOverride({ waterRestGlasses: value })}
+            step={1}
+            min={1}
+            max={30}
+            format={glasses}
+          />
+          <EditedBadge goal={point.water.restGlasses} />
+          <NumberStepper
+            label={t('onboarding.summary.waterGym')}
+            value={point.water.gymGlasses.value}
+            onChange={(value) => setOverride({ waterGymGlasses: value })}
+            step={1}
+            min={1}
+            max={30}
+            format={glasses}
+          />
+          <EditedBadge goal={point.water.gymGlasses} />
           <Why explanation={point.waterExplanation} />
         </GoalCard>
 

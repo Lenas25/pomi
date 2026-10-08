@@ -29,17 +29,21 @@ type Migratable = {
   session: unknown;
 };
 
-/** Applies the bundled migrations with drizzle's own migrator, exactly as the app does on device. */
-export async function applyMigrations(db: Db): Promise<void> {
+/** Applies the bundled migrations with drizzle's own migrator, exactly as the app does on device.
+ * `limit` applies only the first N (to seed an old schema before running the rest); calling it
+ * again without a limit applies what is pending. */
+export async function applyMigrations(db: Db, limit?: number): Promise<void> {
   const internals = db as unknown as Migratable;
-  await internals.dialect.migrate(readMigrations(), internals.session);
+  await internals.dialect.migrate(readMigrations().slice(0, limit), internals.session);
 }
 
 /**
  * In-memory SQLite for Jest using Node's built-in `node:sqlite` (no native module needed), exposed
  * through Drizzle's sqlite-proxy driver. Test-only: never import from app code.
  */
-export async function createTestDb(): Promise<{ db: Db; close: () => void }> {
+export async function createTestDb(
+  options: { migrationLimit?: number } = {},
+): Promise<{ db: Db; close: () => void; exec: (sql: string) => void }> {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('PRAGMA foreign_keys = ON;');
 
@@ -59,6 +63,6 @@ export async function createTestDb(): Promise<{ db: Db; close: () => void }> {
     { schema },
   );
 
-  await applyMigrations(db);
-  return { db, close: () => sqlite.close() };
+  await applyMigrations(db, options.migrationLimit);
+  return { db, close: () => sqlite.close(), exec: (sql) => sqlite.exec(sql) };
 }

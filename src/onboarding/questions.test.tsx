@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
+import { AccessibilityInfo } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { en } from '../i18n/en';
@@ -101,5 +102,34 @@ describe('NameQuestion', () => {
   it('keeps the bubble within the 40-character mascot limit in both languages', () => {
     expect(es.onboarding.welcome.bubble.length).toBeLessThanOrEqual(40);
     expect(en.onboarding.welcome.bubble.length).toBeLessThanOrEqual(40);
+  });
+});
+
+describe('navigation and keyboard behaviour', () => {
+  it('ignores a second tap while the next question is opening', async () => {
+    await renderScreen(<WorkQuestion />);
+    const next = screen.getByRole('button', { name: es.onboarding.next });
+    await fireEvent.press(next);
+    await fireEvent.press(next);
+    await fireEvent.press(screen.getByRole('button', { name: es.onboarding.skip }));
+    expect(mockPush).toHaveBeenCalledTimes(1);
+  });
+
+  it('announces a validation error', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    await renderScreen(<BodyQuestion />);
+    await fireEvent.changeText(screen.getByLabelText(es.onboarding.body.weightLabel), '5');
+    await fireEvent.press(screen.getByRole('button', { name: es.onboarding.next }));
+    expect(announce).toHaveBeenCalledWith('Escribe un peso entre 20 y 300 kg.');
+    announce.mockRestore();
+  });
+
+  it('moves from weight to height and submits from the last field', async () => {
+    await renderScreen(<BodyQuestion />);
+    await fireEvent.changeText(screen.getByLabelText(es.onboarding.body.weightLabel), '60');
+    await fireEvent.changeText(screen.getByLabelText(es.onboarding.body.heightLabel), '160');
+    await fireEvent(screen.getByLabelText(es.onboarding.body.heightLabel), 'submitEditing');
+    expect(useOnboardingDraft.getState().draft.heightCm).toBe(160);
+    expect(mockPush).toHaveBeenCalledTimes(1);
   });
 });

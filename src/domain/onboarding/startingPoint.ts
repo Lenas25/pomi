@@ -33,7 +33,9 @@ export type StartingPoint = {
     gymGlasses: GoalValue;
     glassMl: number;
     explanation: Explanation;
-  } | null;
+    /** No weight: the numbers are a neutral starting point to edit, not a computed goal. */
+    fromDefault: boolean;
+  };
   /** Rows to show even when the weight is missing, so the screen can explain what is needed. */
   waterExplanation: Explanation;
   steps: { goal: GoalValue | null; baseline: number | null; explanation: Explanation };
@@ -45,6 +47,9 @@ export type StartingPoint = {
   };
   gym: { days: number[]; explanation: Explanation };
 };
+
+/** Neutral glasses per day offered when there is no weight to compute from (editable). */
+export const DEFAULT_WATER_GLASSES = { rest: 8, gym: 10 } as const;
 
 /** One hour of gym per session, as everywhere else (PLAN §9.1). */
 const GYM_HOURS = 1;
@@ -58,8 +63,14 @@ function goalValue(suggested: number, override: number | undefined): GoalValue {
 export function buildStartingPoint(draft: OnboardingDraft): StartingPoint {
   const { goalOverrides } = draft;
 
-  let water: StartingPoint['water'] = null;
   let waterExplanation: Explanation = { key: 'onboarding.summary.waterNoWeight', params: {} };
+  let water: StartingPoint['water'] = {
+    restGlasses: goalValue(DEFAULT_WATER_GLASSES.rest, goalOverrides.waterRestGlasses),
+    gymGlasses: goalValue(DEFAULT_WATER_GLASSES.gym, goalOverrides.waterGymGlasses),
+    glassMl: DEFAULT_GLASS_ML,
+    explanation: waterExplanation,
+    fromDefault: true,
+  };
   if (draft.weightKg !== undefined) {
     const rest = waterGoal({ weightKg: draft.weightKg });
     const gym = waterGoal({ weightKg: draft.weightKg, gymHours: GYM_HOURS });
@@ -72,6 +83,7 @@ export function buildStartingPoint(draft: OnboardingDraft): StartingPoint {
       gymGlasses: goalValue(gym.glasses, goalOverrides.waterGymGlasses),
       glassMl: DEFAULT_GLASS_ML,
       explanation: waterExplanation,
+      fromDefault: false,
     };
   }
 

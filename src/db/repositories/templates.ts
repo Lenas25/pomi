@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { loadDefaultTemplates } from '../../templates/defaults';
 import { moduleTemplateSchema, type ModuleTemplate } from '../../templates/schema';
 import { templates } from '../schema';
-import { withTransaction } from '../transaction';
+import { withTransaction, type Tx } from '../transaction';
 import type { Db } from '../types';
 
 import type { SettingsRepository } from './settings';
@@ -45,11 +45,12 @@ export function createTemplatesRepository(
    * Stores modules atomically. `replace` overwrites modules with the same id; `add` keeps existing
    * ones (and ids already saved earlier in the same batch) and reports them as skipped.
    */
-  async function saveModules(
+  async function saveModulesIn(
+    scope: Db | Tx,
     modules: ModuleTemplate[],
     mode: 'replace' | 'add',
   ): Promise<SaveModulesResult> {
-    return withTransaction(db, async () => {
+    return withTransaction(scope, async () => {
       const known = new Set((await listModules()).map((module) => module.id));
       const result: SaveModulesResult = { saved: [], skipped: [] };
       const importedAt = now();
@@ -80,6 +81,9 @@ export function createTemplatesRepository(
     });
   }
 
+  const saveModules = (modules: ModuleTemplate[], mode: 'replace' | 'add') =>
+    saveModulesIn(db, modules, mode);
+
   return {
     listModules,
 
@@ -102,9 +106,9 @@ export function createTemplatesRepository(
      * from coming back on the next launch.
      */
     async seedDefaults(): Promise<boolean> {
-      return withTransaction(db, async () => {
+      return withTransaction(db, async (tx) => {
         if (await settingsRepo.get('templatesSeeded')) return false;
-        await saveModules(loadDefaultTemplates().modules, 'add');
+        await saveModulesIn(tx, loadDefaultTemplates().modules, 'add');
         await settingsRepo.set('templatesSeeded', true);
         return true;
       });

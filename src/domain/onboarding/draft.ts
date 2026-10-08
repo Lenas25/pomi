@@ -79,6 +79,28 @@ export function emptyDraft(): OnboardingDraft {
   };
 }
 
+/**
+ * Merges `patch` into `draft` and drops the goal overrides whose inputs changed: a water goal the
+ * person edited for the OLD weight (or a steps goal for the old estimate) must not survive a new
+ * answer. Sleep has no override (the target hours ARE the editable value), so wake / bed changes
+ * need nothing here.
+ */
+export function applyDraftPatch(
+  draft: OnboardingDraft,
+  patch: Partial<OnboardingDraft>,
+): OnboardingDraft {
+  const next = { ...draft, ...patch };
+  const overrides = { ...next.goalOverrides };
+  if ('weightKg' in patch && patch.weightKg !== draft.weightKg) {
+    delete overrides.waterRestGlasses;
+    delete overrides.waterGymGlasses;
+  }
+  if ('stepsEstimate' in patch && patch.stepsEstimate !== draft.stepsEstimate) {
+    delete overrides.stepsGoal;
+  }
+  return { ...next, goalOverrides: overrides };
+}
+
 /** Slot used by a gym day (morning unless chosen otherwise). */
 export function slotOf(draft: Pick<OnboardingDraft, 'gymSlots'>, day: number): GymSlot {
   return draft.gymSlots[day] ?? 'gymMorning';

@@ -223,6 +223,7 @@ export const en: Messages = {
     increase: 'Increase {{label}}',
     decrease: 'Decrease {{label}}',
     hours: '{{value}} h',
+    suggestedValue: 'Suggested value. “Next” confirms it and “Skip” leaves it unanswered.',
     hourLabel: 'hour',
     minuteLabel: 'minutes',
     welcome: {
@@ -327,13 +328,14 @@ export const en: Messages = {
       glasses: '{{count}} glasses',
       waterExplain:
         '33 ml per kg × {{kg}} kg = {{rawMl}} ml, rounded up to {{glassMl}} ml glasses. On gym days we add 500 ml per hour of exercise (we assume 1 hour). This is a general guide: adjust it to your thirst and urine color.',
-      waterNoWeight: 'Tell us your weight in Settings and we will calculate your water goal.',
+      waterNoWeight:
+        'Without your weight we cannot calculate your goal, so we start from a general value you can adjust. Once you add your weight in Settings we will calculate it.',
       stepsTitle: 'Steps',
       stepsValue: '{{steps}} steps',
       stepsExplain:
         'We start from about {{baseline}} steps a day and add 1,000, rounded to 500. After a week we adjust it with your real steps.',
       stepsNoBaseline:
-        'This first week we measure how many steps you really take and then suggest a goal.',
+        'This first week we measure how many steps you really take and then suggest a goal. You can change it later in Settings.',
       sleepTitle: 'Sleep',
       sleepTarget: 'Sleep goal',
       sleepBedtime: 'Suggested bedtime: {{bedtime}}',
@@ -350,6 +352,8 @@ export const en: Messages = {
   },
   database: {
     errorTitle: 'We could not open your data',
-    errorBody: 'Close the app and open it again. Your data is still on your phone.',
+    errorBody:
+      'Your data is still on your phone. Try again; if it keeps failing, close the app and open it again.',
+    retry: 'Try again',
   },
 };

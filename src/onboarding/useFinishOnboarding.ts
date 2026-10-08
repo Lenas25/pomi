@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { getDatabase, getRepositories } from '../db';
 import { completeOnboarding } from './complete';
@@ -13,7 +13,12 @@ export function useFinishOnboarding() {
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  const inFlight = useRef(false);
+
   const finish = useCallback(async () => {
+    // A second tap while saving must not write twice.
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
     setFailed(false);
     try {
@@ -22,12 +27,15 @@ export function useFinishOnboarding() {
         getRepositories(),
         useOnboardingDraft.getState().draft,
       );
-      useOnboardingDraft.getState().reset();
+      // Flip the status first: the guard then swaps the stack away from the onboarding screens
+      // before the draft is cleared, so no screen renders against an emptied draft.
       useOnboardingStatusStore.getState().setComplete(true);
+      useOnboardingDraft.getState().reset();
     } catch (error) {
       if (__DEV__) console.error('Could not complete onboarding', error);
       setFailed(true);
       setSaving(false);
+      inFlight.current = false;
     }
   }, []);
 

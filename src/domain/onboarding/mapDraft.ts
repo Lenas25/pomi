@@ -72,8 +72,11 @@ export function mapDraftToPersistence(draft: OnboardingDraft): OnboardingPersist
 
   const point = buildStartingPoint({ ...draft, gymDays: days });
   const goals: StoredGoals = {};
-  if (point.water) {
+  // Without a weight the water numbers are only a starting point: store them when edited.
+  if (!point.water.fromDefault || point.water.restGlasses.edited) {
     goals.waterGlassesRest = point.water.restGlasses.value;
+  }
+  if (!point.water.fromDefault || point.water.gymGlasses.edited) {
     goals.waterGlassesGym = point.water.gymGlasses.value;
   }
   if (point.steps.goal) goals.stepsGoal = point.steps.goal.value;

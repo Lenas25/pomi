@@ -50,11 +50,15 @@ function RootStack() {
   );
 }
 
-function DatabaseError() {
+function DatabaseError({ onRetry }: { onRetry: () => void }) {
   const t = useT();
   return (
     <Screen>
-      <EmptyState title={t('database.errorTitle')} body={t('database.errorBody')} />
+      <EmptyState
+        title={t('database.errorTitle')}
+        body={t('database.errorBody')}
+        action={{ label: t('database.retry'), onPress: onRetry }}
+      />
     </Screen>
   );
 }
@@ -69,7 +73,7 @@ export default function RootLayout() {
     NunitoSans_700Bold,
     Nunito_900Black,
   });
-  const dbStatus = useDatabaseReady();
+  const { status: dbStatus, retry } = useDatabaseReady();
   useEffect(() => {
     if (__DEV__ && fontError)
       console.warn('Failed to load fonts; falling back to system fonts.', fontError);
@@ -86,7 +90,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider mode={mode}>
-        <IconProvider>{dbStatus === 'error' ? <DatabaseError /> : <RootStack />}</IconProvider>
+        <IconProvider>
+          {dbStatus === 'error' ? <DatabaseError onRetry={retry} /> : <RootStack />}
+        </IconProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

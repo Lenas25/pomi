@@ -72,6 +72,7 @@ export function Stepper({
         />
         <Text
           accessibilityLiveRegion="polite"
+          accessibilityLabel={`${label}: ${valueText}`}
           style={[
             theme.text('title-md'),
             { color: theme.color.text, minWidth: theme.touch.gym * 2, textAlign: 'center' },
@@ -143,8 +144,9 @@ export function TimeStepper({ label, value, onChange }: TimeStepperProps) {
   const total = clockToMinutes(value);
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
-  const set = (nextHours: number, nextMinutes: number) =>
-    onChange(minutesToClock(((nextHours + 24) % 24) * 60 + ((nextMinutes + 60) % 60)));
+  // Steps the TOTAL minutes of the day, so 23:55 + 5 min -> 00:00 and 00:00 - 5 min -> 23:55.
+  const shift = (delta: number) =>
+    onChange(minutesToClock((((total + delta) % 1440) + 1440) % 1440));
 
   return (
     <View accessibilityLabel={`${label} ${value}`} style={{ gap: theme.space[2] }}>
@@ -153,14 +155,14 @@ export function TimeStepper({ label, value, onChange }: TimeStepperProps) {
         <Stepper
           label={`${label}, ${t('onboarding.hourLabel')}`}
           valueText={String(hours).padStart(2, '0')}
-          onIncrement={() => set(hours + 1, minutes)}
-          onDecrement={() => set(hours - 1, minutes)}
+          onIncrement={() => shift(60)}
+          onDecrement={() => shift(-60)}
         />
         <Stepper
           label={`${label}, ${t('onboarding.minuteLabel')}`}
           valueText={String(minutes).padStart(2, '0')}
-          onIncrement={() => set(hours, minutes + MINUTE_STEP)}
-          onDecrement={() => set(hours, minutes - MINUTE_STEP)}
+          onIncrement={() => shift(MINUTE_STEP)}
+          onDecrement={() => shift(-MINUTE_STEP)}
         />
       </View>
     </View>

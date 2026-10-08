@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { migrate } from 'drizzle-orm/expo-sqlite/migrator';
 
+import { resolveOnboardingComplete } from '../onboarding/resolveStatus';
 import { useOnboardingStatusStore } from '../onboarding/statusStore';
 import { setLanguagePersistence, useLocaleStore } from '../i18n';
 import { setThemeModePersistence, useThemeModeStore } from '../ui/themeModeStore';
@@ -19,8 +20,7 @@ async function runBootstrap(): Promise<void> {
   setThemeModePersistence((next) => repositories.settings.set('themeMode', next));
   const language = await repositories.settings.get('language');
   useLocaleStore.getState().hydrate(language ?? 'system');
-  const onboardingDone = await repositories.settings.get('onboardingComplete');
-  useOnboardingStatusStore.getState().setComplete(onboardingDone === true);
+  useOnboardingStatusStore.getState().setComplete(await resolveOnboardingComplete(repositories));
   // 'system' is stored as "no value", so the device language keeps being followed.
   setLanguagePersistence((next) =>
     next === 'system'
@@ -47,10 +47,12 @@ export function bootstrapDatabase(): Promise<void> {
 /**
  * Opens the database, applies pending migrations, seeds the bundled templates on first run and
  * hydrates the theme mode and language from settings. Render nothing (keep the splash) until the
- * status is not `loading`.
+ * status is not `loading`. After an `error`, `retry` runs the bootstrap again; the status stays
+ * `error` until it succeeds.
  */
-export function useDatabaseReady(): DatabaseStatus {
+export function useDatabaseReady(): { status: DatabaseStatus; retry: () => void } {
   const [status, setStatus] = useState<DatabaseStatus>('loading');
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,7 +68,8 @@ export function useDatabaseReady(): DatabaseStatus {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
-  return status;
+  const retry = useCallback(() => setAttempt((current) => current + 1), []);
+  return { status, retry };
 }

@@ -1,4 +1,5 @@
-import { Text, TextInput, View, type TextInputProps } from 'react-native';
+import { useEffect, type Ref } from 'react';
+import { AccessibilityInfo, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { useTheme } from './theme';
 
@@ -11,23 +12,38 @@ type TextFieldProps = Pick<
   | 'maxLength'
   | 'autoFocus'
   | 'onSubmitEditing'
+  | 'returnKeyType'
+  | 'blurOnSubmit'
 > & {
   label: string;
   /** Error text; also flips the border to the error color and is announced. */
   error?: string | undefined;
+  /** To move focus to the next field from `onSubmitEditing`. */
+  inputRef?: Ref<TextInput>;
 };
 
 /** Labelled single-line input with a 48 dp minimum height. */
-export function TextField({ label, error, ...input }: TextFieldProps) {
+export function TextField({
+  label,
+  error,
+  inputRef,
+  returnKeyType = 'done',
+  ...input
+}: TextFieldProps) {
   const theme = useTheme();
+  // Live regions are not reliable for text that appears next to a focused input, so also announce.
+  useEffect(() => {
+    if (error) AccessibilityInfo.announceForAccessibility(error);
+  }, [error]);
   return (
     <View style={{ gap: theme.space[1] }}>
       <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>{label}</Text>
       <TextInput
         {...input}
+        ref={inputRef}
         accessibilityLabel={label}
         placeholderTextColor={theme.color.textMuted}
-        returnKeyType="done"
+        returnKeyType={returnKeyType}
         style={[
           theme.text('body'),
           {

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { emptyDraft, type OnboardingDraft } from '../domain/onboarding/draft';
+import { applyDraftPatch, emptyDraft, type OnboardingDraft } from '../domain/onboarding/draft';
 
 type DraftState = {
   draft: OnboardingDraft;
@@ -12,6 +12,6 @@ type DraftState = {
 /** Onboarding answers in progress. In memory only: nothing is stored until the end. */
 export const useOnboardingDraft = create<DraftState>((set) => ({
   draft: emptyDraft(),
-  update: (patch) => set((state) => ({ draft: { ...state.draft, ...patch } })),
+  update: (patch) => set((state) => ({ draft: applyDraftPatch(state.draft, patch) })),
   reset: () => set({ draft: emptyDraft() }),
 }));

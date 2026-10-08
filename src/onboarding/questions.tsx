@@ -1,5 +1,5 @@
-import { useState, type ComponentType } from 'react';
-import { Text, View } from 'react-native';
+import { useRef, useState, type ComponentType } from 'react';
+import { Text, View, type TextInput } from 'react-native';
 
 import {
   DEFAULT_BED,
@@ -28,7 +28,7 @@ import { OptionRow } from '../ui/OptionRow';
 import { TextField } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
 import { useOnboardingDraft } from './draftStore';
-import { QuestionScreen } from './QuestionScreen';
+import { QuestionScreen, QuestionTextField } from './QuestionScreen';
 import type { QuestionId } from './flow';
 
 const MAX_NAME_LENGTH = 40;
@@ -64,6 +64,17 @@ export function weekdayLong(day: number): TranslationKey {
   return WEEKDAY_LONG_KEYS[day] ?? 'weekdays.long.d0';
 }
 
+/** Explains that the stepper's visible value is a suggestion and what "Siguiente" / "Saltar" do. */
+function SuggestedValueNote() {
+  const t = useT();
+  const theme = useTheme();
+  return (
+    <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+      {t('onboarding.suggestedValue')}
+    </Text>
+  );
+}
+
 /** Q1 (also the welcome screen): name, Pomi's greeting and the medical notice. */
 export function NameQuestion() {
   const t = useT();
@@ -84,7 +95,7 @@ export function NameQuestion() {
       }}
       onSkip={() => update({ name: undefined })}
     >
-      <TextField
+      <QuestionTextField
         label={t('onboarding.welcome.label')}
         placeholder={t('onboarding.welcome.placeholder')}
         value={text}
@@ -114,6 +125,7 @@ export function BodyQuestion() {
   const [height, setHeight] = useState(heightCm === undefined ? '' : String(heightCm));
   const [weightInvalid, setWeightInvalid] = useState(false);
   const [heightInvalid, setHeightInvalid] = useState(false);
+  const heightInput = useRef<TextInput>(null);
 
   return (
     <QuestionScreen
@@ -137,14 +149,18 @@ export function BodyQuestion() {
         onChangeText={setWeight}
         inputMode="decimal"
         maxLength={6}
+        returnKeyType="next"
+        blurOnSubmit={false}
+        onSubmitEditing={() => heightInput.current?.focus()}
         error={weightInvalid ? t('onboarding.body.weightError', LIMITS.weightKg) : undefined}
       />
-      <TextField
+      <QuestionTextField
         label={t('onboarding.body.heightLabel')}
         value={height}
         onChangeText={setHeight}
         inputMode="decimal"
         maxLength={6}
+        inputRef={heightInput}
         error={heightInvalid ? t('onboarding.body.heightError', LIMITS.heightCm) : undefined}
       />
     </QuestionScreen>
@@ -173,7 +189,7 @@ export function AgeQuestion() {
       }}
       onSkip={() => update({ ageYears: undefined })}
     >
-      <TextField
+      <QuestionTextField
         label={t('onboarding.age.label')}
         value={age}
         onChangeText={setAge}
@@ -264,6 +280,7 @@ export function SleepClockQuestion() {
           onChange={setWakeTime}
         />
         <TimeStepper label={t('onboarding.sleepClock.bed')} value={bedTime} onChange={setBedTime} />
+        <SuggestedValueNote />
       </View>
     </QuestionScreen>
   );
@@ -298,6 +315,7 @@ export function SleepHoursQuestion() {
         max={LIMITS.sleepTargetH.max}
         format={(value) => t('onboarding.hours', { value })}
       />
+      <SuggestedValueNote />
       {current === null ? null : (
         <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
           {t('onboarding.sleepHours.current', { hours: current })}
@@ -494,6 +512,7 @@ export function StepsQuestion() {
         min={LIMITS.steps.min}
         max={LIMITS.steps.max}
       />
+      <SuggestedValueNote />
     </QuestionScreen>
   );
 }
