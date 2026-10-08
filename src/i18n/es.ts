@@ -1739,6 +1739,22 @@ export const es = {
       swapNote: 'Cambiar de ejercicio empieza un historial nuevo.',
       notFound: 'No encontramos ese paso.',
     },
+    stale: {
+      title: 'El programa cambió',
+      body: 'Desde que empezaste a editar, el programa se modificó en otro lugar (una importación o el generador). Guardar ahora lo pisaría.',
+      reload: 'Recargar y descartar mis cambios',
+      stay: 'Seguir editando',
+      notice: 'El programa cambió mientras editabas. Recárgalo para no perder esos cambios.',
+    },
+    swap: {
+      title: 'Cambiar de ejercicio',
+      withHistory:
+        'Se cambia "{{name}}" por otro ejercicio. Tiene historial de series y el nuevo empieza de cero.',
+      stillIn: 'El historial del anterior se seguirá viendo en: {{routines}}.',
+      historyLost: 'El historial del anterior dejará de mostrarse mientras no lo vuelvas a añadir.',
+      confirm: 'Cambiar',
+      cancel: 'Cancelar',
+    },
     picker: {
       title: 'Añadir ejercicio',
       swapTitle: 'Cambiar ejercicio',

@@ -82,7 +82,7 @@ export function RoutineEditorScreen() {
   };
 
   const addCustom = () => {
-    const step = newCustomStep(customKind, customName, state.program);
+    const step = newCustomStep(customKind, customName, state.program, source.context.loggedStepIds);
     dispatch({ type: 'addStep', routineId: routine.id, step });
     setCustomName('');
     router.push({ pathname: '/editar-paso', params: { routineId: routine.id, stepId: step.id } });

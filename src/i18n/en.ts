@@ -1737,6 +1737,23 @@ export const en: Messages = {
       swapNote: 'Swapping the exercise starts a new history.',
       notFound: 'We could not find that step.',
     },
+    stale: {
+      title: 'The program changed',
+      body: 'Since you started editing, the program was changed somewhere else (an import or the generator). Saving now would overwrite it.',
+      reload: 'Reload and discard my changes',
+      stay: 'Keep editing',
+      notice:
+        'The program changed while you were editing. Reload it so you do not lose those changes.',
+    },
+    swap: {
+      title: 'Swap exercise',
+      withHistory:
+        '"{{name}}" is swapped for another exercise. It has logged sets and the new one starts from zero.',
+      stillIn: 'The old exercise history will still show in: {{routines}}.',
+      historyLost: 'The old exercise history stops showing until you add it back.',
+      confirm: 'Swap',
+      cancel: 'Cancel',
+    },
     picker: {
       title: 'Add exercise',
       swapTitle: 'Swap exercise',

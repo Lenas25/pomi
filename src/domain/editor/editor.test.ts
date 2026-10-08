@@ -6,6 +6,10 @@ import { importTemplate } from '../../templates/importer';
 import {
   addableExercises,
   applyForm,
+  carryOver,
+  fitSegments,
+  hasSubstitutions,
+  inferProgramEquipment,
   createEditorState,
   editorReducer,
   formFromStep,
@@ -247,5 +251,94 @@ describe('history impact', () => {
   it('lists the steps with history that a removed routine takes along', () => {
     expect(routineRemovalLosses(program, 'a', logged)).toEqual([{ id: 'row', name: 'Row' }]);
     expect(routineRemovalLosses(program, 'b', logged)).toEqual([]);
+  });
+});
+
+describe('commit review fixes', () => {
+  const library = loadExerciseLibrary();
+
+  it('custom step ids also avoid ids with logged history that are no longer in the program', () => {
+    const step = newCustomStep('check', 'Cuello', program, new Set(['custom-cuello']));
+    expect(step.id).toBe('custom-cuello-2');
+  });
+
+  it('drops timed segments that fall outside a shorter duration and keeps the first one', () => {
+    expect(
+      fitSegments(
+        [
+          { atSec: 0, label: 'a' },
+          { atSec: 300, label: 'b' },
+          { atSec: 590, label: 'c' },
+        ],
+        400,
+      ),
+    ).toEqual([
+      { atSec: 0, label: 'a' },
+      { atSec: 300, label: 'b' },
+    ]);
+    expect(fitSegments([{ atSec: 500, label: 'x' }], 60)).toEqual([{ atSec: 0, label: 'x' }]);
+    const timed: Step = {
+      type: 'timed',
+      id: 't',
+      name: 'Cinta',
+      totalSec: 600,
+      segments: [
+        { atSec: 0, label: 'a' },
+        { atSec: 540, label: 'b' },
+      ],
+    };
+    const result = applyForm(timed, { ...formFromStep(timed), totalMin: '5' });
+    expect(result.ok && result.step).toMatchObject({
+      totalSec: 300,
+      segments: [{ atSec: 0, label: 'a' }],
+    });
+  });
+
+  it('a swap keeps sets and rest, and reps only when they measure the same thing', () => {
+    const previous: Step = { type: 'sets', id: 'a', name: 'A', sets: 5, reps: '6–8', restSec: 150 };
+    const sameKind: Step = { type: 'sets', id: 'b', name: 'B', sets: 3, reps: '8–12', restSec: 90 };
+    const seconds: Step = {
+      type: 'sets',
+      id: 'c',
+      name: 'C',
+      sets: 3,
+      reps: '30–45 s',
+      restSec: 60,
+    };
+    expect(carryOver(previous, sameKind)).toMatchObject({
+      id: 'b',
+      sets: 5,
+      reps: '6–8',
+      restSec: 150,
+    });
+    expect(carryOver(previous, seconds)).toMatchObject({
+      id: 'c',
+      sets: 5,
+      reps: '30–45 s',
+      restSec: 150,
+    });
+    expect(carryOver(warm, sameKind)).toBe(sameKind);
+  });
+
+  it('offers a swap whenever the exercise has substitutions, and infers the program equipment', () => {
+    const squat = library.find((exercise) => exercise.substitutions.length > 0);
+    if (!squat) throw new Error('library has no substitutions');
+    const step: Step = {
+      type: 'sets',
+      id: squat.id,
+      name: 'X',
+      sets: 3,
+      reps: '8–10',
+      restSec: 90,
+    };
+    expect(hasSubstitutions(library, step)).toBe(true);
+    expect(hasSubstitutions(library, warm)).toBe(false);
+    expect(hasSubstitutions(library, { ...step, id: 'custom-x' })).toBe(false);
+    expect(
+      inferProgramEquipment(library, {
+        routines: [{ steps: [{ ...step, id: `${squat.id}@bw` }] }],
+      }),
+    ).toBe('bodyweight');
+    expect(inferProgramEquipment(library, { routines: [{ steps: [warm] }] })).toBe('gym');
   });
 });

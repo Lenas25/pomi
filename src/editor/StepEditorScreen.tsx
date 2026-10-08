@@ -5,8 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {
   applyForm,
   formFromStep,
-  swapCandidates,
-  DEFAULT_LIBRARY_FILTER,
+  hasSubstitutions,
   type EditorErrorCode,
   type StepForm,
 } from '../domain/editor';
@@ -65,7 +64,8 @@ export function StepEditorScreen() {
     router.back();
   };
 
-  const canSwap = swapCandidates(library, DEFAULT_LIBRARY_FILTER, routine, step).length > 0;
+  // Always offered when the exercise has substitutions; the picker applies the equipment filters.
+  const canSwap = hasSubstitutions(library, step);
 
   return (
     <Screen scroll edges={['top', 'bottom', 'left', 'right']}>

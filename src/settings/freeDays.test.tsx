@@ -61,4 +61,40 @@ describe('FreeDaysSettings', () => {
     await fireEvent.press(screen.getByRole('checkbox', { name: 'viernes' }));
     await waitFor(async () => expect(await repos.settings.get('freeDays')).toEqual([0, 5, 6]));
   });
+
+  it('writes one value at a time and ends with the latest selection', async () => {
+    const calls: number[][] = [];
+    let running = 0;
+    let overlapped = false;
+    const original = repos.settings.set.bind(repos.settings);
+    jest.spyOn(repos.settings, 'set').mockImplementation(async (key, value) => {
+      running += 1;
+      if (running > 1) overlapped = true;
+      if (key === 'freeDays') calls.push(value as number[]);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await original(key, value);
+      running -= 1;
+    });
+    await render(
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 360, height: 800 },
+          insets: { top: 0, left: 0, right: 0, bottom: 0 },
+        }}
+      >
+        <ThemeProvider>
+          <FreeDaysSettings />
+        </ThemeProvider>
+      </SafeAreaProvider>,
+    );
+    await screen.findByText(es.settings.freeDays.title);
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'viernes' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'jueves' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'miércoles' }));
+    await waitFor(async () =>
+      expect(await repos.settings.get('freeDays')).toEqual([0, 3, 4, 5, 6]),
+    );
+    expect(overlapped).toBe(false);
+    expect(calls.at(-1)).toEqual([0, 3, 4, 5, 6]);
+  });
 });

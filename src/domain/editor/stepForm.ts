@@ -87,7 +87,8 @@ export function applyForm(base: Step, form: StepForm): StepFormResult {
     }
     case 'timed': {
       const { how: _h, muscles: _m, ...kept } = base;
-      step = { ...kept, ...common, totalSec: Math.round(parseNumber(form.totalMin) * 60) };
+      const totalSec = Math.round(parseNumber(form.totalMin) * 60);
+      step = { ...kept, ...common, totalSec, segments: fitSegments(base.segments, totalSec) };
       break;
     }
     case 'counter': {
@@ -105,16 +106,38 @@ export function applyForm(base: Step, form: StepForm): StepFormResult {
   return errors.length > 0 ? { ok: false, errors } : { ok: true, step };
 }
 
+/**
+ * Segments that start at or after the end of the step could never be announced, so a shorter
+ * duration drops them. The first segment is never lost: if all are out, it moves to the start.
+ */
+export function fitSegments(
+  segments: readonly { atSec: number; label: string }[],
+  totalSec: number,
+): { atSec: number; label: string }[] {
+  if (!(totalSec > 0)) return [...segments];
+  const inside = segments.filter((segment) => segment.atSec < totalSec);
+  const first = segments[0];
+  if (inside.length === 0 && first) return [{ ...first, atSec: 0 }];
+  return inside;
+}
+
 export function stepIdsOf(program: Program): Set<string> {
   return new Set(program.routines.flatMap((routine) => routine.steps.map((step) => step.id)));
 }
 
 /**
  * A new step of the person's own (not from the library). The id is new and unique in the whole
- * program, so it never collides with the history of another exercise.
+ * program and against `reserved` (logged step ids), so it never collides with the history of
+ * another exercise.
  */
-export function newCustomStep(kind: CustomStepKind, name: string, program: Program): Step {
-  const id = uniqueId(`custom-${slugify(name)}`, stepIdsOf(program));
+export function newCustomStep(
+  kind: CustomStepKind,
+  name: string,
+  program: Program,
+  /** Ids that must not be reused either: steps with logged sets, even if no longer in the program. */
+  reserved: ReadonlySet<string> = new Set(),
+): Step {
+  const id = uniqueId(`custom-${slugify(name)}`, new Set([...stepIdsOf(program), ...reserved]));
   const trimmed = name.trim();
   switch (kind) {
     case 'check':

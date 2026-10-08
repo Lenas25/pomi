@@ -90,3 +90,57 @@ export function stepFromExercise(exercise: Exercise, filter: LibraryFilter, t: T
     ...(!loadable ? { bodyweight: true } : {}),
   };
 }
+
+/** The step's exercise has substitutions in the library (the picker then applies the filters). */
+export function hasSubstitutions(library: ExerciseLibrary, step: Step): boolean {
+  return (exerciseOfStep(library, step)?.substitutions.length ?? 0) > 0;
+}
+
+const EQUIPMENT_RANK: Record<Equipment, number> = { bodyweight: 0, dumbbells: 1, gym: 2 };
+
+function equipmentOfStep(exercise: Exercise, stepId: string): Equipment {
+  if (stepId.includes('@bw')) return 'bodyweight';
+  if (stepId.includes('@db')) return 'dumbbells';
+  if (exercise.equipment.includes('gym')) return 'gym';
+  return exercise.equipment.includes('dumbbells') ? 'dumbbells' : 'bodyweight';
+}
+
+/**
+ * The equipment the program asks for: the most demanding one among its library exercises (the
+ * profile stores no equipment, so the program is the best hint). Custom steps are ignored.
+ */
+export function inferProgramEquipment(
+  library: ExerciseLibrary,
+  program: { routines: readonly Pick<Routine, 'steps'>[] },
+): Equipment {
+  let best: Equipment = 'bodyweight';
+  let found = false;
+  for (const routine of program.routines) {
+    for (const step of routine.steps) {
+      const exercise = exerciseOfStep(library, step);
+      if (!exercise) continue;
+      found = true;
+      const equipment = equipmentOfStep(exercise, step.id);
+      if (EQUIPMENT_RANK[equipment] > EQUIPMENT_RANK[best]) best = equipment;
+    }
+  }
+  return found ? best : DEFAULT_LIBRARY_FILTER.equipment;
+}
+
+/** What follows the numbers of a rep text: "" (reps), "s" (seconds), "por lado"... */
+const repsUnit = (reps: string): string => reps.replace(/[\d–\-\s.,]/g, '').toLowerCase();
+
+/**
+ * A swapped-in `sets` step keeps the person's sets and rest; the reps too when they measure the
+ * same thing (both reps, both seconds, both per side). Anything else keeps the new defaults.
+ */
+export function carryOver(previous: Step, next: Step): Step {
+  if (previous.type !== 'sets' || next.type !== 'sets') return next;
+  const sameUnit = repsUnit(previous.reps) === repsUnit(next.reps);
+  return {
+    ...next,
+    sets: previous.sets,
+    restSec: previous.restSec,
+    ...(sameUnit ? { reps: previous.reps } : {}),
+  };
+}

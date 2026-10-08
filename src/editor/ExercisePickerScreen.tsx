@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import {
@@ -10,8 +10,10 @@ import {
   type TextResolver,
 } from '../domain/generator/types';
 import {
-  DEFAULT_LIBRARY_FILTER,
   addableExercises,
+  carryOver,
+  inferProgramEquipment,
+  stepRemovalImpact,
   stepFromExercise,
   swapCandidates,
   type LibraryFilter,
@@ -51,9 +53,14 @@ export function ExercisePickerScreen() {
   const t = useT();
   const theme = useTheme();
   const { routineId, replace } = useLocalSearchParams<{ routineId: string; replace?: string }>();
+  const source = useEditorStore((store) => store.source);
   const state = useEditorStore((store) => store.state);
   const dispatch = useEditorStore((store) => store.dispatch);
-  const [filter, setFilter] = useState<LibraryFilter>(DEFAULT_LIBRARY_FILTER);
+  // The profile stores no equipment or joints, so the filter starts from what the program uses.
+  const [filter, setFilter] = useState<LibraryFilter>(() => ({
+    equipment: state ? inferProgramEquipment(library, state.program) : 'gym',
+    limitations: [],
+  }));
 
   const resolver = useMemo<TextResolver>(
     () => (key, params) => t(key as TranslationKey, params),
@@ -86,13 +93,37 @@ export function ExercisePickerScreen() {
   const choose = (index: number) => {
     const option = options[index];
     if (!option) return;
-    const step = stepFromExercise(option.exercise, filter, resolver);
-    if (replacing)
+    const created = stepFromExercise(option.exercise, filter, resolver);
+    if (!replacing) {
+      dispatch({ type: 'addStep', routineId: routine.id, step: created });
+      router.back();
+      return;
+    }
+    const step = carryOver(replacing, created);
+    const apply = () => {
       dispatch({ type: 'replaceStep', routineId: routine.id, stepId: replacing.id, step });
-    else dispatch({ type: 'addStep', routineId: routine.id, step });
-    // Back past the step form of a swapped exercise: its old step no longer exists.
-    router.back();
-    if (replacing) router.back();
+      // Back past the step form of a swapped exercise: its old step no longer exists.
+      router.back();
+      router.back();
+    };
+    const impact =
+      state && source
+        ? stepRemovalImpact(state.program, routine.id, replacing.id, source.context.loggedStepIds)
+        : { hasHistory: false, stillIn: [] };
+    if (!impact.hasHistory) {
+      apply();
+      return;
+    }
+    const body = [
+      t('editor.swap.withHistory', { name: replacing.name }),
+      impact.stillIn.length > 0
+        ? t('editor.swap.stillIn', { routines: impact.stillIn.join(', ') })
+        : t('editor.swap.historyLost'),
+    ].join(' ');
+    Alert.alert(t('editor.swap.title'), body, [
+      { text: t('editor.swap.cancel'), style: 'cancel' },
+      { text: t('editor.swap.confirm'), onPress: apply },
+    ]);
   };
 
   const toggleLimitation = (joint: Limitation) =>

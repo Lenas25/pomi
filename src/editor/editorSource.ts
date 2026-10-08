@@ -18,6 +18,8 @@ import type { ModuleTemplate } from '../templates/schema';
 export type EditorSource = {
   /** The stored module the trained program belongs to; everything but the program is kept. */
   module: ModuleTemplate;
+  /** When the stored module was last written, at load time: the baseline of the stale check. */
+  moduleImportedAt: number;
   program: Program;
   context: ImportContext;
 };
@@ -33,7 +35,30 @@ export async function loadEditorSource(repos: Repositories): Promise<EditorSourc
   );
   const program = owner?.template.programs?.[0];
   if (!owner || !program) return null;
-  return { module: owner.template, program, context: { modules, loggedStepIds: new Set(logged) } };
+  return {
+    module: owner.template,
+    moduleImportedAt: owner.importedAt,
+    program,
+    context: { modules, loggedStepIds: new Set(logged) },
+  };
+}
+
+/**
+ * The stored module was written (import, generator, another save) after this edit started.
+ * Saving would silently overwrite it, so the screen blocks and offers a reload.
+ */
+export async function isSourceStale(repos: Repositories, source: EditorSource): Promise<boolean> {
+  const modules = await repos.templates.listModules();
+  const current = modules.find((stored) => stored.id === source.module.id);
+  return !current || current.importedAt !== source.moduleImportedAt;
+}
+
+/** "Rutina › Paso" for an import error path like `programs[0].routines[1].steps[3].reps`. */
+export function importErrorLocation(path: string, program: Program): string | null {
+  const routine = program.routines[Number(/routines\[(\d+)\]/.exec(path)?.[1] ?? Number.NaN)];
+  const step = routine?.steps[Number(/steps\[(\d+)\]/.exec(path)?.[1] ?? Number.NaN)];
+  const names = [routine?.name, step?.name].filter(Boolean);
+  return names.length > 0 ? names.join(' › ') : null;
 }
 
 /** The module in the template file format with the edited program in place of the original. */

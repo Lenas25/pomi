@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { getRepositories } from '../db';
@@ -14,6 +14,9 @@ export function FreeDaysSettings() {
   const theme = useTheme();
   const [days, setDays] = useState<readonly number[] | null>(null);
   const [failed, setFailed] = useState(false);
+  // One write at a time, and only the latest selection: quick taps never race each other.
+  const latest = useRef<number[] | null>(null);
+  const writing = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,12 +35,29 @@ export function FreeDaysSettings() {
 
   if (days === null) return null;
 
+  const flush = async () => {
+    if (writing.current) return;
+    writing.current = true;
+    try {
+      while (latest.current) {
+        const next = latest.current;
+        latest.current = null;
+        try {
+          await getRepositories().settings.set('freeDays', next);
+        } catch {
+          setFailed(true);
+        }
+      }
+    } finally {
+      writing.current = false;
+    }
+  };
+
   const change = (next: number[]) => {
     setFailed(false);
     setDays(next);
-    getRepositories()
-      .settings.set('freeDays', next)
-      .catch(() => setFailed(true));
+    latest.current = next;
+    void flush();
   };
 
   return (

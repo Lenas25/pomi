@@ -23,10 +23,22 @@ import { StepEditorScreen } from './StepEditorScreen';
 let mockDb: Db;
 let mockRepos: Repositories;
 let mockParams: Record<string, string> = {};
+type RemoveEvent = { preventDefault: jest.Mock; data: { action: { type: string } } };
+let removeListener: ((event: RemoveEvent) => void) | null = null;
+const mockDispatch = jest.fn();
 
 jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), push: jest.fn(), back: jest.fn(), canGoBack: () => true },
   useLocalSearchParams: () => mockParams,
+  useNavigation: () => ({
+    addListener: (_name: string, listener: (event: RemoveEvent) => void) => {
+      removeListener = listener;
+      return () => {
+        removeListener = null;
+      };
+    },
+    dispatch: mockDispatch,
+  }),
 }));
 jest.mock('../db', () => ({
   getDatabase: () => mockDb,
@@ -38,6 +50,7 @@ jest.mock('../notifications/sync', () => ({
 jest.mock('../backup/files', () => ({ shareJsonFile: jest.fn(async () => 'shared') }));
 
 let close: () => void;
+let nowMs = 1_000_000;
 
 beforeEach(async () => {
   setLanguage('es');
@@ -46,7 +59,8 @@ beforeEach(async () => {
   const test = await createTestDb();
   mockDb = test.db;
   close = test.close;
-  mockRepos = createRepositories(mockDb);
+  nowMs = 1_000_000;
+  mockRepos = createRepositories(mockDb, () => nowMs);
   await mockRepos.templates.saveModules(loadDefaultTemplates().modules, 'add');
 });
 afterEach(() => close());
@@ -67,6 +81,76 @@ const stepIds = (routineId: string) =>
 function renderScreen(ui: React.ReactElement) {
   return render(<ThemeProvider mode="light">{ui}</ThemeProvider>);
 }
+
+describe('leaving the program editor', () => {
+  const removal = (): RemoveEvent => ({
+    preventDefault: jest.fn(),
+    data: { action: { type: 'GO_BACK' } },
+  });
+
+  it('asks before hardware back / swipe when dirty, and lets the action through once confirmed', async () => {
+    await openEditor();
+    useEditorStore.getState().dispatch({ type: 'renameProgram', name: 'Otro nombre' });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    await renderScreen(<ProgramEditorScreen />);
+    const event = removal();
+    removeListener?.(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(alert.mock.calls[0]?.[0]).toBe(es.editor.leave.title);
+    const confirm = alert.mock.calls[0]?.[2]?.find((button) => button.style === 'destructive');
+    confirm?.onPress?.();
+    expect(mockDispatch).toHaveBeenCalledWith(event.data.action);
+    // The re-dispatched action is not blocked again.
+    const again = removal();
+    removeListener?.(again);
+    expect(again.preventDefault).not.toHaveBeenCalled();
+    alert.mockRestore();
+  });
+
+  it('does not block a clean editor and forgets the edit on unmount', async () => {
+    await openEditor();
+    const view = await renderScreen(<ProgramEditorScreen />);
+    const event = removal();
+    removeListener?.(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    await view.unmount();
+    expect(useEditorStore.getState().state).toBeNull();
+  });
+
+  it('keeps a dirty edit when the screen unmounts without a confirmed exit', async () => {
+    await openEditor();
+    useEditorStore.getState().dispatch({ type: 'renameProgram', name: 'Sigo editando' });
+    const view = await renderScreen(<ProgramEditorScreen />);
+    await view.unmount();
+    expect(useEditorStore.getState().state?.program.name).toBe('Sigo editando');
+  });
+});
+
+describe('stale resume', () => {
+  it('blocks the save and offers a reload when the stored program changed meanwhile', async () => {
+    const source = await openEditor();
+    useEditorStore.getState().dispatch({ type: 'renameProgram', name: 'Mi edición' });
+    // Another write (an import, the generator) lands after the editor loaded.
+    nowMs += 10_000;
+    await mockRepos.templates.saveModules([source.module], 'replace');
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    await renderScreen(<ProgramEditorScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: es.editor.save }));
+    await waitFor(() => expect(alert.mock.calls[0]?.[0]).toBe(es.editor.stale.title));
+    expect(screen.getByText(es.editor.stale.notice)).toBeTruthy();
+    // The stored program is untouched by the blocked save.
+    expect(pickProgram(await mockRepos.templates.listModules())?.name).not.toBe('Mi edición');
+    // Reload discards the edit and takes the stored program as the new baseline.
+    alert.mock.calls[0]?.[2]?.find((button) => button.style === 'destructive')?.onPress?.();
+    await waitFor(() =>
+      expect(useEditorStore.getState().state?.program.name).not.toBe('Mi edición'),
+    );
+    expect(useEditorStore.getState().source?.moduleImportedAt).toBe(
+      source.moduleImportedAt + 10_000,
+    );
+    alert.mockRestore();
+  });
+});
 
 describe('RoutineEditorScreen', () => {
   it('reorders a step with the 48 dp buttons', async () => {
@@ -198,7 +282,7 @@ describe('saving', () => {
     });
     await renderScreen(<ProgramEditorScreen />);
     await fireEvent.press(screen.getByRole('button', { name: es.editor.save }));
-    expect(alert.mock.calls[0]?.[0]).toBe(es.editor.saveImpact.title);
+    await waitFor(() => expect(alert.mock.calls[0]?.[0]).toBe(es.editor.saveImpact.title));
     await waitFor(async () => {
       const stored = pickProgram(await mockRepos.templates.listModules());
       expect(stored?.routines[0]?.steps.map((s) => s.id)).not.toContain('rdl');

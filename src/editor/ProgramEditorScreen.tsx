@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { ArrowDown, ArrowUp, Trash } from 'phosphor-react-native';
 
 import { shareJsonFile } from '../backup/files';
 import { getDatabase, getRepositories } from '../db';
 import { routineRemovalLosses, validateProgram } from '../domain/editor';
-import { useT } from '../i18n';
+import { useT, type Translate } from '../i18n';
 import { describeImportError } from '../templates/describeError';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -15,13 +15,28 @@ import { Screen } from '../ui/Screen';
 import { TextField } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
 
-import { exportText, loadEditorSource, prepareSave, saveEdited } from './editorSource';
+import {
+  exportText,
+  importErrorLocation,
+  isSourceStale,
+  loadEditorSource,
+  prepareSave,
+  saveEdited,
+} from './editorSource';
 import { selectDirty, useEditorStore } from './editorStore';
 import { IconAction } from './IconAction';
 import { errorText } from './text';
 import { useEditorSource } from './useEditorSource';
 
 type Notice = { tone: 'success' | 'error'; text: string };
+
+/** The one "unsaved changes" alert: the Volver button, hardware back and the swipe all use it. */
+function confirmDiscard(t: Translate, onConfirm: () => void): void {
+  Alert.alert(t('editor.leave.title'), t('editor.leave.body'), [
+    { text: t('editor.leave.stay'), style: 'cancel' },
+    { text: t('editor.leave.confirm'), style: 'destructive', onPress: onConfirm },
+  ]);
+}
 
 /** Gym > Editar programa: routines (reorder, rename in the routine, add, remove), save and export. */
 export function ProgramEditorScreen() {
@@ -33,10 +48,41 @@ export function ProgramEditorScreen() {
   const dirty = useEditorStore(selectDirty);
   const dispatch = useEditorStore((store) => store.dispatch);
   const open = useEditorStore((store) => store.open);
-  const close = useEditorStore((store) => store.close);
   const [newRoutine, setNewRoutine] = useState('');
   const [busy, setBusy] = useState<'save' | 'export' | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const navigation = useNavigation();
+  const tRef = useRef(t);
+  const dirtyRef = useRef(dirty);
+  useEffect(() => {
+    tRef.current = t;
+    dirtyRef.current = dirty;
+  });
+  const discarded = useRef(false);
+
+  // Hardware back and the swipe go through the same alert as the "Volver" button.
+  useEffect(
+    () =>
+      navigation.addListener('beforeRemove', (event) => {
+        if (discarded.current || !dirtyRef.current) return;
+        event.preventDefault();
+        confirmDiscard(tRef.current, () => {
+          discarded.current = true;
+          navigation.dispatch(event.data.action);
+        });
+      }),
+    [navigation],
+  );
+  // Leaving the editor for good (clean, or after discarding) forgets the in-memory edit; a dirty
+  // unmount that was not confirmed (e.g. a tab switch) keeps it so the person can resume.
+  useEffect(
+    () => () => {
+      if (discarded.current || !selectDirty(useEditorStore.getState())) {
+        useEditorStore.getState().close();
+      }
+    },
+    [],
+  );
 
   const problems = useMemo(() => {
     if (!state) return [];
@@ -71,17 +117,8 @@ export function ProgramEditorScreen() {
   }
 
   const { program } = state;
-  const leave = () => {
-    const exit = () => {
-      close();
-      router.back();
-    };
-    if (!dirty) return exit();
-    Alert.alert(t('editor.leave.title'), t('editor.leave.body'), [
-      { text: t('editor.leave.stay'), style: 'cancel' },
-      { text: t('editor.leave.confirm'), style: 'destructive', onPress: exit },
-    ]);
-  };
+  // The beforeRemove guard shows the alert when there are unsaved changes.
+  const leave = () => router.back();
 
   const confirmRemove = (routineId: string, name: string) => {
     const losses = routineRemovalLosses(program, routineId, source.context.loggedStepIds);
@@ -115,14 +152,44 @@ export function ProgramEditorScreen() {
     }
   };
 
-  const save = () => {
+  const reloadFromStore = async () => {
+    const fresh = await loadEditorSource(getRepositories());
+    if (fresh) open(fresh);
     setNotice(null);
+  };
+
+  const save = async () => {
+    setNotice(null);
+    setBusy('save');
+    try {
+      if (await isSourceStale(getRepositories(), source)) {
+        Alert.alert(t('editor.stale.title'), t('editor.stale.body'), [
+          { text: t('editor.stale.stay'), style: 'cancel' },
+          {
+            text: t('editor.stale.reload'),
+            style: 'destructive',
+            onPress: () => void reloadFromStore().catch(() => undefined),
+          },
+        ]);
+        setNotice({ tone: 'error', text: t('editor.stale.notice') });
+        return;
+      }
+    } catch {
+      setNotice({ tone: 'error', text: t('editor.saveFailed') });
+      return;
+    } finally {
+      setBusy(null);
+    }
     const prepared = prepareSave(source, program);
     if (!prepared.ok) {
-      const first = prepared.importErrors[0];
+      const lines = prepared.importErrors.map((error) => {
+        const where = importErrorLocation(error.path, program);
+        const message = describeImportError(error, t);
+        return where ? t('editor.problem', { where, message }) : message;
+      });
       setNotice({
         tone: 'error',
-        text: first ? describeImportError(first, t) : t('editor.problemsTitle'),
+        text: lines.length > 0 ? lines.join('\n') : t('editor.problemsTitle'),
       });
       return;
     }
@@ -276,7 +343,7 @@ export function ProgramEditorScreen() {
         <Button
           label={t('editor.save')}
           size="lg"
-          onPress={save}
+          onPress={() => void save()}
           loading={busy === 'save'}
           disabled={!dirty || busy !== null}
         />
