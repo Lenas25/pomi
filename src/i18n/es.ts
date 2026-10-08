@@ -942,6 +942,8 @@ export const es = {
       'Se borrarán {{count}} fotos de este teléfono: las imágenes y sus datos. Tus medidas y el resto de tus datos no cambian. No se puede deshacer.',
     deleteAllConfirm: 'Sí, borrar todo',
     deleteAllDone: 'Listo. Tus fotos fueron borradas.',
+    deleteAllPartial:
+      'Se borraron {{deleted}} fotos, pero {{failed}} no se pudieron quitar de este teléfono. Siguen en la lista para que lo intentes de nuevo.',
     deleteAllFailed: 'No pudimos borrar todas las fotos. Inténtalo de nuevo.',
     back: 'Volver',
   },

@@ -1,9 +1,11 @@
-import { asc, count, desc, eq } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, lt, or } from 'drizzle-orm';
 
 import { photos } from '../schema';
 import type { Db } from '../types';
 
 export type PhotoRow = typeof photos.$inferSelect;
+/** Position of the last row of a page. */
+export type PhotoCursor = { date: string; id: number };
 export type NewPhoto = Omit<PhotoRow, 'id'>;
 
 /** Rows of `photos`. `uri` is the FILE NAME inside the app's private photo folder (see `src/photos`). */
@@ -36,6 +38,23 @@ export function createPhotosRepository(db: Db) {
         .offset(offset);
     },
 
+    /**
+     * One page of photos, newest first, strictly AFTER `cursor` in (date desc, id desc) order.
+     * Keyset paging: a delete or insert between pages never skips or repeats a row.
+     */
+    async pageAfter(limit: number, cursor?: PhotoCursor): Promise<PhotoRow[]> {
+      const query = db.select().from(photos);
+      const filtered = cursor
+        ? query.where(
+            or(
+              lt(photos.date, cursor.date),
+              and(eq(photos.date, cursor.date), lt(photos.id, cursor.id)),
+            ),
+          )
+        : query;
+      return filtered.orderBy(desc(photos.date), desc(photos.id)).limit(limit);
+    },
+
     async count(): Promise<number> {
       const rows = await db.select({ total: count() }).from(photos);
       return rows[0]?.total ?? 0;
@@ -52,6 +71,13 @@ export function createPhotosRepository(db: Db) {
 
     async remove(id: number): Promise<void> {
       await db.delete(photos).where(eq(photos.id, id));
+    },
+
+    async removeMany(ids: readonly number[]): Promise<void> {
+      // Chunked: SQLite limits the number of bound variables.
+      for (let start = 0; start < ids.length; start += 200) {
+        await db.delete(photos).where(inArray(photos.id, ids.slice(start, start + 200)));
+      }
     },
 
     async removeAll(): Promise<void> {

@@ -324,7 +324,7 @@ function PhotosSection({
                     opacity: pressed ? theme.opacity.pressed : 1,
                   })}
                 >
-                  <StoredPhoto name={photo.uri} label={label} />
+                  <StoredPhoto name={photo.uri} label={label} thumbnail />
                   <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
                     {label}
                   </Text>

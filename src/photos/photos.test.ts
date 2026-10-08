@@ -4,6 +4,7 @@ import { MAX_BACKUP_BYTES } from '../backup/limits';
 import { createRepositories, type Repositories } from '../db/repositories';
 import { createTestDb } from '../db/testing/createTestDb';
 
+import { appendPage, cursorOf, withoutRows } from './photoPaging';
 import {
   base64Length,
   buildPart,
@@ -19,11 +20,14 @@ import { exportPhotoArchive, importPhotoArchive, type ShareFile } from './photoB
 import {
   deleteAllPhotos,
   deletePhoto,
+  ensureThumbnail,
   isSafePhotoName,
   photoFileName,
   previousPhoto,
   savePhoto,
   sweepOrphanPhotos,
+  thumbnailName,
+  withPhotoLock,
   type PhotoFs,
 } from './photoStore';
 
@@ -32,7 +36,7 @@ const JPEG_A = '/9j/QUJD';
 const JPEG_B = '/9j/REVG';
 
 /** In-memory file system: the "cache" holds captures, `files` is the private photo folder. */
-function fakeFs(cache: Record<string, string> = {}) {
+function fakeFs(cache: Record<string, string> = {}, opts: { failThumbnails?: boolean } = {}) {
   const files = new Map<string, string>();
   const fs: PhotoFs = {
     async store(sourceUri, name) {
@@ -49,6 +53,11 @@ function fakeFs(cache: Record<string, string> = {}) {
     readBase64: async (name) => files.get(name) ?? '',
     writeBase64: async (name, base64) => void files.set(name, base64),
     discard: (uri) => void delete cache[uri],
+    makeThumbnail: async (name, thumbName) => {
+      if (opts.failThumbnails) throw new Error('no thumbnail');
+      if (!files.has(name)) throw new Error('no photo');
+      files.set(thumbName, `thumb of ${files.get(name)}`);
+    },
   };
   return { fs, files, cache };
 }
@@ -119,7 +128,7 @@ describe('savePhoto / deletePhoto', () => {
       pose: 'frente',
       now: 20,
     });
-    expect([...files.keys()]).toEqual([second.uri]);
+    expect([...files.keys()].sort()).toEqual([second.uri, thumbnailName(second.uri)].sort());
     expect((await repos.photos.all()).map((photo) => photo.id)).toEqual([second.id]);
     expect(first.id).not.toBe(second.id);
   });
@@ -144,7 +153,7 @@ describe('savePhoto / deletePhoto', () => {
         now: 20,
       }),
     ).rejects.toThrow();
-    expect(files.size).toBe(1);
+    expect(files.size).toBe(2);
     expect(await repos.photos.all()).toHaveLength(1);
   });
 
@@ -210,9 +219,37 @@ describe('deletePhoto order and deleteAllPhotos', () => {
     files.set('a.jpg', 'x');
     files.set('b.jpg', 'y');
     files.set('stray.jpg', 'z');
-    expect(await deleteAllPhotos(fs, repos.photos)).toBe(2);
+    files.set('thumb-a.jpg', 't');
+    expect(await deleteAllPhotos(fs, repos.photos)).toEqual({ total: 2, deleted: 2, failed: 0 });
     expect(files.size).toBe(0);
     expect(await repos.photos.all()).toEqual([]);
+  });
+
+  it('keeps the rows whose file cannot be removed and deletes the rest', async () => {
+    const { fs, files } = fakeFs();
+    for (const name of ['a.jpg', 'b.jpg', 'c.jpg']) {
+      await repos.photos.add({ date: '2026-09-01', pose: name, uri: name });
+      files.set(name, 'x');
+    }
+    const flaky: PhotoFs = {
+      ...fs,
+      remove: (name) => {
+        if (name === 'b.jpg') throw new Error('locked');
+        fs.remove(name);
+      },
+    };
+    expect(await deleteAllPhotos(flaky, repos.photos)).toEqual({ total: 3, deleted: 2, failed: 1 });
+    expect((await repos.photos.all()).map((row) => row.uri)).toEqual(['b.jpg']);
+    expect([...files.keys()]).toEqual(['b.jpg']);
+  });
+
+  it('keeps a row whose file is still there after the remove call', async () => {
+    const { fs, files } = fakeFs();
+    await repos.photos.add({ date: '2026-09-01', pose: 'frente', uri: 'a.jpg' });
+    files.set('a.jpg', 'x');
+    const ghost: PhotoFs = { ...fs, remove: () => undefined };
+    expect(await deleteAllPhotos(ghost, repos.photos)).toEqual({ total: 1, deleted: 0, failed: 1 });
+    expect(await repos.photos.count()).toBe(1);
   });
 
   it('pages the photos newest first', async () => {
@@ -222,6 +259,91 @@ describe('deletePhoto order and deleteAllPhotos', () => {
     expect(await repos.photos.count()).toBe(5);
     expect((await repos.photos.page(2, 0)).map((row) => row.uri)).toEqual(['p5.jpg', 'p4.jpg']);
     expect((await repos.photos.page(2, 4)).map((row) => row.uri)).toEqual(['p1.jpg']);
+  });
+});
+
+describe('keyset paging', () => {
+  it('pages by (date, id) without skipping or repeating after a delete', async () => {
+    for (let day = 1; day <= 5; day += 1) {
+      await repos.photos.add({ date: `2026-09-0${day}`, pose: 'frente', uri: `p${day}.jpg` });
+    }
+    await repos.photos.add({ date: '2026-09-05', pose: 'perfil', uri: 'p5b.jpg' });
+    const first = await repos.photos.pageAfter(3);
+    expect(first.map((row) => row.uri)).toEqual(['p5b.jpg', 'p5.jpg', 'p4.jpg']);
+    await repos.photos.remove(first[0]!.id);
+    const second = await repos.photos.pageAfter(3, cursorOf(first));
+    expect(second.map((row) => row.uri)).toEqual(['p3.jpg', 'p2.jpg', 'p1.jpg']);
+    expect(await repos.photos.pageAfter(3, cursorOf(second))).toEqual([]);
+  });
+
+  it('cursor and list helpers', () => {
+    const row = (id: number, date: string) => ({ id, date, pose: 'f', uri: `${id}.jpg` });
+    expect(cursorOf([])).toBeUndefined();
+    expect(cursorOf([row(2, '2026-09-02'), row(1, '2026-09-01')])).toEqual({
+      date: '2026-09-01',
+      id: 1,
+    });
+    expect(appendPage([row(2, 'a')], [row(2, 'a'), row(1, 'b')]).map((r) => r.id)).toEqual([2, 1]);
+    expect(withoutRows([row(2, 'a'), row(1, 'b')], [2]).map((r) => r.id)).toEqual([1]);
+  });
+});
+
+describe('thumbnails', () => {
+  it('writes a thumbnail with the photo and removes both on delete', async () => {
+    const { fs, files } = fakeFs({ 'cache://a.jpg': 'AAA' });
+    const row = await savePhoto({
+      fs,
+      photos: repos.photos,
+      tempUri: 'cache://a.jpg',
+      date: '2026-09-01',
+      pose: 'frente',
+      now: 1,
+    });
+    expect(files.has(thumbnailName(row.uri))).toBe(true);
+    await deletePhoto(fs, repos.photos, row.id);
+    expect(files.size).toBe(0);
+  });
+
+  it('saves the photo even when the thumbnail fails, then backfills it lazily', async () => {
+    const failing = fakeFs({ 'cache://a.jpg': 'AAA' }, { failThumbnails: true });
+    const row = await savePhoto({
+      fs: failing.fs,
+      photos: repos.photos,
+      tempUri: 'cache://a.jpg',
+      date: '2026-09-01',
+      pose: 'frente',
+      now: 2,
+    });
+    expect([...failing.files.keys()]).toEqual([row.uri]);
+    expect(await ensureThumbnail(failing.fs, row.uri)).toBe(false);
+
+    const { fs, files } = fakeFs();
+    files.set('old.jpg', 'x');
+    expect(await ensureThumbnail(fs, 'old.jpg')).toBe(true);
+    expect(files.has('thumb-old.jpg')).toBe(true);
+    expect(await ensureThumbnail(fs, 'missing.jpg')).toBe(false);
+  });
+
+  it('a retake removes the earlier thumbnail and the sweep keeps used thumbnails', async () => {
+    const { fs, files } = fakeFs({ 'cache://a.jpg': 'A', 'cache://b.jpg': 'B' });
+    const input = { fs, photos: repos.photos, date: '2026-09-01', pose: 'frente' };
+    const first = await savePhoto({ ...input, tempUri: 'cache://a.jpg', now: 1 });
+    const second = await savePhoto({ ...input, tempUri: 'cache://b.jpg', now: 2 });
+    expect([...files.keys()].sort()).toEqual([second.uri, thumbnailName(second.uri)].sort());
+    files.set(thumbnailName(first.uri), 'orphan thumb');
+    files.set('stray.jpg', 'z');
+    expect(await sweepOrphanPhotos(fs, repos.photos)).toBe(2);
+    expect(files.has(thumbnailName(second.uri))).toBe(true);
+  });
+});
+
+describe('withPhotoLock', () => {
+  it('rejects a reentrant call in development', async () => {
+    await expect(withPhotoLock(async () => withPhotoLock(async () => 1))).rejects.toThrow(
+      'deadlock',
+    );
+    // The lock still works afterwards.
+    await expect(withPhotoLock(async () => 'ok')).resolves.toBe('ok');
   });
 });
 

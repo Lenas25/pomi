@@ -45,6 +45,7 @@ jest.mock('../photos/expoPhotoFs', () => ({
     readBase64: async () => '',
     writeBase64: async () => undefined,
     discard: () => undefined,
+    makeThumbnail: async () => undefined,
   } satisfies PhotoFs,
 }));
 // The camera itself is covered by PhotoStep.test.tsx: here a stub drives the flow.

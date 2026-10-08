@@ -12,7 +12,7 @@ import { requestNotificationSync } from '../notifications/sync';
 import { MAX_PHOTO_PART_BYTES } from '../photos/photoArchive';
 import { exportPhotoArchive, importPhotoArchive } from '../photos/photoBackup';
 import { expoPhotoFs } from '../photos/expoPhotoFs';
-import { sweepOrphanPhotos } from '../photos/photoStore';
+import { sweepOrphanPhotos, withPhotoLock } from '../photos/photoStore';
 import { dayKeyFor } from '../domain/time';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -114,7 +114,9 @@ export function BackupScreen() {
     async (backup: Backup) => {
       setBusy('restore');
       try {
-        await restoreBackupExclusive(getDatabase(), backup);
+        // Replacing photo rows is a photo operation: it waits for a save/delete/sweep in progress.
+        const run = () => restoreBackupExclusive(getDatabase(), backup);
+        await (backup.includesPhotos ? withPhotoLock(run) : run());
       } catch (error) {
         // Rolled back as a whole: the current data is untouched.
         if (__DEV__) console.error('Could not restore the backup', error);

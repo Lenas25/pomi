@@ -1,7 +1,8 @@
 // The ONLY photo code that touches expo-file-system (SDK 57 `File` / `Directory` / `Paths`).
 import { Directory, File, Paths } from 'expo-file-system';
 
-import type { PhotoFs } from './photoStore';
+import { resizeToJpeg } from './imageResize';
+import { THUMBNAIL_WIDTH, type PhotoFs } from './photoStore';
 
 const FOLDER = 'photos';
 
@@ -54,6 +55,20 @@ export const expoPhotoFs: PhotoFs = {
         if (temp.exists) temp.delete();
       } catch {
         // Swept as an orphan later.
+      }
+      throw error;
+    }
+  },
+  async makeThumbnail(name, thumbName) {
+    const resized = await resizeToJpeg(fileOf(name).uri, THUMBNAIL_WIDTH);
+    const cacheFile = new File(resized);
+    try {
+      await cacheFile.move(fileOf(thumbName), { overwrite: true });
+    } catch (error) {
+      try {
+        if (cacheFile.exists) cacheFile.delete();
+      } catch {
+        // The cache is cleaned by the system anyway.
       }
       throw error;
     }

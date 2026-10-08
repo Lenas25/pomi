@@ -937,6 +937,8 @@ export const en: Messages = {
       '{{count}} photos will be deleted from this phone: the images and their records. Your measurements and the rest of your data do not change. This cannot be undone.',
     deleteAllConfirm: 'Yes, delete them',
     deleteAllDone: 'Done. Your photos were deleted.',
+    deleteAllPartial:
+      '{{deleted}} photos were deleted, but {{failed}} could not be removed from this phone. They are still listed so you can try again.',
     deleteAllFailed: 'We could not delete all the photos. Please try again.',
     back: 'Back',
   },

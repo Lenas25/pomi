@@ -20,17 +20,42 @@ export type PhotoFs = {
   writeBase64(name: string, base64: string): Promise<void>;
   /** Deletes a camera capture (cache file) that will not be stored. Never throws. */
   discard(uri: string): void;
+  /** Writes a small JPEG (about `THUMBNAIL_WIDTH` px wide) of `name` as `thumbName`. */
+  makeThumbnail(name: string, thumbName: string): Promise<void>;
 };
 
+/** Width of the grid thumbnails, in px (the full photo stays untouched). */
+export const THUMBNAIL_WIDTH = 320;
+
+/** File name of the thumbnail of `name`; still a safe photo name, never used by a row. */
+export function thumbnailName(name: string): string {
+  return `thumb-${name}`;
+}
+
+/** Name of a file and of its thumbnail, to remove them together. */
+const withThumbnail = (name: string): string[] => [name, thumbnailName(name)];
+
 let lockTail: Promise<unknown> = Promise.resolve();
+let enteringWork = false;
 
 /**
  * One photo operation at a time (save, delete, sweep, restore of files). Without it the orphan
  * sweep could run between "the file was stored" and "its row was inserted" and delete a photo the
- * person just took. Sequential on purpose; never call it from inside `work`.
+ * person just took. Sequential on purpose; never call it from inside `work` (it would wait for
+ * itself forever). In development the synchronous part of `work` is checked for that mistake.
  */
 export function withPhotoLock<T>(work: () => Promise<T>): Promise<T> {
-  const run = lockTail.then(work);
+  if (__DEV__ && enteringWork) {
+    throw new Error('withPhotoLock called from inside withPhotoLock: it would deadlock');
+  }
+  const run = lockTail.then(() => {
+    enteringWork = true;
+    try {
+      return work();
+    } finally {
+      enteringWork = false;
+    }
+  });
   lockTail = run.catch(() => undefined);
   return run;
 }
@@ -76,16 +101,22 @@ export function savePhoto(input: SavePhotoInput): Promise<PhotoRow> {
     const earlier = (await photos.forPose(pose)).filter((photo) => photo.date === date);
 
     await fs.store(tempUri, name);
+    // Best effort: without a thumbnail the grids show the full photo and backfill it later.
+    await fs.makeThumbnail(name, thumbnailName(name)).catch(() => undefined);
     let id: number;
     try {
       id = await photos.add({ date, pose, uri: name });
     } catch (error) {
+      removeQuietly(fs, thumbnailName(name));
       fs.remove(name);
       throw error;
     }
     for (const old of earlier) {
       await photos.remove(old.id);
-      if (old.uri !== name) fs.remove(old.uri);
+      if (old.uri !== name) {
+        fs.remove(old.uri);
+        removeQuietly(fs, thumbnailName(old.uri));
+      }
     }
     return { id, date, pose, uri: name };
   });
@@ -106,21 +137,82 @@ export function deletePhoto(
     const row = await photos.get(id);
     if (!row) return false;
     fs.remove(row.uri);
+    removeQuietly(fs, thumbnailName(row.uri));
     await photos.remove(id);
     return true;
   });
 }
 
-/** Deletes EVERY photo: all files in the store first, then all rows. Returns how many rows went. */
+/** Removes a derived file; a failure only leaves an orphan that the sweep collects. */
+function removeQuietly(fs: Pick<PhotoFs, 'remove'>, name: string): void {
+  try {
+    fs.remove(name);
+  } catch {
+    // Swept as an orphan later.
+  }
+}
+
+export type DeleteAllResult = {
+  /** Rows there were. */
+  total: number;
+  /** Rows (and files) removed. */
+  deleted: number;
+  /** Rows kept because their file could not be removed. */
+  failed: number;
+};
+
+/**
+ * Deletes EVERY photo, one by one: the file (and its thumbnail) first, then its row. A row is
+ * removed only when its file is gone, so a file that cannot be deleted stays visible and the
+ * person can retry; the others still go. Files nobody points at are removed too.
+ */
 export function deleteAllPhotos(
   fs: PhotoFs,
-  photos: Pick<PhotosRepository, 'count' | 'removeAll'>,
-): Promise<number> {
+  photos: Pick<PhotosRepository, 'all' | 'removeMany'>,
+): Promise<DeleteAllResult> {
   return withPhotoLock(async () => {
-    const total = await photos.count();
-    for (const name of fs.list()) fs.remove(name);
-    await photos.removeAll();
-    return total;
+    const rows = await photos.all();
+    const gone: number[] = [];
+    for (const row of rows) {
+      try {
+        fs.remove(row.uri);
+        if (fs.exists(row.uri)) continue;
+      } catch {
+        continue;
+      }
+      removeQuietly(fs, thumbnailName(row.uri));
+      gone.push(row.id);
+    }
+    await photos.removeMany(gone);
+    const kept = new Set(
+      rows.filter((row) => !gone.includes(row.id)).flatMap((r) => withThumbnail(r.uri)),
+    );
+    for (const name of fs.list()) if (!kept.has(name)) removeQuietly(fs, name);
+    return { total: rows.length, deleted: gone.length, failed: rows.length - gone.length };
+  });
+}
+
+const thumbnailFailures = new Set<string>();
+
+/**
+ * Creates the thumbnail of `name` when the photo is there and the thumbnail is not (photos taken
+ * before thumbnails existed). Returns whether a thumbnail now exists; a photo that failed once is
+ * not retried until the app restarts.
+ */
+export function ensureThumbnail(fs: PhotoFs, name: string): Promise<boolean> {
+  const thumb = thumbnailName(name);
+  if (fs.exists(thumb)) return Promise.resolve(true);
+  if (thumbnailFailures.has(name)) return Promise.resolve(false);
+  return withPhotoLock(async () => {
+    if (fs.exists(thumb)) return true;
+    if (!fs.exists(name)) return false;
+    try {
+      await fs.makeThumbnail(name, thumb);
+      return fs.exists(thumb);
+    } catch {
+      thumbnailFailures.add(name);
+      return false;
+    }
   });
 }
 
@@ -141,7 +233,7 @@ export function sweepOrphanPhotos(
   photos: Pick<PhotosRepository, 'all'>,
 ): Promise<number> {
   return withPhotoLock(async () => {
-    const used = new Set((await photos.all()).map((photo) => photo.uri));
+    const used = new Set((await photos.all()).flatMap((photo) => withThumbnail(photo.uri)));
     let removed = 0;
     for (const name of fs.list()) {
       if (used.has(name)) continue;
