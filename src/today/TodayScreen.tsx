@@ -84,6 +84,7 @@ export function TodayScreen() {
             text={view.suggestion.text}
             reason={view.suggestion.reason}
             evidence={view.suggestion.evidence}
+            cardLabel={t('suggestions.card.label')}
             whyLabel={t('suggestions.card.why')}
             acceptLabel={t('suggestions.card.accept')}
             declineLabel={t('suggestions.card.decline')}

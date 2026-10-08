@@ -14,6 +14,8 @@ type SuggestionCardProps = {
   reason: string;
   /** Small print under the reason, e.g. "Basado en 7 días". */
   evidence?: string;
+  /** Accessible name of the whole card ("Sugerencia de Pomi", `suggestions.card.label`). */
+  cardLabel: string;
   whyLabel: string;
   acceptLabel: string;
   declineLabel: string;
@@ -33,6 +35,7 @@ export function SuggestionCard({
   text,
   reason,
   evidence,
+  cardLabel,
   whyLabel,
   acceptLabel,
   declineLabel,
@@ -57,7 +60,7 @@ export function SuggestionCard({
   };
 
   return (
-    <Animated.View style={fade}>
+    <Animated.View style={fade} role="group" accessibilityLabel={cardLabel}>
       <Card variant="highlight">
         <View style={{ gap: theme.space[3] }}>
           <View style={{ flexDirection: 'row', gap: theme.space[3], alignItems: 'center' }}>

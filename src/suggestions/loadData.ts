@@ -7,6 +7,7 @@ import { toMorningCheckin } from '../domain/habits/checkins';
 import { stepsPlan } from '../domain/habits/stepsPlan';
 import { waterTargetFor } from '../domain/habits/waterTarget';
 import { dayKeyFor } from '../domain/time';
+import { targetOfChange } from '../domain/suggestions/availability';
 import {
   SUGGESTION_KINDS,
   type LiftHistory,
@@ -22,12 +23,20 @@ import { pickProgram } from '../gym/program';
 import { toExerciseSession } from '../gym/sessionViewModel';
 import type { ModuleTemplate } from '../templates/schema';
 
+import { parsePayload } from './payload';
+
 const SLEEP_LOOKBACK_DAYS = 14;
 const STEPS_LOOKBACK_DAYS = 15;
 const GYM_LOOKBACK_DAYS = 29;
 
 const isKind = (value: string): value is SuggestionKind =>
   (SUGGESTION_KINDS as readonly string[]).includes(value);
+
+/** What the stored change is about (see `targetOfChange`); `null` for an unreadable payload. */
+function targetOf(row: SuggestionRow): string | null {
+  const payload = parsePayload(row.payload);
+  return payload ? targetOfChange(payload.change) : null;
+}
 
 /** Rows -> the engine's history (day keys). Rows of an unknown kind are ignored. */
 export function toHistory(rows: readonly SuggestionRow[]): SuggestionHistoryEntry[] {
@@ -36,6 +45,7 @@ export function toHistory(rows: readonly SuggestionRow[]): SuggestionHistoryEntr
       ? [
           {
             kind: row.kind,
+            target: targetOf(row),
             status: row.status,
             createdOn: dayKeyFor(new Date(row.createdAt)),
             decidedOn: row.decidedAt === null ? null : dayKeyFor(new Date(row.decidedAt)),
@@ -80,6 +90,8 @@ export async function loadSuggestionData(
     stepsEstimate,
     deloadWeek,
     suggestions,
+    gymPlanChangedOn,
+    goalsChangedOn,
   ] = await Promise.all([
     repos.templates.listModules(),
     repos.profile.get(),
@@ -91,6 +103,8 @@ export async function loadSuggestionData(
     repos.settings.get('stepsEstimate'),
     repos.settings.get('deloadWeek'),
     repos.suggestions.all(),
+    repos.settings.get('gymDaysChangedOn'),
+    repos.settings.get('goalsChangedOn'),
   ]);
   const active = modules.filter((module) => module.active);
 
@@ -183,6 +197,9 @@ export async function loadSuggestionData(
     shifts: shifts ?? {},
     gymDays: gymDays ?? [],
     startedOn,
+    gymPlanChangedOn,
+    goalsChangedOn,
+    deloadEndedOn: deloadWeek?.endsOn,
     sleep,
     steps: { history: stepRows, plan },
     water,

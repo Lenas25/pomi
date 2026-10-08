@@ -866,6 +866,7 @@ export const es = {
       label: 'Sugerencia de Pomi',
       why: 'Por qué',
       basedOn: 'Basado en {{days}} días',
+      basedOnSessions: 'Basado en {{count}} sesiones',
       accept: 'Aceptar',
       decline: 'Ahora no',
       acceptedTitle: 'Plan actualizado',
@@ -914,7 +915,7 @@ export const es = {
     waterEarlier: {
       text: '¿Adelantamos {{minutes}} minutos los avisos del agua?',
       reason:
-        'A las 18:00 llevabas menos del 60% de tu meta en {{short}} de los últimos {{total}} días.',
+        'A las 18:00 llevabas menos del 60% de tu meta en {{short}} de los {{total}} días que registraste.',
     },
     gymDay: {
       text: '¿Pasamos tu entrenamiento del {{fromDayName}} al {{toDayName}}?',
@@ -979,7 +980,7 @@ export const es = {
         three: 'Escucha a tu cuerpo y ve a tu ritmo.',
         sleep: 'Si puedes, acuéstate unos minutos antes una noche esta semana.',
       },
-      bye: 'Pasa. Mañana seguimos.',
+      bye: 'Nos vemos la próxima semana.',
     },
   },
   database: {

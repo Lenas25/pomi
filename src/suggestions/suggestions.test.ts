@@ -7,6 +7,7 @@ import type { Db } from '../db/types';
 import { en } from '../i18n/en';
 import { es } from '../i18n/es';
 import type { Translate } from '../i18n';
+import { expiryCutoff } from '../domain/suggestions/limits';
 import { loadDefaultTemplates } from '../templates/defaults';
 
 import { loadSuggestionData } from './loadData';
@@ -101,6 +102,7 @@ describe('runDailySuggestions', () => {
     await shortSleepWeek();
     // Gym planned on 3 weekdays and never attended: a second suggestion appears.
     await repos.settings.set('gymDays', [{ days: [1, 3, 5], anchor: 'gymMorning' }]);
+    await repos.settings.set('gymDaysChangedOn', '2025-12-01'); // the plan is old enough to judge
     expect(await runDailySuggestions(db, repos, NOW)).toHaveLength(2);
     // Tomorrow (Sunday, same ISO week) and the next Monday (new week, kinds still pending).
     expect(await runDailySuggestions(db, repos, new Date(2026, 1, 1, 10))).toEqual([]);
@@ -354,5 +356,122 @@ describe('suggestion texts', () => {
         /racha|streak|fall(aste|ed)|failed you|culpa|guilt/i,
       );
     }
+  });
+});
+
+describe('review findings', () => {
+  it('two concurrent runs store the suggestions once (the second sees the first one mark the day)', async () => {
+    await shortSleepWeek();
+    const runs = await Promise.all([
+      runDailySuggestions(db, repos, NOW),
+      runDailySuggestions(db, repos, NOW),
+      runDailySuggestions(db, repos, NOW),
+    ]);
+    expect(runs.map((ids) => ids.length).sort()).toEqual([0, 0, 1]);
+    expect(await repos.suggestions.all()).toHaveLength(1);
+  });
+
+  it('a run that fails stores nothing and does not mark the day', async () => {
+    await shortSleepWeek();
+    const failing = {
+      ...repos,
+      settings: {
+        ...repos.settings,
+        set: async () => {
+          throw new Error('disk full');
+        },
+      },
+    } as Repositories;
+    await expect(runDailySuggestions(db, failing, NOW)).rejects.toThrow('disk full');
+    expect(await repos.suggestions.all()).toEqual([]);
+    expect(await repos.settings.get('suggestionsLastRun')).toBeUndefined();
+  });
+
+  it('pending suggestions expire after 7 days: hidden, removed by the next run, kind offered again', async () => {
+    await shortSleepWeek();
+    const [id] = await runDailySuggestions(db, repos, NOW);
+    const later = (days: number) => new Date(NOW.getTime() + days * 86_400_000);
+    expect(await repos.suggestions.pending(expiryCutoff(later(6)))).toHaveLength(1);
+    expect(await repos.suggestions.pending(expiryCutoff(later(8)))).toHaveLength(0);
+    // Past the expiry the card cannot be accepted any more.
+    expect((await acceptSuggestion(db, repos, id ?? 0, later(8))).status).toBe('unavailable');
+    expect((await repos.suggestions.get(id ?? 0))?.status).toBe('pending');
+    // The next run clears it and the kind is offered again with fresh data.
+    for (let offset = 1; offset <= 8; offset += 1) {
+      await repos.checkins.upsert(day(offset), 'morning', {
+        'hora-dormir': '00:00',
+        'hora-despertar': '06:00',
+        'calidad-sueno': 3,
+      });
+    }
+    const again = await runDailySuggestions(db, repos, later(8));
+    expect(again).toHaveLength(1);
+    expect(await repos.suggestions.get(id ?? 0)).toBeUndefined();
+  });
+
+  it('accepting re-validates against the CURRENT plan', async () => {
+    const first = await store({ type: 'bedtimeShift', fromMin: 0, toMin: -15 });
+    const second = await store({ type: 'bedtimeShift', fromMin: 0, toMin: -15 });
+    expect((await acceptSuggestion(db, repos, first, NOW)).status).toBe('applied');
+    // The second one started from 0 but the plan is at -15 now: stale, nothing is applied twice.
+    expect((await acceptSuggestion(db, repos, second, NOW)).status).toBe('unavailable');
+    expect(await repos.settings.get('planShifts')).toEqual({ bedMin: -15 });
+    expect((await repos.suggestions.get(second))?.status).toBe('pending');
+
+    await repos.settings.set('gymDays', [{ days: [1, 3, 5], anchor: 'gymMorning' }]);
+    const gone = await store({ type: 'moveGymDay', fromDay: 2, toDay: 4 }); // Tuesday is not planned
+    expect((await acceptSuggestion(db, repos, gone, NOW)).status).toBe('unavailable');
+    const same = await store({ type: 'wakeTime', to: '06:00' }); // already the plan
+    expect((await acceptSuggestion(db, repos, same, NOW)).status).toBe('unavailable');
+  });
+
+  it('a steps goal edited after the suggestion was made makes it stale', async () => {
+    clock = new Date(2026, 0, 29, 10).getTime();
+    const id = await store({ type: 'stepsGoal', from: 7000, to: 7500 });
+    await repos.suggestions.get(id);
+    clock = NOW.getTime();
+    await repos.settings.set('goals', { stepsGoal: 8000 });
+    expect((await acceptSuggestion(db, repos, id, NOW)).status).toBe('unavailable');
+  });
+
+  it('a rejection of one gym day does not hide the other missed day', async () => {
+    await repos.settings.set('gymDays', [{ days: [1, 3, 5], anchor: 'gymMorning' }]);
+    await repos.settings.set('gymDaysChangedOn', '2025-12-01');
+    // Only Mondays were trained: Wednesday and Friday were missed 4 times each.
+    for (let offset = 1; offset <= 28; offset += 1) {
+      if (parseISO(day(-offset)).getDay() === 1) {
+        await repos.activity.upsert(day(-offset), 'gym', 'manual');
+      }
+    }
+    const [id] = await runDailySuggestions(db, repos, NOW);
+    const first = parsePayload((await repos.suggestions.get(id ?? 0))?.payload);
+    expect(first?.change).toMatchObject({ type: 'moveGymDay', fromDay: 3 });
+    await rejectSuggestion(repos, id ?? 0, NOW);
+    const monday = new Date(2026, 1, 2, 10);
+    const [next] = await runDailySuggestions(db, repos, monday);
+    const second = parsePayload((await repos.suggestions.get(next ?? 0))?.payload);
+    expect(second?.change).toMatchObject({ type: 'moveGymDay', fromDay: 5 });
+  });
+
+  it('shows the unit of the evidence: sessions for a deload, days for the rest', () => {
+    const t: Translate = (key, options) => {
+      const text = key
+        .split('.')
+        .reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], es);
+      return String(text ?? key).replace(/\{\{(\w+)\}\}/g, (_, name: string) =>
+        String(options?.[name] ?? `{{${name}}}`),
+      );
+    };
+    const base = {
+      variant: 'deload' as const,
+      change: { type: 'deload' as const, pct: 10, stepId: 'x' },
+      params: { exercise: 'X', sessions: 3, pct: 10 },
+    };
+    expect(
+      suggestionTexts({ ...base, evidence: { days: 3, unit: 'sessions' } }, t, 'es').evidence,
+    ).toBe('Basado en 3 sesiones');
+    expect(suggestionTexts({ ...base, evidence: { days: 7 } }, t, 'es').evidence).toBe(
+      'Basado en 7 días',
+    );
   });
 });

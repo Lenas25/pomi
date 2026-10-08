@@ -27,7 +27,10 @@ export const suggestionPayloadSchema = z.strictObject({
   ]),
   change: changeSchema,
   params: z.record(z.string(), valueSchema),
-  evidence: z.record(z.string(), valueSchema).and(z.object({ days: z.number() })),
+  // `unit` is absent in rows stored before it existed (they counted days).
+  evidence: z
+    .record(z.string(), valueSchema)
+    .and(z.object({ days: z.number(), unit: z.enum(['days', 'sessions']).optional() })),
 });
 
 export type SuggestionPayload = z.infer<typeof suggestionPayloadSchema>;

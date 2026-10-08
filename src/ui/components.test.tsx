@@ -7,6 +7,7 @@ import { MascotBubble } from './MascotBubble';
 import { EmptyState } from './EmptyState';
 import { ThemeProvider, makeTheme } from './theme';
 import { AccessibilityInfo, Text } from 'react-native';
+import { SuggestionCard } from './SuggestionCard';
 import { Toast } from './Toast';
 
 function renderThemed(ui: ReactElement) {
@@ -87,5 +88,34 @@ describe('Toast', () => {
     expect(announce).toHaveBeenCalledWith('Oops. Try again');
     expect(screen.getByText('Oops').parent?.parent?.props.accessibilityLiveRegion).toBeUndefined();
     announce.mockRestore();
+  });
+});
+
+describe('SuggestionCard', () => {
+  const props = {
+    text: 'Move bedtime?',
+    reason: 'You slept less.',
+    cardLabel: 'Pomi suggestion',
+    whyLabel: 'Why',
+    acceptLabel: 'Accept',
+    declineLabel: 'Not now',
+    onDecline: jest.fn(),
+  };
+
+  it('names the whole card with the label it is given', async () => {
+    await renderThemed(<SuggestionCard {...props} onAccept={jest.fn()} />);
+    expect(screen.getByLabelText('Pomi suggestion')).toBeTruthy();
+  });
+
+  it('ignores presses on both buttons while the change is being applied', async () => {
+    const onAccept = jest.fn();
+    const onDecline = jest.fn();
+    await renderThemed(
+      <SuggestionCard {...props} onAccept={onAccept} onDecline={onDecline} busy />,
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Accept' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
+    expect(onAccept).not.toHaveBeenCalled();
+    expect(onDecline).not.toHaveBeenCalled();
   });
 });

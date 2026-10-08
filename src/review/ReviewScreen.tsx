@@ -124,6 +124,7 @@ export function ReviewScreen() {
                   text={texts.text}
                   reason={texts.reason}
                   evidence={texts.evidence}
+                  cardLabel={t('suggestions.card.label')}
                   whyLabel={t('suggestions.card.why')}
                   acceptLabel={t('suggestions.card.accept')}
                   declineLabel={t('suggestions.card.decline')}

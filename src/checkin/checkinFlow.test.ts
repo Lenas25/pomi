@@ -40,6 +40,27 @@ describe('loadCheckin', () => {
     expect(plan.foodPrompt).toBeNull();
   });
 
+  it('prefills the bed time with the last LOGGED bedtime, the plan only as a fallback', async () => {
+    await repos.settings.set('planShifts', { bedMin: -15 });
+    // Nothing logged yet: the plan (06:30 - 7.5 h = 23:00, moved 15 min earlier).
+    expect((await ready('morning', '2026-10-06')).answers['hora-dormir']).toBe('22:45');
+    await repos.checkins.upsert('2026-10-03', 'morning', {
+      'hora-dormir': '00:10',
+      'hora-despertar': '07:00',
+      'calidad-sueno': 3,
+    });
+    await repos.checkins.upsert('2026-10-05', 'morning', {
+      'hora-dormir': '23:50',
+      'hora-despertar': '06:40',
+      'calidad-sueno': 4,
+    });
+    // The most recent EARLIER morning wins; today's own saved answer is not a "previous" one.
+    expect((await ready('morning', '2026-10-06')).answers['hora-dormir']).toBe('23:50');
+    expect((await ready('morning', '2026-10-06')).answers['hora-despertar']).toBe('06:30');
+    // Older than two weeks no longer counts.
+    expect((await ready('morning', '2026-10-30')).answers['hora-dormir']).toBe('22:45');
+  });
+
   it('adds the food prompt to the night check-in when the module is active', async () => {
     const plan = await ready('night', '2026-10-06');
     expect(plan.foodPrompt).toBe('¿Qué comiste hoy y cómo te sentiste?');

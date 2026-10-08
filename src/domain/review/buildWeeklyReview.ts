@@ -45,6 +45,12 @@ export type WeeklyReviewData = {
   stepsGoal: number | null;
   /** Morning check-ins with bed and wake times. */
   sleep: readonly MorningCheckin[];
+  /**
+   * The "dormir antes" suggestion could be offered (not pending, not rejected recently). The
+   * letter's sleep invitation is only written then, so it never points at a suggestion that cannot
+   * appear. Missing means not available.
+   */
+  sleepEarlierAvailable?: boolean;
   /** 1-5 scales from the check-ins. */
   ratings: {
     quality: readonly DayRating[];
@@ -80,13 +86,24 @@ function average(values: readonly number[]): number | null {
     : null;
 }
 
-export function buildWeeklyReview(data: WeeklyReviewData, weekStart: string): WeeklyReview {
+/**
+ * `today` (logical day key) is optional: when it falls INSIDE the week (the review opened on its
+ * last day, Sunday), that day is still going, so it is left out of every count and of the planned
+ * sessions. Otherwise a Sunday session not yet done would read as a missed one.
+ */
+export function buildWeeklyReview(
+  data: WeeklyReviewData,
+  weekStart: string,
+  today?: string,
+): WeeklyReview {
   const start = parseISO(weekStart);
-  const dates = Array.from({ length: 7 }, (_, index) =>
+  const allDates = Array.from({ length: 7 }, (_, index) =>
     format(addDays(start, index), 'yyyy-MM-dd'),
   );
-  const weekEnd = dates[6] ?? weekStart;
-  const inWeek = (date: string) => date >= weekStart && date <= weekEnd;
+  const weekEnd = allDates[6] ?? weekStart;
+  // Complete days only: everything strictly before `today`.
+  const dates = today === undefined ? allDates : allDates.filter((date) => date < today);
+  const inWeek = (date: string) => date >= weekStart && date <= weekEnd && dates.includes(date);
 
   // Training: sessions done against the weekdays of the plan.
   const plannedWeekdays = new Set(data.gymDays.flatMap((entry) => entry.days));
@@ -165,7 +182,12 @@ export function buildWeeklyReview(data: WeeklyReviewData, weekStart: string): We
     activeDays: active.size,
     ...partial,
     summary: summaryLines(partial),
-    letter: buildLetter({ ...partial, activeDays: active.size, weekStart }),
+    letter: buildLetter({
+      ...partial,
+      activeDays: active.size,
+      weekStart,
+      sleepInvite: data.sleepEarlierAvailable === true,
+    }),
   };
 }
 
@@ -223,14 +245,14 @@ function weekNumber(weekStart: string): number {
   return Math.floor(parseISO(weekStart).getTime() / (7 * 24 * 60 * 60 * 1000));
 }
 
-type LetterInput = Parts & { activeDays: number; weekStart: string };
+type LetterInput = Parts & { activeDays: number; weekStart: string; sleepInvite: boolean };
 
 /**
  * "Carta de Pomi": hello, one achievement, one sleep or water fact, a kind invitation and a
  * goodbye. With little data it is a short warm letter WITHOUT figures.
  */
 function buildLetter(input: LetterInput): WeeklyReview['letter'] {
-  const { training, water, steps, sleep, activeDays, weekStart } = input;
+  const { training, water, steps, sleep, activeDays, weekStart, sleepInvite } = input;
   const invitation = line(
     INVITATIONS[weekNumber(weekStart) % INVITATIONS.length] ?? INVITATIONS[0],
   );
@@ -269,6 +291,7 @@ function buildLetter(input: LetterInput): WeeklyReview['letter'] {
   })();
 
   const shortSleep =
+    sleepInvite &&
     sleep !== null &&
     sleep.targetMin !== null &&
     sleep.avgMin < sleep.targetMin - SLEEP_SHORT_BY_MIN;

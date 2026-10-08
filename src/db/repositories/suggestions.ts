@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lt } from 'drizzle-orm';
 
 import { suggestions } from '../schema';
 import type { Db } from '../types';
@@ -31,13 +31,30 @@ export function createSuggestionsRepository(db: Db) {
       return rows[0];
     },
 
-    /** Pending suggestions, oldest first (Hoy shows the first one). */
-    async pending(): Promise<SuggestionRow[]> {
+    /**
+     * Pending suggestions, oldest first (Hoy shows the first one). `createdSince` (epoch ms) hides
+     * the ones that already expired: they stay stored until the next daily run removes them.
+     */
+    async pending(createdSince?: number): Promise<SuggestionRow[]> {
+      const pending = eq(suggestions.status, 'pending');
       return db
         .select()
         .from(suggestions)
-        .where(eq(suggestions.status, 'pending'))
+        .where(
+          createdSince === undefined
+            ? pending
+            : and(pending, gte(suggestions.createdAt, createdSince)),
+        )
         .orderBy(asc(suggestions.createdAt), asc(suggestions.id));
+    },
+
+    /** Removes PENDING suggestions created before `cutoff` (epoch ms); returns how many. */
+    async expirePending(cutoff: number): Promise<number> {
+      const rows = await db
+        .delete(suggestions)
+        .where(and(eq(suggestions.status, 'pending'), lt(suggestions.createdAt, cutoff)))
+        .returning({ id: suggestions.id });
+      return rows.length;
     },
 
     /** Every suggestion (the engine reads the whole history to apply its limits). */

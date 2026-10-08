@@ -1,10 +1,13 @@
 // Load / save of a check-in. The questions come from the metrics template; the plan anchors
 // prefill the morning times; the night food note lives in `food_notes` (not in the answers).
+import { format, parseISO, subDays } from 'date-fns';
+
 import { DEFAULT_BED, DEFAULT_WAKE } from '../domain/onboarding/draft';
 import { bedtimeFor } from '../domain/formulas/sleep';
 import {
   adjustClock,
   initialAnswers,
+  toMorningCheckin,
   validateAnswers,
   type AnswerValue,
   type CheckinAnswers,
@@ -32,6 +35,27 @@ export type LoadedCheckin =
   /** No active module defines questions for this check-in. */
   | { status: 'missing' };
 
+/** How far back the last LOGGED bedtime is looked up. */
+const BED_LOOKBACK_DAYS = 14;
+
+/** The bedtime of the most recent earlier morning check-in, or `undefined` when none logged one. */
+async function lastLoggedBed(
+  repos: Repositories,
+  questions: readonly CheckinQuestion[],
+  today: string,
+): Promise<string | undefined> {
+  const base = parseISO(today);
+  const rows = await repos.checkins.inRange(
+    format(subDays(base, BED_LOOKBACK_DAYS), 'yyyy-MM-dd'),
+    format(subDays(base, 1), 'yyyy-MM-dd'),
+    'morning',
+  );
+  const logged = rows
+    .flatMap((row) => toMorningCheckin(row.date, questions, row.answers) ?? [])
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return logged[0]?.bed;
+}
+
 export async function loadCheckin(
   repos: Repositories,
   kind: CheckinKind,
@@ -48,11 +72,12 @@ export async function loadCheckin(
 
   const anchors = await repos.settings.get('anchors');
   const wake = anchors?.wake ?? DEFAULT_WAKE;
-  // Last night's bedtime = the planned one (wake − sleep target); without a target, the default.
+  // Last night's bedtime: what the person LOGGED last time (their real habit), else the planned
+  // one (wake − sleep target, moved earlier by an accepted "dormir antes"), else the default.
   const shifts = await repos.settings.get('planShifts');
   const planned = anchors?.sleepTargetH ? bedtimeFor(wake, anchors.sleepTargetH) : undefined;
-  // An accepted "dormir antes" suggestion moves the planned bedtime earlier.
-  const bed = planned ? adjustClock(planned, shifts?.bedMin ?? 0) : DEFAULT_BED;
+  const logged = kind === 'morning' ? await lastLoggedBed(repos, questions, today) : undefined;
+  const bed = logged ?? (planned ? adjustClock(planned, shifts?.bedMin ?? 0) : DEFAULT_BED);
   const context: PrefillContext = { bed, wake };
 
   const saved = await repos.checkins.get(today, kind);

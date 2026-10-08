@@ -75,7 +75,7 @@ describe('loadReview', () => {
         evidence: { days: 7 },
       },
       reason: 'suggestions.sleepEarlier.reason',
-      createdAt: 1,
+      createdAt: SUNDAY.getTime() - 1000,
     });
 
     const { review, suggestions } = await loadReview(repos, SUNDAY);
@@ -101,6 +101,58 @@ describe('loadReview', () => {
     const { review } = await loadReview(repos, new Date(2026, 1, 2, 9, 0));
     expect(review.weekStart).toBe('2026-01-26');
     expect(review.training?.done).toBe(1);
+  });
+});
+
+describe('loadReview on the last day of the review', () => {
+  it('leaves out Sunday itself, which is still going', async () => {
+    await session('2026-01-26', 6);
+    await session('2026-02-01', 6); // Sunday, the day the review opens
+    await repos.habitLogs.set('agua', '2026-02-01', 10);
+    const sunday = await loadReview(repos, SUNDAY);
+    expect(sunday.review.training?.done).toBe(1);
+    expect(sunday.review.water).toBeNull();
+    const monday = await loadReview(repos, new Date(2026, 1, 2, 9, 0));
+    expect(monday.review.training?.done).toBe(2);
+    expect(monday.review.water).toEqual({ met: 1, days: 1 });
+  });
+
+  it('only invites to sleep earlier while that suggestion can be offered', async () => {
+    for (const date of ['2026-01-26', '2026-01-27', '2026-01-28']) {
+      await repos.checkins.upsert(date, 'morning', {
+        'hora-dormir': '00:30',
+        'hora-despertar': '06:00',
+        'calidad-sueno': 3,
+      });
+    }
+    await session('2026-01-26', 6);
+    await session('2026-01-28', 6);
+    const invites = async () =>
+      (await loadReview(repos, SUNDAY)).review.letter.lines.map((line) => line.key);
+    expect(await invites()).toContain('review.letter.invite.sleep');
+    await repos.suggestions.create({
+      kind: 'sleepEarlier',
+      payload: { nonsense: true },
+      reason: 'x',
+      createdAt: SUNDAY.getTime() - 1000,
+    });
+    expect(await invites()).not.toContain('review.letter.invite.sleep');
+  });
+
+  it('a steps goal changed during the week turns the comparison into an average', async () => {
+    await repos.settings.set('startedOn', '2026-01-01');
+    for (let d = 1; d <= 7; d += 1) {
+      await repos.steps.upsert(`2026-01-0${d}`, 6000, 'manual'); // the baseline week
+    }
+    for (const date of ['2026-01-26', '2026-01-27', '2026-01-28']) {
+      await repos.steps.upsert(date, 9000, 'manual');
+    }
+    const before = await loadReview(repos, SUNDAY);
+    expect(before.review.steps?.kind).toBe('goal');
+    await repos.settings.set('goals', { stepsGoal: 8000 });
+    await repos.settings.set('goalsChangedOn', '2026-01-28');
+    const changed = await loadReview(repos, SUNDAY);
+    expect(changed.review.steps?.kind).toBe('average');
   });
 });
 

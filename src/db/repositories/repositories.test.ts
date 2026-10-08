@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { sql } from 'drizzle-orm';
 
 import { loadDefaultTemplates } from '../../templates/defaults';
 import { settings } from '../schema';
@@ -383,6 +384,56 @@ describe('habit events', () => {
     ]);
     expect(events.every((event) => event.date === '2026-10-05')).toBe(true);
     expect(await repos.habitLogs.eventsInRange('2026-10-06', '2026-10-31')).toEqual([]);
+  });
+});
+
+describe('habit events: atomicity and retention', () => {
+  const DAY_MS = 86_400_000;
+
+  it('a failed event write rolls the log back (one transaction)', async () => {
+    await rawDb.run(sql`drop table habit_events`);
+    await expect(repos.habitLogs.set('agua', '2026-10-05', 4)).rejects.toThrow();
+    await expect(repos.habitLogs.increment('agua', '2026-10-05')).rejects.toThrow();
+    expect(await repos.habitLogs.get('agua', '2026-10-05')).toBe(0);
+  });
+
+  it('prunes events older than 30 days on the next write, keeps the daily totals', async () => {
+    clock = 1_000 * DAY_MS;
+    await repos.habitLogs.set('agua', '2026-09-01', 5);
+    clock = 1_029 * DAY_MS;
+    await repos.habitLogs.set('agua', '2026-09-30', 6);
+    expect(await repos.habitLogs.eventsInRange('2026-01-01', '2026-12-31')).toHaveLength(2);
+    clock = 1_031 * DAY_MS; // the first event is now 31 days old
+    await repos.habitLogs.set('agua', '2026-10-02', 7);
+    const events = await repos.habitLogs.eventsInRange('2026-01-01', '2026-12-31');
+    expect(events.map((event) => event.value)).toEqual([6, 7]);
+    expect(await repos.habitLogs.get('agua', '2026-09-01')).toBe(5);
+  });
+});
+
+describe('plan change stamps', () => {
+  it('stamps gymDaysChangedOn only when the gym days actually change', async () => {
+    clock = new Date(2026, 9, 5, 10).getTime();
+    await repos.settings.set('gymDays', [{ days: [1, 3], anchor: 'gymMorning' }]);
+    expect(await repos.settings.get('gymDaysChangedOn')).toBe('2026-10-05');
+    clock = new Date(2026, 9, 9, 10).getTime();
+    await repos.settings.set('gymDays', [{ days: [1, 3], anchor: 'gymMorning' }]);
+    expect(await repos.settings.get('gymDaysChangedOn')).toBe('2026-10-05');
+    await repos.settings.set('gymDays', [{ days: [1, 4], anchor: 'gymMorning' }]);
+    expect(await repos.settings.get('gymDaysChangedOn')).toBe('2026-10-09');
+  });
+
+  it('stamps goalsChangedOn when the steps goal changes, not for the water goals', async () => {
+    clock = new Date(2026, 9, 5, 10).getTime();
+    await repos.settings.set('goals', { waterGlassesRest: 8 });
+    expect(await repos.settings.get('goalsChangedOn')).toBeUndefined();
+    await repos.settings.set('goals', { waterGlassesRest: 8, stepsGoal: 7000 });
+    expect(await repos.settings.get('goalsChangedOn')).toBe('2026-10-05');
+    clock = new Date(2026, 9, 12, 10).getTime();
+    await repos.settings.set('goals', { waterGlassesRest: 9, stepsGoal: 7000 });
+    expect(await repos.settings.get('goalsChangedOn')).toBe('2026-10-05');
+    await repos.settings.set('goals', { stepsGoal: 7500 });
+    expect(await repos.settings.get('goalsChangedOn')).toBe('2026-10-12');
   });
 });
 

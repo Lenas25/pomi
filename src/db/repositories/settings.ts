@@ -10,6 +10,7 @@ import {
   timeSchema,
 } from '../../templates/schema';
 import { BED_SHIFT_LIMIT_MIN, WATER_SHIFT_LIMIT_MIN } from '../../domain/suggestions/limits';
+import { dayKeyFor } from '../../domain/time';
 import { settings } from '../schema';
 import type { Db } from '../types';
 
@@ -85,6 +86,10 @@ export const settingsSchemas = {
   deloadWeek: deloadWeekSchema,
   /** Last day (`yyyy-MM-dd`) the suggestions engine ran (it runs once per day). */
   suggestionsLastRun: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** Day the gym plan (`gymDays`) last changed: accepted suggestion, onboarding or a manual edit. */
+  gymDaysChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** Day the steps goal (`goals.stepsGoal`) last changed, whichever way it changed. */
+  goalsChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Last notification responses already applied (dedupes the background task vs the listener). */
   handledNotificationResponses: z.array(z.string()),
   /** The person opened the system screen for exact alarms / battery (Android gives no way to read them). */
@@ -101,7 +106,30 @@ const HANDLED_KEY = 'handledNotificationResponses';
 /** Handled notification responses kept for dedupe. */
 const HANDLED_LIMIT = 40;
 
-export function createSettingsRepository(db: Db) {
+export function createSettingsRepository(db: Db, now: () => number = Date.now) {
+  async function readRaw(key: SettingsKey): Promise<string | undefined> {
+    const rows = await db.select().from(settings).where(eq(settings.key, key));
+    return rows[0]?.value;
+  }
+
+  async function write(key: SettingsKey, json: string): Promise<void> {
+    await db
+      .insert(settings)
+      .values({ key, value: json })
+      .onConflictDoUpdate({ target: settings.key, set: { value: json } });
+  }
+
+  /** The steps goal inside a stored `goals` value (`undefined` when absent or unreadable). */
+  function stepsGoalOf(json: string | undefined): number | undefined {
+    if (json === undefined) return undefined;
+    try {
+      const parsed = goalsSchema.safeParse(JSON.parse(json));
+      return parsed.success ? parsed.data.stepsGoal : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   return {
     /** Returns `undefined` when the key is missing or its stored value no longer matches the schema. */
     async get<K extends SettingsKey>(key: K): Promise<SettingsValue<K> | undefined> {
@@ -116,12 +144,23 @@ export function createSettingsRepository(db: Db) {
       }
     },
 
+    /**
+     * Writes a value. Two plan keys also stamp WHEN they changed, whoever changed them
+     * (accepted suggestion, onboarding, a manual edit): `gymDays` -> `gymDaysChangedOn`, and a
+     * different `goals.stepsGoal` -> `goalsChangedOn`. The suggestions engine reads the stamps so
+     * it never judges a new plan by the old one.
+     */
     async set<K extends SettingsKey>(key: K, value: SettingsValue<K>): Promise<void> {
       const json = JSON.stringify(value);
-      await db
-        .insert(settings)
-        .values({ key, value: json })
-        .onConflictDoUpdate({ target: settings.key, set: { value: json } });
+      const before = key === 'gymDays' || key === 'goals' ? await readRaw(key) : undefined;
+      await write(key, json);
+      const today = dayKeyFor(new Date(now()));
+      if (key === 'gymDays' && before !== json) {
+        await write('gymDaysChangedOn', JSON.stringify(today));
+      }
+      if (key === 'goals' && stepsGoalOf(before) !== stepsGoalOf(json)) {
+        await write('goalsChangedOn', JSON.stringify(today));
+      }
     },
 
     /**

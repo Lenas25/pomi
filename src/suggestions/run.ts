@@ -1,7 +1,9 @@
 // Runs the engine once per day and stores what it finds; accepts or rejects a stored suggestion.
 // Pure over `Db` + `Repositories` (no Expo imports), so it is tested on the in-memory database.
 import { buildSuggestions } from '../domain/suggestions/buildSuggestions';
-import { applyChange, type PlanPatch } from '../domain/suggestions/applyChange';
+import { applyChange, isChangeStale, type PlanPatch } from '../domain/suggestions/applyChange';
+import { expiryCutoff } from '../domain/suggestions/limits';
+import { activeDeloadPct } from '../gym/deload';
 import { dayKeyFor } from '../domain/time';
 import type { Repositories } from '../db/repositories';
 import { waitForMaintenance } from '../db/maintenance';
@@ -15,6 +17,12 @@ import { parsePayload, toPayload } from './payload';
  * Computes today's suggestions and stores them as `pending`. A no-op when it already ran today
  * (the day is the logical one, 04:00 rollover), before the onboarding finished, or when
  * nothing applies. Returns the ids it created.
+ *
+ * The whole run (check `suggestionsLastRun`, load, build, insert, mark) is ONE serialized
+ * transaction, and `suggestionsLastRun` is read again INSIDE it: the foreground reload and the
+ * background task can start together, and the second one must see the first one's mark instead of
+ * building (and storing) the same suggestions twice. Pending ones older than a week are removed
+ * first, so their kind can be offered again.
  */
 export async function runDailySuggestions(
   db: Db,
@@ -23,11 +31,12 @@ export async function runDailySuggestions(
 ): Promise<number[]> {
   await waitForMaintenance();
   const today = dayKeyFor(now);
-  if ((await repos.settings.get('onboardingComplete')) !== true) return [];
-  if ((await repos.settings.get('suggestionsLastRun')) === today) return [];
-
-  const suggestions = buildSuggestions(await loadSuggestionData(repos, today), today);
   return withTransaction(db, async () => {
+    if ((await repos.settings.get('onboardingComplete')) !== true) return [];
+    if ((await repos.settings.get('suggestionsLastRun')) === today) return [];
+
+    await repos.suggestions.expirePending(expiryCutoff(now));
+    const suggestions = buildSuggestions(await loadSuggestionData(repos, today), today);
     const ids: number[] = [];
     for (const suggestion of suggestions) {
       ids.push(
@@ -39,7 +48,7 @@ export async function runDailySuggestions(
         }),
       );
     }
-    // Marked only after the suggestions are stored: a failure runs the engine again later.
+    // Marked in the same transaction as the inserts: a failure rolls both back.
     await repos.settings.set('suggestionsLastRun', today);
     return ids;
   });
@@ -61,22 +70,36 @@ export async function acceptSuggestion(
   return withTransaction(db, async () => {
     const row = await repos.suggestions.get(id);
     const payload = row?.status === 'pending' ? parsePayload(row.payload) : null;
-    if (!row || !payload) return { status: 'unavailable' } as const;
+    // Unreadable, already decided or expired (older than a week): nothing to apply.
+    if (!row || !payload || row.createdAt < expiryCutoff(now))
+      return { status: 'unavailable' } as const;
 
     const today = dayKeyFor(now);
-    const [anchors, shifts, gymDays, goals] = await Promise.all([
+    const [anchors, shifts, gymDays, goals, goalsChangedOn, deloadWeek] = await Promise.all([
       repos.settings.get('anchors'),
       repos.settings.get('planShifts'),
       repos.settings.get('gymDays'),
       repos.settings.get('goals'),
+      repos.settings.get('goalsChangedOn'),
+      repos.settings.get('deloadWeek'),
     ]);
-    const patch = applyChange(payload.change, {
+    const plan = {
       today,
       anchors: anchors ?? {},
       shifts: shifts ?? {},
       gymDays: gymDays ?? [],
       goals: goals ?? {},
+    };
+    // The plan may have moved since the suggestion was made (another accepted change, a manual
+    // edit): re-validate against the CURRENT plan instead of applying a stale proposal.
+    const stale = isChangeStale(payload.change, {
+      ...plan,
+      createdOn: dayKeyFor(new Date(row.createdAt)),
+      goalsChangedOn,
+      deloadActive: activeDeloadPct(deloadWeek, today) !== undefined,
     });
+    if (stale) return { status: 'unavailable' } as const;
+    const patch = applyChange(payload.change, plan);
     if (patch.anchors) await repos.settings.set('anchors', patch.anchors);
     if (patch.shifts) await repos.settings.set('planShifts', patch.shifts);
     if (patch.gymDays) await repos.settings.set('gymDays', patch.gymDays);

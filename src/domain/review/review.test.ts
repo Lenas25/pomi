@@ -152,6 +152,17 @@ describe('Carta de Pomi', () => {
     water: [0, 1, 2, 3].map((offset) => ({ date: day(offset), glasses: 8, targetGlasses: 8 })),
     steps: [0, 1, 2].map((offset) => ({ date: day(offset), steps: 8000 })),
     sleep: [night(0, 400), night(1, 410), night(2, 420)],
+    sleepEarlierAvailable: true,
+  });
+
+  it('only invites to sleep earlier when that suggestion could be offered', () => {
+    const { letter } = buildWeeklyReview({ ...rich, sleepEarlierAvailable: false }, WEEK);
+    expect(letter.lines.map((entry) => entry.key)).not.toContain('review.letter.invite.sleep');
+    expect(letter.lines.at(-2)?.key).toMatch(/^review\.letter\.invite\.(one|two|three)$/);
+    const missing = buildWeeklyReview({ ...rich, sleepEarlierAvailable: undefined }, WEEK);
+    expect(missing.letter.lines.map((entry) => entry.key)).not.toContain(
+      'review.letter.invite.sleep',
+    );
   });
 
   it('is a short letter: hello, an achievement, one fact, an invitation and a goodbye', () => {
@@ -265,5 +276,25 @@ describe('Carta de Pomi', () => {
     expect(review.sleep?.nights).toBe(7);
     expect(review.letter.tone).toBe('full');
     expect(review.letter.lines.length).toBeLessThanOrEqual(LETTER_MAX_LINES);
+  });
+});
+
+describe('the last day of the review', () => {
+  it('leaves out today, which is still going, from the counts and the planned sessions', () => {
+    const sunday = day(6);
+    const withToday = data({
+      gymDays: [{ days: [1, 3, 5, 0], anchor: 'gymMorning' }],
+      gymDates: [day(0), day(6)],
+      water: [{ date: sunday, glasses: 8, targetGlasses: 8 }],
+      steps: [{ date: sunday, steps: 9000 }],
+    });
+    const open = buildWeeklyReview(withToday, WEEK, sunday);
+    expect(open.training).toEqual({ done: 1, planned: 3 }); // Sunday neither done nor planned
+    expect(open.water).toBeNull();
+    expect(open.steps).toBeNull();
+    // Opened on Monday, the whole week is complete.
+    const closed = buildWeeklyReview(withToday, WEEK, day(7));
+    expect(closed.training).toEqual({ done: 2, planned: 4 });
+    expect(closed.water).toEqual({ met: 1, days: 1 });
   });
 });

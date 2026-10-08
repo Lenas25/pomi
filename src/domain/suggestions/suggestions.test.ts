@@ -5,7 +5,7 @@ import type { ExerciseSession } from '../gym/todayTarget';
 import { stepsPlan } from '../habits/stepsPlan';
 import { generateSyntheticDays } from '../testing/syntheticData';
 
-import { applyChange, moveGymDay, type PlanSnapshot } from './applyChange';
+import { applyChange, isChangeStale, moveGymDay, type PlanSnapshot } from './applyChange';
 import { buildSuggestions, createdThisWeek, isKindAvailable } from './buildSuggestions';
 import {
   RULES,
@@ -100,12 +100,15 @@ describe('sleepEarlierRule', () => {
 // --- Regularidad -------------------------------------------------------------------------------
 
 describe('wakeRegularityRule', () => {
+  const planWake = (wake: string) => ({ wake, sleepTargetH: 8 });
   const wakes = (spread: number) =>
     [0, 1, 2, 3, 4].map((index) => night(-index, 480, 6 * 60 + (index === 0 ? spread : 0)));
 
   it('fires when the wake time varies by MORE than 60 minutes', () => {
-    expect(wakeRegularityRule(data({ sleep: wakes(60) }), TODAY)).toBeNull();
-    const fired = wakeRegularityRule(data({ sleep: wakes(61) }), TODAY);
+    expect(
+      wakeRegularityRule(data({ sleep: wakes(60), anchors: planWake('07:00') }), TODAY),
+    ).toBeNull();
+    const fired = wakeRegularityRule(data({ sleep: wakes(61), anchors: planWake('07:00') }), TODAY);
     expect(fired?.change).toEqual({ type: 'wakeTime', to: '06:00' });
     expect(fired?.evidence).toMatchObject({ days: 5, rangeMin: 61 });
   });
@@ -375,7 +378,8 @@ describe('buildSuggestions', () => {
     glassesAt18: 1,
     targetGlasses: 10,
   }));
-  const busy = () => data({ sleep, water, gymDays: [] });
+  const busy = () =>
+    data({ sleep, water, gymDays: [], anchors: { wake: '07:00', sleepTargetH: 8 } });
 
   it('sets the priority order and shows at most 2 new per ISO week', () => {
     expect(RULES.length).toBe(6);
@@ -476,7 +480,9 @@ describe('with 60 days of synthetic history', () => {
 
   it('flags the weekend drift as an irregular wake time and the water dip as short afternoons', () => {
     const weekWithWeekend = sleep.filter((entry) => entry.date > day(-8) && entry.date <= last);
-    expect(wakeRegularityRule(data({ sleep: weekWithWeekend }), last)).not.toBeNull();
+    expect(
+      wakeRegularityRule(data({ sleep: weekWithWeekend, anchors: { sleepTargetH: 8 } }), last),
+    ).not.toBeNull();
     expect(waterEarlierRule(data({ water }), last)?.change).toMatchObject({ toMin: -30 });
   });
 
@@ -550,5 +556,175 @@ describe('formatDuration', () => {
   it('writes hours and minutes', () => {
     expect(formatDuration(400)).toBe('6 h 40 min');
     expect(formatDuration(420)).toBe('7 h');
+  });
+});
+
+// --- Review findings ---------------------------------------------------------------------------
+
+describe('review findings', () => {
+  it('compares the UNROUNDED sleep mean: 449.57 min is short, though it rounds to the 450 edge', () => {
+    const sleep = [450, 450, 450, 450, 450, 450, 447].map((minutes, index) =>
+      night(-index, minutes),
+    );
+    const fired = sleepEarlierRule(data({ sleep }), TODAY);
+    expect(fired).not.toBeNull();
+    expect(fired?.params).toMatchObject({ avg: '7 h 30 min' });
+  });
+
+  it('wake regularity stays quiet when the plan already holds the usual wake time', () => {
+    const sleep = [0, 1, 2, 3, 4].map((index) =>
+      night(-index, 480, 6 * 60 + (index === 0 ? 61 : 0)),
+    );
+    expect(
+      wakeRegularityRule(data({ sleep, anchors: { wake: '06:00', sleepTargetH: 8 } }), TODAY),
+    ).toBeNull();
+  });
+
+  it('gym day only counts weeks since the gym plan last changed', () => {
+    const planned = [1, 3, 5].flatMap((weekday) =>
+      Array.from({ length: 28 }, (_, index) => day(-1 - index)).filter(
+        (date) => parseISO(date).getDay() === weekday,
+      ),
+    );
+    const trained = planned.filter((date) => parseISO(date).getDay() !== 3);
+    expect(gymDayRule(data({ gymDates: trained }), TODAY)).not.toBeNull();
+    // Changed 10 days ago: only ~1.5 weeks with the current plan, so nothing to judge yet.
+    expect(gymDayRule(data({ gymDates: trained, gymPlanChangedOn: day(-10) }), TODAY)).toBeNull();
+    // Changed exactly 4 weeks before the first judged day: judged.
+    expect(
+      gymDayRule(data({ gymDates: trained, gymPlanChangedOn: day(-28) }), TODAY),
+    ).not.toBeNull();
+  });
+
+  it('steps goal ignores the previous week when the goal was edited by hand lately', () => {
+    const goal = plan.goal ?? 0;
+    const low = [
+      goal - 100,
+      goal - 100,
+      goal + 100,
+      goal - 100,
+      goal - 100,
+      goal - 100,
+      goal - 100,
+    ];
+    const history = [
+      ...low.map((steps, index) => ({ date: day(-1 - index), steps })),
+      ...low.map((steps, index) => ({ date: day(-8 - index), steps })),
+    ];
+    expect(stepsGoalRule(data({ steps: { history, plan } }), TODAY)?.variant).toBe('stepsLower');
+    expect(
+      stepsGoalRule(data({ steps: { history, plan }, goalsChangedOn: day(-5) }), TODAY),
+    ).toBeNull();
+    expect(
+      stepsGoalRule(data({ steps: { history, plan }, goalsChangedOn: day(-15) }), TODAY)?.variant,
+    ).toBe('stepsLower');
+  });
+
+  it('deload is blocked for 14 days after a deload week ends', () => {
+    const session = (date: string, kg: number, reps: number): ExerciseSession => ({
+      date,
+      sets: [{ weightKg: kg, reps, rir: 2 }],
+    });
+    const stalled = [
+      session('d4', 40, 8),
+      session('d3', 40, 8),
+      session('d2', 40, 9),
+      session('d1', 40, 10),
+    ];
+    const lifts = [{ stepId: 'x', name: 'X', sessions: stalled }];
+    expect(deloadRule(data({ lifts, deloadEndedOn: day(-13) }), TODAY)).toBeNull();
+    expect(deloadRule(data({ lifts, deloadEndedOn: day(-14) }), TODAY)).toBeNull();
+    expect(deloadRule(data({ lifts, deloadEndedOn: day(-15) }), TODAY)).not.toBeNull();
+  });
+
+  it('a rejection blocks only its own (kind, target)', () => {
+    const missed = (weekday: number) =>
+      [1, 3, 5]
+        .filter((day1) => day1 !== weekday)
+        .flatMap((day1) =>
+          Array.from({ length: 28 }, (_, index) => day(-1 - index)).filter(
+            (date) => parseISO(date).getDay() === day1,
+          ),
+        );
+    // Wednesday AND Friday were missed 4 times: Wednesday is the worst (earlier in the week).
+    const trained = [...missed(3)].filter((date) => parseISO(date).getDay() === 1);
+    const first = gymDayRule(data({ gymDates: trained }), TODAY);
+    expect(first?.change).toMatchObject({ fromDay: 3 });
+    const rejectedWednesday: SuggestionHistoryEntry[] = [
+      {
+        kind: 'gymDay',
+        target: 'day:3',
+        status: 'rejected',
+        createdOn: day(-3),
+        decidedOn: day(-3),
+      },
+    ];
+    const next = gymDayRule(data({ gymDates: trained, history: rejectedWednesday }), TODAY);
+    expect(next?.change).toMatchObject({ fromDay: 5 });
+    expect(isKindAvailable('gymDay', rejectedWednesday, TODAY, 'day:3')).toBe(false);
+    expect(isKindAvailable('gymDay', rejectedWednesday, TODAY, 'day:5')).toBe(true);
+  });
+
+  it('counts the right unit as evidence: sessions for a deload, days for the rest', () => {
+    const sleep = Array.from({ length: 7 }, (_, index) => night(-index, 400));
+    expect(sleepEarlierRule(data({ sleep }), TODAY)?.evidence.unit).toBe('days');
+    const session = (date: string, kg: number, reps: number): ExerciseSession => ({
+      date,
+      sets: [{ weightKg: kg, reps, rir: 2 }],
+    });
+    const lifts = [
+      {
+        stepId: 'x',
+        name: 'X',
+        sessions: [
+          session('d4', 40, 8),
+          session('d3', 40, 8),
+          session('d2', 40, 9),
+          session('d1', 40, 10),
+        ],
+      },
+    ];
+    expect(deloadRule(data({ lifts }), TODAY)?.evidence.unit).toBe('sessions');
+  });
+});
+
+describe('isChangeStale', () => {
+  const base = {
+    today: TODAY,
+    anchors: { wake: '06:00', sleepTargetH: 8 },
+    shifts: {},
+    gymDays: [{ days: [1, 3, 5], anchor: 'gymMorning' as const }],
+    goals: {},
+    createdOn: day(-1),
+    deloadActive: false,
+  };
+
+  it('is fresh while the plan still matches what the suggestion started from', () => {
+    expect(isChangeStale({ type: 'bedtimeShift', fromMin: 0, toMin: -15 }, base)).toBe(false);
+    expect(isChangeStale({ type: 'moveGymDay', fromDay: 3, toDay: 4 }, base)).toBe(false);
+  });
+
+  it('is stale when the plan moved on', () => {
+    const shifted = { ...base, shifts: { bedMin: -15, waterMin: -30 } };
+    expect(isChangeStale({ type: 'bedtimeShift', fromMin: 0, toMin: -15 }, shifted)).toBe(true);
+    expect(isChangeStale({ type: 'waterShift', fromMin: 0, toMin: -30 }, shifted)).toBe(true);
+    expect(isChangeStale({ type: 'wakeTime', to: '06:00' }, base)).toBe(true);
+    expect(isChangeStale({ type: 'moveGymDay', fromDay: 2, toDay: 4 }, base)).toBe(true);
+    expect(isChangeStale({ type: 'moveGymDay', fromDay: 3, toDay: 5 }, base)).toBe(true);
+    expect(
+      isChangeStale({ type: 'deload', pct: 10, stepId: 'x' }, { ...base, deloadActive: true }),
+    ).toBe(true);
+    expect(
+      isChangeStale(
+        { type: 'stepsGoal', from: 7000, to: 7500 },
+        { ...base, goals: { stepsGoal: 8000 } },
+      ),
+    ).toBe(true);
+    expect(
+      isChangeStale(
+        { type: 'stepsGoal', from: 7000, to: 7500 },
+        { ...base, goalsChangedOn: TODAY },
+      ),
+    ).toBe(true);
   });
 });

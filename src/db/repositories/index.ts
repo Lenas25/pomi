@@ -14,7 +14,7 @@ import { createTemplatesRepository } from './templates';
 import { createWorkoutsRepository } from './workouts';
 
 export function createRepositories(db: Db, now: () => number = Date.now) {
-  const settings = createSettingsRepository(db);
+  const settings = createSettingsRepository(db, now);
   return {
     settings,
     profile: createProfileRepository(db, now),

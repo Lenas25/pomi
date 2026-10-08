@@ -45,6 +45,9 @@ export function suggestionTexts(
   return {
     text: t(key('text'), params),
     reason: t(key('reason'), params),
-    evidence: t('suggestions.card.basedOn', { days: payload.evidence.days }),
+    evidence:
+      payload.evidence.unit === 'sessions'
+        ? t('suggestions.card.basedOnSessions', { count: payload.evidence.days })
+        : t('suggestions.card.basedOn', { days: payload.evidence.days }),
   };
 }

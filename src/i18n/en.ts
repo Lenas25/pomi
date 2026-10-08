@@ -867,6 +867,7 @@ export const en: Messages = {
       label: 'Suggestion from Pomi',
       why: 'Why',
       basedOn: 'Based on {{days}} days',
+      basedOnSessions: 'Based on {{count}} sessions',
       accept: 'Accept',
       decline: 'Not now',
       acceptedTitle: 'Plan updated',
@@ -914,7 +915,8 @@ export const en: Messages = {
     },
     waterEarlier: {
       text: 'Shall we move the water reminders {{minutes}} minutes earlier?',
-      reason: 'At 18:00 you had under 60% of your goal on {{short}} of the last {{total}} days.',
+      reason:
+        'At 18:00 you had under 60% of your goal on {{short}} of the {{total}} days you logged.',
     },
     gymDay: {
       text: 'Shall we move your {{fromDayName}} workout to {{toDayName}}?',
@@ -980,7 +982,7 @@ export const en: Messages = {
         three: 'Listen to your body and go at your own pace.',
         sleep: 'If you can, go to bed a few minutes earlier one night this week.',
       },
-      bye: "It's okay. Tomorrow we keep going.",
+      bye: 'See you next week.',
     },
   },
   database: {

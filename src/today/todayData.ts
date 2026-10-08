@@ -1,4 +1,5 @@
 // Everything the Hoy screen needs, read in one pass (all local, near instant).
+import { expiryCutoff } from '../domain/suggestions/limits';
 import { format, getDay, subDays } from 'date-fns';
 
 import type { Repositories } from '../db/repositories';
@@ -63,7 +64,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
       repos.templates.listModules(),
       repos.workouts.sessionsInRange(lookbackFrom, today),
       repos.workouts.recentSessions(ROTATION_LOOKBACK),
-      repos.suggestions.pending(),
+      repos.suggestions.pending(expiryCutoff(now)),
       repos.settings.get('notificationPrefs'),
     ]);
   const view = buildHabitsView(habits, today);

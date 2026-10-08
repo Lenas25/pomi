@@ -3,7 +3,8 @@
 // `SUGGESTION_KINDS`. It suggests, it never imposes: nothing changes until the person accepts.
 import { differenceInCalendarDays, format, parseISO, startOfISOWeek } from 'date-fns';
 
-import { ACCEPT_COOLDOWN_DAYS, MAX_NEW_PER_WEEK, REJECT_BLOCK_DAYS } from './limits';
+import { isRejectBlocked, targetOfChange } from './availability';
+import { ACCEPT_COOLDOWN_DAYS, MAX_NEW_PER_WEEK } from './limits';
 import { RULES } from './rules';
 import type { Suggestion, SuggestionData, SuggestionHistoryEntry, SuggestionKind } from './types';
 
@@ -16,21 +17,24 @@ export function createdThisWeek(history: readonly SuggestionHistoryEntry[], toda
 }
 
 /**
- * A kind is offered again only when: it is not already pending, it was not rejected in the last
- * four weeks and it was not accepted in the last week (so the change can show its effect).
+ * A suggestion is offered again only when: its kind is not already pending, the kind was not
+ * accepted in the last week (so the change can show its effect) and THIS target (kind + weekday /
+ * exercise) was not rejected in the last four weeks. Rejecting "move Tuesday" does not silence
+ * "move Thursday".
  */
 export function isKindAvailable(
   kind: SuggestionKind,
   history: readonly SuggestionHistoryEntry[],
   today: string,
+  target: string | null = null,
 ): boolean {
+  if (isRejectBlocked(history, kind, target, today)) return false;
   return history
     .filter((entry) => entry.kind === kind)
     .every((entry) => {
       if (entry.status === 'pending') return false;
-      if (entry.decidedOn === null) return true;
+      if (entry.status === 'rejected' || entry.decidedOn === null) return true;
       const since = differenceInCalendarDays(parseISO(today), parseISO(entry.decidedOn));
-      if (entry.status === 'rejected') return since >= REJECT_BLOCK_DAYS;
       return since >= ACCEPT_COOLDOWN_DAYS;
     });
 }
@@ -43,7 +47,10 @@ export function buildSuggestions(data: SuggestionData, today: string): Suggestio
   for (const rule of RULES) {
     if (found.length >= budget) break;
     const suggestion = rule(data, today);
-    if (suggestion && isKindAvailable(suggestion.kind, data.history, today)) {
+    if (
+      suggestion &&
+      isKindAvailable(suggestion.kind, data.history, today, targetOfChange(suggestion.change))
+    ) {
       found.push(suggestion);
     }
   }

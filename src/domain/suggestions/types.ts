@@ -49,8 +49,16 @@ export type SuggestionChange =
   | { type: 'deload'; pct: number; stepId: string };
 
 export type SuggestionParams = Record<string, string | number>;
-/** The numbers that back the suggestion ("basado en N días"). */
-export type SuggestionEvidence = { days: number } & Record<string, string | number>;
+/** What `evidence.days` counts: calendar days or training sessions ("basado en N sesiones"). */
+export type EvidenceUnit = 'days' | 'sessions';
+/**
+ * The numbers that back the suggestion. `days` is the count shown ("basado en N ..."); `unit`
+ * says what it counts (rows stored before `unit` existed count days).
+ */
+export type SuggestionEvidence = { days: number; unit: EvidenceUnit } & Record<
+  string,
+  string | number
+>;
 
 export type Suggestion = {
   kind: SuggestionKind;
@@ -68,6 +76,8 @@ export type SuggestionStatus = 'pending' | 'accepted' | 'rejected';
 /** What the engine knows about earlier suggestions (day keys, never timestamps). */
 export type SuggestionHistoryEntry = {
   kind: SuggestionKind;
+  /** What the change is about (weekday moved, exercise): rejections block per kind AND target. */
+  target?: string | null;
   status: SuggestionStatus;
   /** `yyyy-MM-dd` it was created. */
   createdOn: string;
@@ -91,6 +101,12 @@ export type SuggestionData = {
   gymDays: GymDays;
   /** Day the onboarding finished (the gym rule needs four full weeks after it). */
   startedOn?: string | undefined;
+  /** Day the gym plan last changed (accepted suggestion or manual edit); judged only after it. */
+  gymPlanChangedOn?: string | undefined;
+  /** Day the steps goal last changed, however it changed. */
+  goalsChangedOn?: string | undefined;
+  /** Last day (`yyyy-MM-dd`) of the latest deload week, when there was one. */
+  deloadEndedOn?: string | undefined;
   /** Morning check-ins of the last ~2 weeks. */
   sleep: readonly MorningCheckin[];
   steps: {

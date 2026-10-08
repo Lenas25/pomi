@@ -1,4 +1,5 @@
 // Everything the weekly review screen needs, read in one pass (all local, near instant).
+import { expiryCutoff } from '../domain/suggestions/limits';
 import { addDays, format, parseISO } from 'date-fns';
 
 import type { Repositories } from '../db/repositories';
@@ -15,7 +16,8 @@ import {
 import { dayKeyFor } from '../domain/time';
 import { loadHabitsData } from '../habits/habitsData';
 import { parsePayload, type SuggestionPayload } from '../suggestions/payload';
-import { waterHabit } from '../suggestions/loadData';
+import { toHistory, waterHabit } from '../suggestions/loadData';
+import { isKindAvailable } from '../domain/suggestions/buildSuggestions';
 
 /**
  * Question ids of `templates/metricas.json` that carry the 1-5 scales. A template without one of
@@ -53,8 +55,9 @@ export async function loadReview(repos: Repositories, now: Date): Promise<Review
     repos.workouts.sessionsInRange(weekStart, weekEnd),
     repos.activity.inRange(weekStart, weekEnd),
     repos.checkins.inRange(weekStart, weekEnd),
-    repos.suggestions.pending(),
+    repos.suggestions.pending(expiryCutoff(now)),
   ]);
+  const history = toHistory(await repos.suggestions.all());
 
   const active = habits.modules.filter((module) => module.active);
   const gymDates = [
@@ -96,15 +99,24 @@ export async function loadReview(repos: Repositories, now: Date): Promise<Review
   const morning = checkins.filter((row) => row.kind === 'morning');
   const night = checkins.filter((row) => row.kind === 'night');
   const anchors = (await repos.settings.get('anchors')) ?? {};
+  const goalsChangedOn = await repos.settings.get('goalsChangedOn');
 
   const data: WeeklyReviewData = {
     gymDays: habits.gymDays,
     anchors,
     gymDates,
+    sleepEarlierAvailable: isKindAvailable('sleepEarlier', history, today),
     water,
     steps: habits.steps,
-    // While the baseline week is measuring there is no goal to compare against.
-    stepsGoal: plan.phase === 'active' ? plan.goal : null,
+    // While the baseline week is measuring there is no goal to compare against. Only the CURRENT
+    // steps goal is stored: when it changed during the reviewed week the days are not comparable
+    // (part of them had the old goal), so the week reports an average instead of "days met".
+    // Water is per day already: `waterTargetFor(date)` gives each day its own target (the accepted
+    // glasses in `goals` are the current ones, a documented limit).
+    stepsGoal:
+      plan.phase === 'active' && !(goalsChangedOn !== undefined && goalsChangedOn > weekStart)
+        ? plan.goal
+        : null,
     sleep: morningQuestions
       ? morning.flatMap((row) => toMorningCheckin(row.date, morningQuestions, row.answers) ?? [])
       : [],
@@ -116,7 +128,7 @@ export async function loadReview(repos: Repositories, now: Date): Promise<Review
   };
 
   return {
-    review: buildWeeklyReview(data, weekStart),
+    review: buildWeeklyReview(data, weekStart, today),
     suggestions: pending.flatMap((row) => {
       const payload = parsePayload(row.payload);
       return payload ? [{ id: row.id, payload }] : [];

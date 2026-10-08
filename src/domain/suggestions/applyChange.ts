@@ -78,3 +78,37 @@ export function applyChange(change: SuggestionChange, plan: PlanSnapshot): PlanP
       };
   }
 }
+
+export type StalenessContext = PlanSnapshot & {
+  /** `yyyy-MM-dd` the suggestion was created on. */
+  createdOn: string;
+  /** Day the steps goal last changed (any way), when known. */
+  goalsChangedOn?: string | undefined;
+  /** A deload week is running right now. */
+  deloadActive: boolean;
+};
+
+/**
+ * Whether the plan moved on since the suggestion was made, so accepting it would be wrong or a
+ * no-op: the value it starts `from` is not the current one, the weekday is gone, the wake time is
+ * already set, a deload is already running.
+ */
+export function isChangeStale(change: SuggestionChange, plan: StalenessContext): boolean {
+  switch (change.type) {
+    case 'bedtimeShift':
+      return (plan.shifts.bedMin ?? 0) !== change.fromMin;
+    case 'waterShift':
+      return (plan.shifts.waterMin ?? 0) !== change.fromMin;
+    case 'wakeTime':
+      return plan.anchors.wake === change.to;
+    case 'stepsGoal':
+      return (
+        (plan.goals.stepsGoal !== undefined && plan.goals.stepsGoal !== change.from) ||
+        (plan.goalsChangedOn !== undefined && plan.goalsChangedOn > plan.createdOn)
+      );
+    case 'moveGymDay':
+      return moveGymDay(plan.gymDays, change.fromDay, change.toDay) === plan.gymDays;
+    case 'deload':
+      return plan.deloadActive;
+  }
+}

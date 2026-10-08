@@ -8,7 +8,9 @@ import { proposeStepsAdjustment } from '../formulas/steps';
 import { isStalled } from '../gym/todayTarget';
 import { clockToMinutes, minutesToClock } from '../time';
 
+import { isRejectBlocked } from './availability';
 import {
+  DELOAD_BLOCK_DAYS,
   BED_SHIFT_LIMIT_MIN,
   BED_STEP_MIN,
   GYM_MISSED,
@@ -52,10 +54,11 @@ export const sleepEarlierRule: Rule = (data, today) => {
   if (week.length < MIN_SLEEP_DAYS || targetH === undefined) return null;
 
   const targetMin = Math.round(targetH * 60);
-  const avgMin = Math.round(
-    week.reduce((sum, entry) => sum + sleepDurationMin(entry.bed, entry.wake), 0) / week.length,
-  );
-  if (!(avgMin < targetMin - SLEEP_SHORT_BY_MIN)) return null;
+  // The comparison uses the UNROUNDED mean: rounding first could tip a 29.6 min gap into "30".
+  const meanMin =
+    week.reduce((sum, entry) => sum + sleepDurationMin(entry.bed, entry.wake), 0) / week.length;
+  if (!(meanMin < targetMin - SLEEP_SHORT_BY_MIN)) return null;
+  const avgMin = Math.round(meanMin);
 
   const fromMin = data.shifts.bedMin ?? 0;
   const toMin = fromMin - BED_STEP_MIN;
@@ -73,7 +76,7 @@ export const sleepEarlierRule: Rule = (data, today) => {
       target: formatDuration(targetMin),
       minutes: BED_STEP_MIN,
     },
-    evidence: { days: week.length, avgMin, targetMin },
+    evidence: { days: week.length, unit: 'days', avgMin, targetMin },
   };
 };
 
@@ -104,8 +107,11 @@ export const wakeRegularityRule: Rule = (data, today) => {
   const rangeMin = circularRange(wakes);
   if (!(rangeMin > WAKE_RANGE_MIN)) return null;
 
-  // The plan's wake time when there is one, otherwise what the person usually does.
-  const time = data.anchors.wake ?? minutesToClock(medianWake(wakes));
+  // What the person actually does (median on the 24 h circle, 5 min). The change sets the plan's
+  // wake time to it, so accepting always changes something: when the plan already holds this time
+  // there is nothing to fix and the rule stays quiet (no no-op question).
+  const time = minutesToClock(medianWake(wakes));
+  if (data.anchors.wake === time) return null;
   return {
     kind: 'wakeRegularity',
     variant: 'wakeRegularity',
@@ -113,7 +119,7 @@ export const wakeRegularityRule: Rule = (data, today) => {
     textKey: 'suggestions.wakeRegularity.text',
     reasonKey: 'suggestions.wakeRegularity.reason',
     params: { time, range: formatDuration(rangeMin) },
-    evidence: { days: week.length, rangeMin, time },
+    evidence: { days: week.length, unit: 'days', rangeMin, time },
   };
 };
 
@@ -140,15 +146,17 @@ export const stepsGoalRule: Rule = (data, today) => {
   const daysMetThisWeek = metIn(thisWeek, plan.goal);
   if (daysMetThisWeek === undefined) return null;
 
-  // A goal changed through a suggestion within the previous two weeks makes that week
-  // incomparable: do not count it toward "two weeks below".
-  const changedRecently = data.history.some(
-    (entry) =>
-      entry.kind === 'stepsGoal' &&
-      entry.status === 'accepted' &&
-      entry.decidedOn !== null &&
-      entry.decidedOn >= daysAgo(today, 14),
-  );
+  // A goal changed within the previous two weeks (accepted suggestion OR a manual edit, both
+  // stamp `goalsChangedOn`) makes that week incomparable: do not count it toward "two weeks below".
+  const changedRecently =
+    (data.goalsChangedOn !== undefined && data.goalsChangedOn >= daysAgo(today, 14)) ||
+    data.history.some(
+      (entry) =>
+        entry.kind === 'stepsGoal' &&
+        entry.status === 'accepted' &&
+        entry.decidedOn !== null &&
+        entry.decidedOn >= daysAgo(today, 14),
+    );
   const daysMetPreviousWeek = changedRecently ? undefined : metIn(weekOf(8), plan.goal);
 
   const adjustment = proposeStepsAdjustment({
@@ -175,6 +183,7 @@ export const stepsGoalRule: Rule = (data, today) => {
     },
     evidence: {
       days: 7,
+      unit: 'days',
       daysMet: daysMetThisWeek,
       goal: plan.goal,
       ...(daysMetPreviousWeek !== undefined ? { daysMetPreviousWeek } : {}),
@@ -185,6 +194,8 @@ export const stepsGoalRule: Rule = (data, today) => {
 // --- Agua --------------------------------------------------------------------------------------
 
 export const waterEarlierRule: Rule = (data, today) => {
+  // `data.water` only holds days WITH at least one water write: a day without any log is "no
+  // data", not a short day, so unlogged days are skipped rather than counted as 0%.
   const from = daysAgo(today, WATER_WINDOW_DAYS);
   const to = daysAgo(today, 1);
   const days = data.water.filter((day) => day.date >= from && day.date <= to);
@@ -207,7 +218,7 @@ export const waterEarlierRule: Rule = (data, today) => {
     textKey: 'suggestions.waterEarlier.text',
     reasonKey: 'suggestions.waterEarlier.reason',
     params: { short: short.length, total: days.length, minutes: WATER_STEP_MIN },
-    evidence: { days: days.length, shortDays: short.length },
+    evidence: { days: days.length, unit: 'days', shortDays: short.length },
   };
 };
 
@@ -224,8 +235,15 @@ export const gymDayRule: Rule = (data, today) => {
 
   const windowDays = GYM_WEEKS * 7;
   const dates = Array.from({ length: windowDays }, (_, index) => daysAgo(today, index + 1));
-  // Four FULL weeks of the plan: nothing to judge before then.
-  if (data.startedOn !== undefined && data.startedOn > (dates.at(-1) ?? today)) return null;
+  // Four FULL weeks of the CURRENT plan: nothing to judge before then. The plan starts at the
+  // later of the onboarding and the last change of `gymDays` (accepted suggestion or manual edit),
+  // so weeks trained under the old plan never count against the new one.
+  const oldest = dates.at(-1) ?? today;
+  const planSince = [data.startedOn, data.gymPlanChangedOn]
+    .filter((day): day is string => day !== undefined)
+    .sort()
+    .at(-1);
+  if (planSince !== undefined && planSince > oldest) return null;
 
   const trained = new Set(data.gymDates);
   const candidates = [...planned]
@@ -234,6 +252,8 @@ export const gymDayRule: Rule = (data, today) => {
       return { weekday, missed: occurrences.filter((date) => !trained.has(date)).length };
     })
     .filter((entry) => entry.missed >= GYM_MISSED)
+    // A weekday whose move was rejected is skipped, so the next-worst one can still be offered.
+    .filter((entry) => !isRejectBlocked(data.history, 'gymDay', `day:${entry.weekday}`, today))
     .sort((a, b) => b.missed - a.missed || weekOrder(a.weekday) - weekOrder(b.weekday));
   const worst = candidates[0];
   if (!worst) return null;
@@ -254,7 +274,7 @@ export const gymDayRule: Rule = (data, today) => {
     textKey: 'suggestions.gymDay.text',
     reasonKey: 'suggestions.gymDay.reason',
     params: { fromDay: worst.weekday, toDay: target, missed: worst.missed, weeks: GYM_WEEKS },
-    evidence: { days: windowDays, missed: worst.missed, weeks: GYM_WEEKS },
+    evidence: { days: windowDays, unit: 'days', missed: worst.missed, weeks: GYM_WEEKS },
   };
 };
 
@@ -264,10 +284,15 @@ export const gymDayRule: Rule = (data, today) => {
  * Reactive only (docs/evidence/training.md §5): offered when a lift has stalled for
  * `stallSessions` sessions in a row, never on a schedule.
  */
-export const deloadRule: Rule = (data) => {
+export const deloadRule: Rule = (data, today) => {
   if (data.deloadActive) return null;
+  // The week after a deload is a fresh start: sessions of the lighter week must not read as a stall.
+  if (data.deloadEndedOn !== undefined && data.deloadEndedOn >= daysAgo(today, DELOAD_BLOCK_DAYS)) {
+    return null;
+  }
   const { stallSessions, deloadPct } = data.rules;
   const stalled = data.lifts.find((lift) => {
+    if (isRejectBlocked(data.history, 'deload', `step:${lift.stepId}`, today)) return false;
     const past = lift.sessions.filter((session) => session.sets.some((set) => (set.reps ?? 0) > 0));
     return isStalled(past, stallSessions, deloadPct);
   });
@@ -280,7 +305,12 @@ export const deloadRule: Rule = (data) => {
     textKey: 'suggestions.deload.text',
     reasonKey: 'suggestions.deload.reason',
     params: { exercise: stalled.name, sessions: stallSessions, pct: deloadPct },
-    evidence: { days: stallSessions, sessions: stallSessions, exercise: stalled.name },
+    evidence: {
+      days: stallSessions,
+      unit: 'sessions',
+      sessions: stallSessions,
+      exercise: stalled.name,
+    },
   };
 };
 

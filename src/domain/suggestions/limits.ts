@@ -32,3 +32,13 @@ export const WATER_WINDOW_DAYS = 7;
 /** Gym day: the same weekday missed 3 times in 4 weeks. */
 export const GYM_WEEKS = 4;
 export const GYM_MISSED = 3;
+
+/** A pending suggestion that nobody answered expires after a week (the data it used is stale). */
+export const PENDING_EXPIRY_DAYS = 7;
+/** After a deload week ends, no new deload is offered for two weeks (the stall window resets). */
+export const DELOAD_BLOCK_DAYS = 14;
+
+/** Epoch ms before which a pending suggestion has expired. */
+export function expiryCutoff(now: Date): number {
+  return now.getTime() - PENDING_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+}
