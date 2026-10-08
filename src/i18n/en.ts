@@ -1067,6 +1067,7 @@ export const en: Messages = {
     version: 'Version',
     license: 'License',
     repository: 'Source code',
+    contact: 'Contact',
     privacy: 'Privacy',
     privacyBody: 'Your data lives only on this phone. Pomi has no accounts and no analytics.',
     disclaimerTitle: 'Important',

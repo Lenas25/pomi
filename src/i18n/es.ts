@@ -1071,6 +1071,7 @@ export const es = {
     version: 'Versión',
     license: 'Licencia',
     repository: 'Código fuente',
+    contact: 'Contacto',
     privacy: 'Privacidad',
     privacyBody: 'Tus datos viven solo en este teléfono. Pomi no tiene cuentas ni analítica.',
     disclaimerTitle: 'Importante',

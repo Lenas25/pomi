@@ -1,6 +1,18 @@
 {
   "name": "pomi",
   "version": "0.1.0",
+  "description": "Local-first Android app for gym and healthy habits. Your routine buddy.",
+  "license": "MIT",
+  "author": "Elena <easp0104@gmail.com>",
+  "homepage": "https://github.com/Lenas25/pomi#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lenas25/pomi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Lenas25/pomi/issues",
+    "email": "easp0104@gmail.com"
+  },
   "private": true,
   "main": "index.ts",
   "scripts": {

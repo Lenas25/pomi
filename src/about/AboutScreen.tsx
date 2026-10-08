@@ -8,7 +8,7 @@ import { Card } from '../ui/Card';
 import { Screen } from '../ui/Screen';
 import { useTheme } from '../ui/theme';
 
-import { LICENSE_NAME, REPO_URL } from './info';
+import { CONTACT_EMAIL, LICENSE_NAME, REPO_URL } from './info';
 
 /** Ajustes > Acerca de: version, license, the medical disclaimer and the repository. */
 export function AboutScreen() {
@@ -42,6 +42,7 @@ export function AboutScreen() {
             {row(t('about.version'), version)}
             {row(t('about.license'), LICENSE_NAME)}
             {row(t('about.repository'), REPO_URL)}
+            {row(t('about.contact'), CONTACT_EMAIL)}
             {row(t('about.privacy'), t('about.privacyBody'))}
           </View>
         </Card>

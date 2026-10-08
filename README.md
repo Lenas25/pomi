@@ -64,3 +64,5 @@ Gym programs and templates are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) a
 ## License
 
 [MIT](LICENSE).
+
+Contact: [easp0104@gmail.com](mailto:easp0104@gmail.com) · Repository: [github.com/Lenas25/pomi](https://github.com/Lenas25/pomi)

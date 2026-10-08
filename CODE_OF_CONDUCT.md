@@ -6,7 +6,7 @@ In short: be kind, assume good intent, give and accept feedback with respect, an
 
 ## Reporting
 
-Report unacceptable behavior to the maintainers at **CONTACT_EMAIL_PLACEHOLDER**. Reports are handled privately and in good faith. The enforcement guidelines of the Covenant (correction, warning, temporary ban, permanent ban) apply.
+Report unacceptable behavior to the maintainers at **[easp0104@gmail.com](mailto:easp0104@gmail.com)**. Reports are handled privately and in good faith. The enforcement guidelines of the Covenant (correction, warning, temporary ban, permanent ban) apply.
 
 ## Attribution
 
