@@ -124,6 +124,12 @@ Una app Android local-first de gym y hábitos saludables que te dice qué hacer 
       Programas de gym, hábitos y check-ins en JSON que puedes importar y compartir.
     </td>
   </tr>
+  <tr>
+    <td valign="top">
+      <b>🤖 Conectar mi IA (opcional)</b><br />
+      Pregúntale a tu propio proveedor de IA sobre tus datos. Antes ves exactamente qué se envía.
+    </td>
+  </tr>
 </table>
 
 ## Capturas
@@ -206,7 +212,8 @@ La especificación completa está en [`PLAN.md`](PLAN.md); las convenciones y de
 
 ### Privacidad
 
-- **Sin cuentas, sin analítica, sin backend.** Nada sale de tu teléfono salvo que compartas un archivo tú.
+- **Sin cuentas, sin analítica, sin backend.** Nada sale de tu teléfono salvo que compartas un archivo tú o le preguntes a tu IA conectada.
+- **Conectar mi IA está apagado por defecto.** Usas tu proveedor (OpenAI, Gemini, Kimi, MiniMax, OpenRouter, Anthropic o tu propia URL de Ollama / LM Studio / vLLM). Solo se envían agregados, nunca fotos; las notas solo si las activas en ese mensaje. Revisas el texto exacto antes de tocar "Enviar". La clave de API queda en el almacén seguro del teléfono, nunca en tus datos ni en el respaldo. El costo de uso va a tu cuenta del proveedor.
 - Health Connect es de solo lectura y solo para los pasos.
 - El respaldo de Android está desactivado (`allowBackup: false`), así que **exporta tu respaldo** (Ajustes > Respaldo) antes de cambiar de teléfono.
 
@@ -214,7 +221,7 @@ La especificación completa está en [`PLAN.md`](PLAN.md); las convenciones y de
 
 - [x] **v1**: base útil (Hoy, gym, hábitos, check-ins, avisos, cronómetros, respaldo)
 - [x] **v2**: aprender de ti (sugerencias, revisiones, progreso, fotos mensuales, compartir, Tu ritmo, generador)
-- [x] **v3**: descubrirte (hallazgos, volumen semanal, editor de programas, CSV/JSON, inglés completo). _"Conectar mi IA" está planeado._
+- [x] **v3**: descubrirte (hallazgos, volumen semanal, editor de programas, CSV/JSON, inglés completo, Conectar mi IA)
 - [ ] Ideas para **v4**: compartir programas por link o QR, timelapse de fotos, acompañamiento con 1 o 2 personas, iOS y publicación en tiendas
 
 Detalles y criterios de aceptación: [`PLAN.md` §15](PLAN.md).

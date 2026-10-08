@@ -124,6 +124,12 @@ A local-first Android app for the gym and healthy habits that tells you what to 
       Gym programs, habits and check-ins are JSON you can import and share.
     </td>
   </tr>
+  <tr>
+    <td valign="top">
+      <b>🤖 Connect your AI (optional)</b><br />
+      Ask your own AI provider about your data. You see exactly what is sent first.
+    </td>
+  </tr>
 </table>
 
 ## Screenshots
@@ -206,7 +212,8 @@ The full spec is in [`PLAN.md`](PLAN.md) (Spanish); conventions and decisions ar
 
 ### Privacy
 
-- **No accounts, no analytics, no backend.** Nothing leaves your phone unless you share a file yourself.
+- **No accounts, no analytics, no backend.** Nothing leaves your phone unless you share a file yourself or ask your connected AI.
+- **Connect your AI is off by default.** You bring your provider (OpenAI, Gemini, Kimi, MiniMax, OpenRouter, Anthropic or your own Ollama / LM Studio / vLLM URL). Only aggregates are sent, never photos; notes only if you switch them on for that message. You review the exact text before tapping "Send". The API key stays in the phone's secure storage, never in your data or backup. Usage costs are on your provider account.
 - Health Connect is read-only and used only for steps.
 - Android backup is off (`allowBackup: false`), so **export your backup** (Settings > Backup) before changing phones.
 
@@ -214,7 +221,7 @@ The full spec is in [`PLAN.md`](PLAN.md) (Spanish); conventions and decisions ar
 
 - [x] **v1**: useful base (Today, gym, habits, check-ins, reminders, timers, backup)
 - [x] **v2**: learning from you (suggestions, reviews, progress, monthly photos, sharing, Tu ritmo, generator)
-- [x] **v3**: discovering you (insights, weekly volume, program editor, CSV/JSON, full English). _"Connect my AI" is planned._
+- [x] **v3**: discovering you (insights, weekly volume, program editor, CSV/JSON, full English, Connect your AI)
 - [ ] **v4** ideas: share programs by link or QR, photo timelapse, accountability with 1–2 people, iOS and store release
 
 Details and acceptance criteria: [`PLAN.md` §15](PLAN.md).
