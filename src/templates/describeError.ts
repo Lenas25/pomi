@@ -50,9 +50,13 @@ export function describeImportError(error: ImportError, translate: Translate): s
         ? translate('importErrors.invalidValueWithOptions', { ...base, allowed: params.allowed })
         : translate('importErrors.invalidValue', base);
     case 'tooSmall':
-      return translate('importErrors.tooSmall', { ...base, min: params.min ?? 0 });
+      return params.inclusive === 0
+        ? translate('importErrors.tooSmallExclusive', { ...base, min: params.min ?? 0 })
+        : translate('importErrors.tooSmall', { ...base, min: params.min ?? 0 });
     case 'tooBig':
-      return translate('importErrors.tooBig', { ...base, max: params.max ?? 0 });
+      return params.inclusive === 0
+        ? translate('importErrors.tooBigExclusive', { ...base, max: params.max ?? 0 })
+        : translate('importErrors.tooBig', { ...base, max: params.max ?? 0 });
     case 'invalidFormat':
       return translate('importErrors.invalidFormat', base);
     case 'invalidTime':
@@ -65,6 +69,10 @@ export function describeImportError(error: ImportError, translate: Translate): s
       return translate('importErrors.invalidScale', base);
     case 'duplicateId':
       return translate('importErrors.duplicateId', base);
+    case 'invalidCondition':
+      return translate('importErrors.invalidCondition', base);
+    case 'flagValueWithoutFlag':
+      return translate('importErrors.flagValueWithoutFlag', base);
     case 'unknownKey':
       return translate('importErrors.unknownKey', base);
     case 'unknown':

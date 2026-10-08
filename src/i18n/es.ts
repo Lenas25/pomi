@@ -60,7 +60,9 @@ export const es = {
     invalidValueWithOptions:
       'El campo «{{path}}» tiene un valor que la app no reconoce. Valores permitidos: {{allowed}}.',
     tooSmall: 'El campo «{{path}}» es demasiado corto o pequeño (mínimo: {{min}}).',
+    tooSmallExclusive: 'El campo «{{path}}» debe ser mayor que {{min}}.',
     tooBig: 'El campo «{{path}}» es demasiado largo o grande (máximo: {{max}}).',
+    tooBigExclusive: 'El campo «{{path}}» debe ser menor que {{max}}.',
     invalidFormat: 'El campo «{{path}}» no tiene el formato esperado.',
     invalidTime: 'El campo «{{path}}» debe ser una hora con formato HH:mm, por ejemplo 06:30.',
     invalidIcon:
@@ -70,6 +72,8 @@ export const es = {
     invalidScale:
       'La escala en «{{path}}» debe ir de un número menor a uno mayor, por ejemplo [1, 5].',
     duplicateId: 'Hay identificadores repetidos en «{{path}}». Cada uno debe ser único.',
+    invalidCondition: 'La condición en «{{path}}» necesita «days» (con al menos un día) o «flag».',
+    flagValueWithoutFlag: 'La condición en «{{path}}» usa «flagValue» sin «flag».',
     unknownKey:
       'La app no conoce el campo «{{path}}». Revisa si está mal escrito; los campos que empiezan con «_» se ignoran.',
     unknown: 'Hay un problema en «{{path}}».',

@@ -1,16 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { loadDefaultTemplates } from '../../templates/defaults';
+import { settings } from '../schema';
 import { createTestDb } from '../testing/createTestDb';
+
+import type { Db } from '../types';
 
 import { createRepositories, type Repositories } from './index';
 
 let repos: Repositories;
+let rawDb: Db;
 let close: () => void;
 let clock = 1_000;
 
-beforeEach(() => {
-  const test = createTestDb();
+beforeEach(async () => {
+  const test = await createTestDb();
+  rawDb = test.db;
   close = test.close;
   repos = createRepositories(test.db, () => clock);
 });
@@ -33,6 +38,18 @@ describe('settings', () => {
 
     await repos.settings.remove('themeMode');
     expect(await repos.settings.get('themeMode')).toBeUndefined();
+  });
+});
+
+describe('settings with corrupt rows', () => {
+  it('treats unparseable JSON and schema mismatches as missing', async () => {
+    await rawDb.insert(settings).values({ key: 'themeMode', value: '{not json' });
+    await rawDb.insert(settings).values({ key: 'activeModules', value: '"gym"' });
+    expect(await repos.settings.get('themeMode')).toBeUndefined();
+    expect(await repos.settings.get('activeModules')).toBeUndefined();
+
+    await repos.settings.set('themeMode', 'dark');
+    expect(await repos.settings.get('themeMode')).toBe('dark');
   });
 });
 
@@ -128,37 +145,84 @@ describe('workouts', () => {
     expect(found?.session.finishedAt).toBe(999);
   });
 
-  it('finds the last session for a step and sessions in a range', async () => {
-    const make = async (date: string, startedAt: number, stepId: string) => {
-      const id = await repos.workouts.createSession({
-        programId: 'p',
-        routineId: 'r',
-        date,
-        startedAt,
-      });
-      await repos.workouts.logSet({
-        sessionId: id,
-        stepId,
-        setIndex: 0,
-        weightKg: 10,
-        reps: 8,
-        doneAt: startedAt,
-      });
-      return id;
-    };
-    const first = await make('2026-10-01', 1, 'squat');
-    const second = await make('2026-10-03', 3, 'squat');
-    const current = await make('2026-10-05', 5, 'squat');
-    await make('2026-10-04', 4, 'other');
+  async function makeSession(
+    date: string,
+    startedAt: number,
+    stepId: string,
+    options: { finished?: boolean } = {},
+  ): Promise<number> {
+    const id = await repos.workouts.createSession({
+      programId: 'p',
+      routineId: 'r',
+      date,
+      startedAt,
+    });
+    await repos.workouts.logSet({
+      sessionId: id,
+      stepId,
+      setIndex: 0,
+      weightKg: 10,
+      reps: 8,
+      doneAt: startedAt,
+    });
+    if (options.finished ?? true) await repos.workouts.finishSession(id, startedAt + 60);
+    return id;
+  }
+
+  it('finds the last finished session for a step, skipping the one in progress', async () => {
+    await makeSession('2026-10-01', 1, 'squat');
+    const second = await makeSession('2026-10-03', 3, 'squat');
+    const current = await makeSession('2026-10-05', 5, 'squat');
+    await makeSession('2026-10-04', 4, 'other');
 
     expect((await repos.workouts.lastSessionForStep('squat'))?.session.id).toBe(current);
     expect((await repos.workouts.lastSessionForStep('squat', current))?.session.id).toBe(second);
     expect(await repos.workouts.lastSessionForStep('nope')).toBeUndefined();
+  });
 
-    const range = await repos.workouts.sessionsInRange('2026-10-02', '2026-10-04');
+  it('ignores abandoned sessions when looking for history', async () => {
+    const finished = await makeSession('2026-10-01', 1, 'squat');
+    await makeSession('2026-10-03', 3, 'squat', { finished: false });
+
+    expect((await repos.workouts.lastSessionForStep('squat'))?.session.id).toBe(finished);
+
+    const onlyAbandoned = await makeSession('2026-10-04', 4, 'bench', { finished: false });
+    expect(onlyAbandoned).toBeGreaterThan(0);
+    expect(await repos.workouts.lastSessionForStep('bench')).toBeUndefined();
+  });
+
+  it('breaks startedAt ties deterministically by the highest session id', async () => {
+    await makeSession('2026-10-02', 7, 'squat');
+    const later = await makeSession('2026-10-02', 7, 'squat');
+    expect((await repos.workouts.lastSessionForStep('squat'))?.session.id).toBe(later);
+    expect((await repos.workouts.lastSessionForStep('squat', later))?.session.id).toBeLessThan(
+      later,
+    );
+  });
+
+  it('only returns the sets of the requested step', async () => {
+    const id = await makeSession('2026-10-02', 2, 'squat');
+    await repos.workouts.logSet({ sessionId: id, stepId: 'lunge', setIndex: 0, doneAt: 3 });
+    const found = await repos.workouts.lastSessionForStep('squat');
+    expect(found?.sets.map((set) => set.stepId)).toEqual(['squat']);
+  });
+
+  it('lists sessions in a date range with their sets', async () => {
+    await makeSession('2026-10-01', 1, 'squat');
+    await makeSession('2026-10-03', 3, 'squat');
+    await makeSession('2026-10-04', 4, 'other');
+    await makeSession('2026-10-06', 6, 'squat');
+
+    const range = await repos.workouts.sessionsInRange('2026-10-02', '2026-10-05');
     expect(range.map((entry) => entry.session.date)).toEqual(['2026-10-03', '2026-10-04']);
     expect(range[0]?.sets).toHaveLength(1);
-    expect(first).toBeLessThan(second);
+  });
+
+  it('rejects a reps-in-reserve value outside 0-3', async () => {
+    const id = await makeSession('2026-10-02', 2, 'squat');
+    await expect(
+      repos.workouts.logSet({ sessionId: id, stepId: 'squat', setIndex: 1, rir: 4, doneAt: 3 }),
+    ).rejects.toThrow();
   });
 });
 
@@ -178,6 +242,57 @@ describe('habit logs', () => {
     await repos.habitLogs.set('pausa-activa', '2026-10-05', 1);
     expect(await repos.habitLogs.forDate('2026-10-05')).toHaveLength(2);
     expect(await repos.habitLogs.inRange('2026-10-05', '2026-10-06', 'agua')).toHaveLength(1);
+  });
+
+  it('set overwrites the previous value instead of adding to it', async () => {
+    await repos.habitLogs.increment('agua', '2026-10-06', 5);
+    await repos.habitLogs.set('agua', '2026-10-06', 2);
+    expect(await repos.habitLogs.get('agua', '2026-10-06')).toBe(2);
+    await repos.habitLogs.set('agua', '2026-10-06', 7);
+    expect(await repos.habitLogs.forDate('2026-10-06')).toHaveLength(1);
+    expect(await repos.habitLogs.get('agua', '2026-10-06')).toBe(7);
+  });
+});
+
+describe('metrics', () => {
+  it('keeps one value per (metric, day) by upserting', async () => {
+    await repos.metrics.upsert('peso', '2026-10-05', 60);
+    await repos.metrics.upsert('peso', '2026-10-05', 59.6);
+    await repos.metrics.upsert('peso', '2026-10-12', 59.2);
+    const rows = await repos.metrics.inRange('peso', '2026-10-01', '2026-10-31');
+    expect(rows.map((row) => [row.date, row.value])).toEqual([
+      ['2026-10-05', 59.6],
+      ['2026-10-12', 59.2],
+    ]);
+  });
+});
+
+describe('transactions and constraints', () => {
+  it('rolls back every module when one save fails', async () => {
+    const [gym] = loadDefaultTemplates().modules;
+    if (!gym) throw new Error('gym default missing');
+    const broken = { ...gym, id: 'broken', name: undefined } as unknown as typeof gym;
+    await expect(repos.templates.saveModules([gym, broken], 'add')).rejects.toThrow();
+    expect(await repos.templates.listModules()).toEqual([]);
+  });
+
+  it('skips a module id repeated inside one add batch', async () => {
+    const [gym] = loadDefaultTemplates().modules;
+    if (!gym) throw new Error('gym default missing');
+    expect(await repos.templates.saveModules([gym, { ...gym, name: 'Dup' }], 'add')).toEqual({
+      saved: ['gym'],
+      skipped: ['gym'],
+    });
+    expect((await repos.templates.getModule('gym'))?.template.name).toBe(gym.name);
+  });
+
+  it('rejects values outside the enum columns', async () => {
+    await expect(
+      repos.steps.upsert('2026-10-05', 1000, 'watch' as unknown as 'manual'),
+    ).rejects.toThrow();
+    await expect(
+      repos.checkins.upsert('2026-10-05', 'weekly' as unknown as 'morning', {}),
+    ).rejects.toThrow();
   });
 });
 

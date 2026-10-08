@@ -1,8 +1,13 @@
-import { db } from './client';
-import { createRepositories } from './repositories';
+import { getDatabase } from './client';
+import { createRepositories, type Repositories } from './repositories';
 
 export { migrations } from './migrations.generated';
-export { db };
+export { getDatabase };
 
-/** App-wide repositories bound to the Expo SQLite connection. */
-export const repositories = createRepositories(db);
+let cached: Repositories | undefined;
+
+/** App-wide repositories bound to the Expo SQLite connection (opened on first call). */
+export function getRepositories(): Repositories {
+  cached ??= createRepositories(getDatabase());
+  return cached;
+}

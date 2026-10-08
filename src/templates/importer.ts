@@ -2,10 +2,8 @@ import type { z } from 'zod';
 
 import {
   CUSTOM_CODES,
+  KIND_SCHEMAS,
   TEMPLATE_SCHEMA_VERSION,
-  moduleTemplateSchema,
-  modulesTemplateSchema,
-  settingsTemplateSchema,
   type ModuleTemplate,
   type Template,
 } from './schema';
@@ -27,6 +25,8 @@ export type ImportErrorCode =
   | 'invalidSchedule'
   | 'invalidScale'
   | 'duplicateId'
+  | 'invalidCondition'
+  | 'flagValueWithoutFlag'
   | 'unknownKey'
   | 'unknown';
 
@@ -45,12 +45,6 @@ export type ImportResult =
   | { ok: false; errors: ImportError[] };
 
 const MAX_ERRORS = 50;
-
-const KIND_SCHEMAS = {
-  module: moduleTemplateSchema,
-  modules: modulesTemplateSchema,
-  settings: settingsTemplateSchema,
-} as const;
 
 type PathKey = string | number | symbol;
 
@@ -98,6 +92,10 @@ function mapCustomMessage(message: string): ImportErrorCode | null {
       return 'invalidScale';
     case CUSTOM_CODES.duplicateId:
       return 'duplicateId';
+    case CUSTOM_CODES.condition:
+      return 'invalidCondition';
+    case CUSTOM_CODES.flagValue:
+      return 'flagValueWithoutFlag';
     default:
       return null;
   }
@@ -132,13 +130,18 @@ function issueToErrors(
     case 'invalid_value':
       return make('invalidValue', { allowed: issue.values.map(String).join(', ') });
     case 'too_small':
-      return make('tooSmall', { min: Number(issue.minimum) });
+      return make('tooSmall', { min: Number(issue.minimum), inclusive: issue.inclusive ? 1 : 0 });
     case 'too_big':
-      return make('tooBig', { max: Number(issue.maximum) });
+      return make('tooBig', { max: Number(issue.maximum), inclusive: issue.inclusive ? 1 : 0 });
     case 'invalid_format':
       return make('invalidFormat');
     case 'invalid_union': {
-      if (issue.errors.length === 0) return make('invalidValue');
+      if (issue.errors.length === 0) {
+        // Unknown discriminator value: zod lists the accepted ones in `options`.
+        const options: unknown = (issue as { options?: unknown }).options;
+        const allowed = Array.isArray(options) ? options.map(String).join(', ') : '';
+        return make('invalidValue', allowed === '' ? {} : { allowed });
+      }
       // Report the most specific branch: the one with the fewest problems.
       const best = issue.errors.reduce((a, b) => (b.length < a.length ? b : a));
       return best.flatMap((inner) => issueToErrors(inner, input, fullPath));

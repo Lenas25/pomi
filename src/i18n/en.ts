@@ -62,7 +62,9 @@ export const en: Messages = {
     invalidValueWithOptions:
       'The field "{{path}}" has a value the app does not recognize. Allowed values: {{allowed}}.',
     tooSmall: 'The field "{{path}}" is too short or too small (minimum: {{min}}).',
+    tooSmallExclusive: 'The field "{{path}}" must be greater than {{min}}.',
     tooBig: 'The field "{{path}}" is too long or too large (maximum: {{max}}).',
+    tooBigExclusive: 'The field "{{path}}" must be less than {{max}}.',
     invalidFormat: 'The field "{{path}}" does not have the expected format.',
     invalidTime: 'The field "{{path}}" must be a time formatted as HH:mm, for example 06:30.',
     invalidIcon:
@@ -72,6 +74,8 @@ export const en: Messages = {
     invalidScale:
       'The scale at "{{path}}" must go from a lower to a higher number, for example [1, 5].',
     duplicateId: 'There are repeated identifiers in "{{path}}". Each one must be unique.',
+    invalidCondition: 'The condition at "{{path}}" needs "days" (with at least one day) or "flag".',
+    flagValueWithoutFlag: 'The condition at "{{path}}" uses "flagValue" without "flag".',
     unknownKey:
       'The app does not know the field "{{path}}". Check for a typo; fields starting with "_" are ignored.',
     unknown: 'There is a problem at "{{path}}".',

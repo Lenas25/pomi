@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, lte, ne } from 'drizzle-orm';
 
 import { setLogs, workoutSessions } from '../schema';
 import type { Db } from '../types';
@@ -99,21 +99,26 @@ export function createWorkoutsRepository(db: Db) {
     },
 
     /**
-     * Most recent session (by start time) that has at least one set logged for `stepId`.
-     * `excludeSessionId` skips the session in progress. `sets` holds only that step's sets.
+     * Most recent FINISHED session (by start time, then id) that has at least one set logged for
+     * `stepId`. Abandoned sessions (no `finishedAt`) never count as history. `excludeSessionId`
+     * skips the session in progress. `sets` holds only that step's sets.
      */
     async lastSessionForStep(
       stepId: string,
       excludeSessionId?: number,
     ): Promise<SessionWithSets | undefined> {
+      const conditions = [eq(setLogs.stepId, stepId), isNotNull(workoutSessions.finishedAt)];
+      if (excludeSessionId !== undefined) conditions.push(ne(workoutSessions.id, excludeSessionId));
+
       const rows = await db
         .select({ session: workoutSessions })
         .from(setLogs)
         .innerJoin(workoutSessions, eq(setLogs.sessionId, workoutSessions.id))
-        .where(eq(setLogs.stepId, stepId))
-        .orderBy(desc(workoutSessions.startedAt), desc(workoutSessions.id));
+        .where(and(...conditions))
+        .orderBy(desc(workoutSessions.startedAt), desc(workoutSessions.id))
+        .limit(1);
 
-      const match = rows.find((row) => row.session.id !== excludeSessionId);
+      const match = rows[0];
       if (!match) return undefined;
       const sets = (await setsFor([match.session.id])).filter((set) => set.stepId === stepId);
       return { session: match.session, sets };

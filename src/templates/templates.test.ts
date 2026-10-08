@@ -35,6 +35,19 @@ function minimalModule(extra: Record<string, unknown> = {}) {
   return { schemaVersion: 2, kind: 'module', id: 'm', name: 'M', icon: 'Barbell', ...extra };
 }
 
+function interpolate(template: string, options: Record<string, string | number> = {}): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_match, name: string) => String(options[name] ?? ''));
+}
+
+function translatorFor(messages: Messages): Translate {
+  return (key: TranslationKey, options) => {
+    const value = key
+      .split('.')
+      .reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], messages);
+    return interpolate(String(value), options);
+  };
+}
+
 describe('unknown keys', () => {
   it('rejects a typo key and reports its full path', () => {
     const json = clone(shipped.gym) as unknown as {
@@ -210,31 +223,122 @@ describe('importer errors', () => {
     expect(version).toMatchObject({ code: 'unsupportedVersion', params: { found: '1', expected: 2 } });
   });
 
-  it('reports JSON syntax errors with a line when the engine gives a position', () => {
+  it('reports JSON syntax errors as invalidJson, with a line only when the engine exposes a position', () => {
     const result = importTemplateFromText('{\n  "kind": "module",\n  oops\n}');
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.errors[0]?.code).toBe('invalidJson');
+    if (result.ok) throw new Error('Expected a syntax error');
+    const [error] = result.errors;
+    expect(error?.code).toBe('invalidJson');
+    // The line is engine-dependent (Hermes/V8 word their messages differently); never wrong when set.
+    if (error?.line !== undefined) expect(error.line).toBe(3);
   });
 
+  it('lists the allowed values for an unknown discriminator', () => {
+    const json = clone(shipped.gym);
+    (json.programs[0]!.routines[0]!.steps[0] as { type: string }).type = 'lift';
+    const [error] = errorsOf(json);
+    expect(error).toMatchObject({ code: 'invalidValue' });
+    expect(error?.params.allowed).toBe('check, wait, sets, timed, counter');
+  });
+
+  it('distinguishes inclusive from exclusive minimums', () => {
+    const [empty] = errorsOf(minimalModule({ name: '' }));
+    expect(empty).toMatchObject({ code: 'tooSmall', params: { min: 1, inclusive: 1 } });
+    const [zero] = errorsOf(
+      minimalModule({ habits: [{ type: 'counter', id: 'h', name: 'H', target: 0 }] }),
+    );
+    const zeroError = zero ?? { code: 'unknown' as const, path: '', params: {} };
+    expect(zeroError.params.inclusive).toBe(0);
+    const translate = translatorFor(en);
+    expect(describeImportError(zeroError, translate)).toContain('greater than 0');
+    expect(describeImportError(empty!, translate)).toContain('minimum: 1');
+  });
+});
+
+describe('text import', () => {
   it('imports valid text', () => {
     expect(importTemplateFromText(JSON.stringify(shipped.metricas)).ok).toBe(true);
   });
 });
 
+describe('semantic rules', () => {
+  it('rejects a condition without days or flag, and a flagValue without flag', () => {
+    const errors = errorsOf(
+      minimalModule({
+        habits: [
+          { type: 'check', id: 'a', name: 'A', schedules: [{ days: [1], time: '08:00' }] },
+        ],
+        programs: [
+          {
+            id: 'p',
+            name: 'P',
+            routines: [
+              {
+                id: 'r',
+                name: 'R',
+                steps: [
+                  { type: 'check', id: 's1', name: 'S1', when: {} },
+                  { type: 'check', id: 's2', name: 'S2', when: { flagValue: true } },
+                  { type: 'check', id: 's3', name: 'S3', when: { days: [] } },
+                  { type: 'check', id: 's4', name: 'S4', when: { flag: 'x', flagValue: false } },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(errors.map((error) => [error.code, error.path])).toEqual([
+      ['invalidCondition', 'programs[0].routines[0].steps[0].when'],
+      ['invalidCondition', 'programs[0].routines[0].steps[1].when'],
+      ['flagValueWithoutFlag', 'programs[0].routines[0].steps[1].when'],
+      ['tooSmall', 'programs[0].routines[0].steps[2].when.days'],
+    ]);
+  });
+
+  it('rejects a step id repeated inside a routine but allows sharing it across routines', () => {
+    const step = (id: string) => ({ type: 'check', id, name: id });
+    const program = (routines: unknown[]) =>
+      minimalModule({ programs: [{ id: 'p', name: 'P', routines }] });
+
+    const errors = errorsOf(
+      program([{ id: 'r1', name: 'R1', steps: [step('a'), step('b'), step('a')] }]),
+    );
+    expect(errors).toEqual([
+      { code: 'duplicateId', path: 'programs[0].routines[0].steps[2].id', params: {} },
+    ]);
+
+    expect(
+      importTemplate(
+        program([
+          { id: 'r1', name: 'R1', steps: [step('a')] },
+          { id: 'r2', name: 'R2', steps: [step('a')] },
+        ]),
+      ).ok,
+    ).toBe(true);
+  });
+
+  it('rejects repeated habit ids in a module and module ids in a bundle', () => {
+    const habitErrors = errorsOf(
+      minimalModule({
+        habits: [
+          { type: 'check', id: 'h', name: 'H' },
+          { type: 'check', id: 'h', name: 'H2' },
+        ],
+      }),
+    );
+    expect(habitErrors).toEqual([{ code: 'duplicateId', path: 'habits[1].id', params: {} }]);
+
+    const body = { id: 'm', name: 'M', icon: 'Barbell' };
+    const bundleErrors = errorsOf({
+      schemaVersion: 2,
+      kind: 'modules',
+      modules: [body, { ...body, name: 'M2' }],
+    });
+    expect(bundleErrors).toEqual([{ code: 'duplicateId', path: 'modules[1].id', params: {} }]);
+  });
+});
+
 describe('error descriptions', () => {
-  function interpolate(template: string, options: Record<string, string | number> = {}): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (_match, name: string) => String(options[name] ?? ''));
-  }
-
-  function translatorFor(messages: Messages): Translate {
-    return (key: TranslationKey, options) => {
-      const value = key
-        .split('.')
-        .reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], messages);
-      return interpolate(String(value), options);
-    };
-  }
-
   it('describes errors in plain Spanish and English with the path', () => {
     const [error] = errorsOf(minimalModule({ icon: '🏋️' }));
     if (!error) throw new Error('expected an error');
@@ -259,6 +363,8 @@ describe('error descriptions', () => {
       'invalidSchedule',
       'invalidScale',
       'duplicateId',
+      'invalidCondition',
+      'flagValueWithoutFlag',
       'unknownKey',
       'unknown',
     ];

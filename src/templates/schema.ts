@@ -16,6 +16,8 @@ export const CUSTOM_CODES = {
   schedule: 'custom:schedule',
   scale: 'custom:scale',
   duplicateId: 'custom:duplicateId',
+  condition: 'custom:condition',
+  flagValue: 'custom:flagValue',
 } as const;
 
 const idSchema = z.string().min(1);
@@ -32,11 +34,19 @@ export const anchorNameSchema = z.enum(['wake', 'bed', 'gymMorning', 'gymEvening
 
 // --- When / Condition / Schedule -------------------------------------------------------------
 
-export const conditionSchema = z.strictObject({
-  days: z.array(weekdaySchema).optional(),
-  flag: z.string().min(1).optional(),
-  flagValue: z.boolean().optional(),
-});
+export const conditionSchema = z
+  .strictObject({
+    days: z.array(weekdaySchema).min(1).optional(),
+    flag: z.string().min(1).optional(),
+    flagValue: z.boolean().optional(),
+  })
+  // An empty condition would match every day, which is almost certainly a mistake.
+  .refine((condition) => condition.days !== undefined || condition.flag !== undefined, {
+    message: CUSTOM_CODES.condition,
+  })
+  .refine((condition) => condition.flagValue === undefined || condition.flag !== undefined, {
+    message: CUSTOM_CODES.flagValue,
+  });
 
 /** A list means "applies if ANY condition matches". */
 export const whenSchema = z.union([conditionSchema, z.array(conditionSchema).min(1)]);
@@ -125,19 +135,46 @@ const routineSchema = z.strictObject({
   steps: z.array(stepSchema).min(1),
 });
 
-export const programSchema = z.strictObject({
-  id: idSchema,
-  name: nameSchema,
-  rotation: z.boolean().default(true),
-  schedules: z.array(scheduleSchema).optional(),
-  rules: programRulesSchema.optional(),
-  routines: z
-    .array(routineSchema)
-    .min(1)
-    .refine((routines) => new Set(routines.map((routine) => routine.id)).size === routines.length, {
-      message: CUSTOM_CODES.duplicateId,
-    }),
-});
+/** Reports each repeated id in `items`, pointing at `path(index)`. */
+function addDuplicateIssues(
+  ctx: z.RefinementCtx,
+  ids: readonly string[],
+  path: (index: number) => (string | number)[],
+): void {
+  const seen = new Set<string>();
+  ids.forEach((id, index) => {
+    if (seen.has(id)) ctx.addIssue({ code: 'custom', message: CUSTOM_CODES.duplicateId, path: path(index) });
+    seen.add(id);
+  });
+}
+
+export const programSchema = z
+  .strictObject({
+    id: idSchema,
+    name: nameSchema,
+    rotation: z.boolean().default(true),
+    schedules: z.array(scheduleSchema).optional(),
+    rules: programRulesSchema.optional(),
+    routines: z
+      .array(routineSchema)
+      .min(1)
+      .refine(
+        (routines) => new Set(routines.map((routine) => routine.id)).size === routines.length,
+        { message: CUSTOM_CODES.duplicateId },
+      ),
+  })
+  // The step id is the exercise history key and set logs are unique per (session, step, set), so a
+  // step id may not repeat inside one routine. The SAME id across routines is deliberate: it shares
+  // history between routines (e.g. a common warm-up or the same lift on two days).
+  .superRefine((program, ctx) => {
+    program.routines.forEach((routine, routineIndex) =>
+      addDuplicateIssues(
+        ctx,
+        routine.steps.map((step) => step.id),
+        (index) => ['routines', routineIndex, 'steps', index, 'id'],
+      ),
+    );
+  });
 
 // --- Habits, reminders, metrics, check-ins, notes -------------------------------------------
 
@@ -224,6 +261,18 @@ export const notesSchema = z.strictObject({
 
 // --- Modules ---------------------------------------------------------------------------------
 
+type ModuleIdContent = {
+  habits?: readonly { id: string }[] | undefined;
+};
+
+function refineModule(module: ModuleIdContent, ctx: z.RefinementCtx): void {
+  addDuplicateIssues(
+    ctx,
+    (module.habits ?? []).map((habit) => habit.id),
+    (index) => ['habits', index, 'id'],
+  );
+}
+
 const moduleBody = {
   id: idSchema,
   name: nameSchema,
@@ -238,19 +287,29 @@ const moduleBody = {
 };
 
 /** A module without the file envelope (`schemaVersion`/`kind`), as stored inside bundles. */
-export const moduleBodySchema = z.strictObject(moduleBody);
+export const moduleBodySchema = z.strictObject(moduleBody).superRefine(refineModule);
 
-export const moduleTemplateSchema = z.strictObject({
-  schemaVersion: z.literal(TEMPLATE_SCHEMA_VERSION),
-  kind: z.literal('module'),
-  ...moduleBody,
-});
+export const moduleTemplateSchema = z
+  .strictObject({
+    schemaVersion: z.literal(TEMPLATE_SCHEMA_VERSION),
+    kind: z.literal('module'),
+    ...moduleBody,
+  })
+  .superRefine(refineModule);
 
-export const modulesTemplateSchema = z.strictObject({
-  schemaVersion: z.literal(TEMPLATE_SCHEMA_VERSION),
-  kind: z.literal('modules'),
-  modules: z.array(moduleBodySchema).min(1),
-});
+export const modulesTemplateSchema = z
+  .strictObject({
+    schemaVersion: z.literal(TEMPLATE_SCHEMA_VERSION),
+    kind: z.literal('modules'),
+    modules: z.array(moduleBodySchema).min(1),
+  })
+  .superRefine((bundle, ctx) =>
+    addDuplicateIssues(
+      ctx,
+      bundle.modules.map((module) => module.id),
+      (index) => ['modules', index, 'id'],
+    ),
+  );
 
 // --- Settings --------------------------------------------------------------------------------
 
@@ -297,11 +356,12 @@ export const settingsTemplateSchema = z.strictObject({
   checkins: checkinPrefsSchema.optional(),
 });
 
-export const templateSchema = z.discriminatedUnion('kind', [
-  moduleTemplateSchema,
-  modulesTemplateSchema,
-  settingsTemplateSchema,
-]);
+/** The single kind -> schema mapping: the importer dispatches on it and `Template` derives from it. */
+export const KIND_SCHEMAS = {
+  module: moduleTemplateSchema,
+  modules: modulesTemplateSchema,
+  settings: settingsTemplateSchema,
+} as const;
 
 // --- Types -----------------------------------------------------------------------------------
 
@@ -317,7 +377,8 @@ export type ModuleBody = z.infer<typeof moduleBodySchema>;
 export type ModuleTemplate = z.infer<typeof moduleTemplateSchema>;
 export type ModulesTemplate = z.infer<typeof modulesTemplateSchema>;
 export type SettingsTemplate = z.infer<typeof settingsTemplateSchema>;
-export type Template = z.infer<typeof templateSchema>;
+export type TemplateKind = keyof typeof KIND_SCHEMAS;
+export type Template = { [K in TemplateKind]: z.infer<(typeof KIND_SCHEMAS)[K]> }[TemplateKind];
 export type ThemeModeSetting = z.infer<typeof themeModeSchema>;
 export type LanguageSetting = z.infer<typeof languageSchema>;
 export type ProfileData = z.infer<typeof profileDataSchema>;

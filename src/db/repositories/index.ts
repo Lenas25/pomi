@@ -2,6 +2,7 @@ import type { Db } from '../types';
 
 import { createCheckinsRepository } from './checkins';
 import { createHabitLogsRepository } from './habits';
+import { createMetricsRepository } from './metrics';
 import { createProfileRepository } from './profile';
 import { createSettingsRepository } from './settings';
 import { createStepsRepository } from './steps';
@@ -18,6 +19,7 @@ export function createRepositories(db: Db, now: () => number = Date.now) {
     habitLogs: createHabitLogsRepository(db),
     steps: createStepsRepository(db),
     checkins: createCheckinsRepository(db),
+    metrics: createMetricsRepository(db),
   };
 }
 

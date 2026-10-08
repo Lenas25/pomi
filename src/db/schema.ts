@@ -1,4 +1,6 @@
+import { sql } from 'drizzle-orm';
 import {
+  check,
   index,
   integer,
   primaryKey,
@@ -32,14 +34,18 @@ export const settings = sqliteTable('settings', {
 });
 
 /** Imported templates (one row per module) and, in the future, settings templates. */
-export const templates = sqliteTable('templates', {
-  id: text('id').primaryKey(),
-  kind: text('kind', { enum: ['module', 'settings'] }).notNull(),
-  name: text('name').notNull(),
-  json: text('json', { mode: 'json' }).$type<unknown>().notNull(),
-  importedAt: integer('imported_at').notNull(),
-  active: integer('active', { mode: 'boolean' }).notNull().default(true),
-});
+export const templates = sqliteTable(
+  'templates',
+  {
+    id: text('id').primaryKey(),
+    kind: text('kind', { enum: ['module', 'settings'] }).notNull(),
+    name: text('name').notNull(),
+    json: text('json', { mode: 'json' }).$type<unknown>().notNull(),
+    importedAt: integer('imported_at').notNull(),
+    active: integer('active', { mode: 'boolean' }).notNull().default(true),
+  },
+  (table) => [check('templates_kind_check', sql`${table.kind} in ('module', 'settings')`)],
+);
 
 export const workoutSessions = sqliteTable(
   'workout_sessions',
@@ -73,6 +79,7 @@ export const setLogs = sqliteTable(
   (table) => [
     uniqueIndex('set_logs_session_step_set_idx').on(table.sessionId, table.stepId, table.setIndex),
     index('set_logs_step_idx').on(table.stepId),
+    check('set_logs_rir_check', sql`${table.rir} is null or ${table.rir} between 0 and 3`),
   ],
 );
 
@@ -86,11 +93,17 @@ export const habitLogs = sqliteTable(
   (table) => [primaryKey({ columns: [table.habitId, table.date] })],
 );
 
-export const stepsDaily = sqliteTable('steps_daily', {
-  date: text('date').primaryKey(),
-  steps: integer('steps').notNull(),
-  source: text('source', { enum: ['health_connect', 'manual'] }).notNull(),
-});
+export const stepsDaily = sqliteTable(
+  'steps_daily',
+  {
+    date: text('date').primaryKey(),
+    steps: integer('steps').notNull(),
+    source: text('source', { enum: ['health_connect', 'manual'] }).notNull(),
+  },
+  (table) => [
+    check('steps_daily_source_check', sql`${table.source} in ('health_connect', 'manual')`),
+  ],
+);
 
 export const checkins = sqliteTable(
   'checkins',
@@ -99,9 +112,13 @@ export const checkins = sqliteTable(
     kind: text('kind', { enum: ['morning', 'night', 'monthly'] }).notNull(),
     answers: text('answers', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
   },
-  (table) => [primaryKey({ columns: [table.date, table.kind] })],
+  (table) => [
+    primaryKey({ columns: [table.date, table.kind] }),
+    check('checkins_kind_check', sql`${table.kind} in ('morning', 'night', 'monthly')`),
+  ],
 );
 
+/** One value per (metric, day): writers must upsert on `(metric_id, date)` (see metrics repository). */
 export const metricEntries = sqliteTable(
   'metric_entries',
   {
@@ -110,7 +127,7 @@ export const metricEntries = sqliteTable(
     date: text('date').notNull(),
     value: real('value').notNull(),
   },
-  (table) => [index('metric_entries_metric_date_idx').on(table.metricId, table.date)],
+  (table) => [uniqueIndex('metric_entries_metric_date_idx').on(table.metricId, table.date)],
 );
 
 export const photos = sqliteTable(
@@ -135,17 +152,23 @@ export const foodNotes = sqliteTable(
   (table) => [index('food_notes_date_idx').on(table.date)],
 );
 
-export const suggestions = sqliteTable('suggestions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  kind: text('kind').notNull(),
-  payload: text('payload', { mode: 'json' }).$type<unknown>().notNull(),
-  reason: text('reason').notNull(),
-  createdAt: integer('created_at').notNull(),
-  status: text('status', { enum: ['pending', 'accepted', 'rejected'] })
-    .notNull()
-    .default('pending'),
-  decidedAt: integer('decided_at'),
-});
+export const suggestions = sqliteTable(
+  'suggestions',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    kind: text('kind').notNull(),
+    payload: text('payload', { mode: 'json' }).$type<unknown>().notNull(),
+    reason: text('reason').notNull(),
+    createdAt: integer('created_at').notNull(),
+    status: text('status', { enum: ['pending', 'accepted', 'rejected'] })
+      .notNull()
+      .default('pending'),
+    decidedAt: integer('decided_at'),
+  },
+  (table) => [
+    check('suggestions_status_check', sql`${table.status} in ('pending', 'accepted', 'rejected')`),
+  ],
+);
 
 export const insights = sqliteTable('insights', {
   id: integer('id').primaryKey({ autoIncrement: true }),

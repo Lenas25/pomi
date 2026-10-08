@@ -1,48 +1,69 @@
 import { useEffect, useState } from 'react';
-import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
+import { migrate } from 'drizzle-orm/expo-sqlite/migrator';
 
 import { setLanguagePersistence, useLocaleStore } from '../i18n';
 import { setThemeModePersistence, useThemeModeStore } from '../ui/themeModeStore';
 
-import { db, migrations, repositories } from './index';
+import { getDatabase, getRepositories, migrations } from './index';
 
 export type DatabaseStatus = 'loading' | 'ready' | 'error';
 
+async function runBootstrap(): Promise<void> {
+  // Opening the file happens here (not at import) so any failure reaches the error screen.
+  await migrate(getDatabase(), migrations);
+  const repositories = getRepositories();
+  await repositories.templates.seedDefaults();
+  const mode = await repositories.settings.get('themeMode');
+  if (mode) useThemeModeStore.getState().hydrate(mode);
+  setThemeModePersistence((next) => repositories.settings.set('themeMode', next));
+  const language = await repositories.settings.get('language');
+  useLocaleStore.getState().hydrate(language ?? 'system');
+  // 'system' is stored as "no value", so the device language keeps being followed.
+  setLanguagePersistence((next) =>
+    next === 'system'
+      ? repositories.settings.remove('language')
+      : repositories.settings.set('language', next),
+  );
+}
+
+let bootstrapPromise: Promise<void> | undefined;
+
 /**
- * Applies pending migrations, seeds the bundled templates on first run and hydrates the theme
- * mode and language from settings. Render nothing (keep the splash) until the status is not `loading`.
+ * Runs the bootstrap once per process. Module-level so React StrictMode's double effect (or a
+ * remount) shares one run instead of racing two migrations. A failure is not cached, so a later
+ * mount can retry.
+ */
+export function bootstrapDatabase(): Promise<void> {
+  bootstrapPromise ??= runBootstrap().catch((error: unknown) => {
+    bootstrapPromise = undefined;
+    throw error;
+  });
+  return bootstrapPromise;
+}
+
+/**
+ * Opens the database, applies pending migrations, seeds the bundled templates on first run and
+ * hydrates the theme mode and language from settings. Render nothing (keep the splash) until the
+ * status is not `loading`.
  */
 export function useDatabaseReady(): DatabaseStatus {
-  const { success, error } = useMigrations(db, migrations);
-  const [bootstrapped, setBootstrapped] = useState<'pending' | 'done' | 'failed'>('pending');
+  const [status, setStatus] = useState<DatabaseStatus>('loading');
 
   useEffect(() => {
-    if (!success) return;
     let cancelled = false;
-    (async () => {
-      try {
-        await repositories.templates.seedDefaults();
-        const mode = await repositories.settings.get('themeMode');
-        if (mode) useThemeModeStore.getState().hydrate(mode);
-        setThemeModePersistence((next) => repositories.settings.set('themeMode', next));
-        const language = await repositories.settings.get('language');
-        useLocaleStore.getState().hydrate(language ?? 'system');
-        // 'system' is stored as "no value", so the device language keeps being followed.
-        setLanguagePersistence((next) =>
-          next === 'system'
-            ? repositories.settings.remove('language')
-            : repositories.settings.set('language', next),
-        );
-        if (!cancelled) setBootstrapped('done');
-      } catch {
-        if (!cancelled) setBootstrapped('failed');
-      }
-    })();
+    bootstrapDatabase().then(
+      () => {
+        if (!cancelled) setStatus('ready');
+      },
+      (error: unknown) => {
+        if (__DEV__) console.error('Database bootstrap failed', error);
+        if (!cancelled) setStatus('error');
+      },
+    );
     return () => {
       cancelled = true;
     };
-  }, [success]);
+  }, []);
 
-  if (error || bootstrapped === 'failed') return 'error';
-  return success && bootstrapped === 'done' ? 'ready' : 'loading';
+  return status;
 }

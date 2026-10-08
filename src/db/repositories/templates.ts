@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { loadDefaultTemplates } from '../../templates/defaults';
 import { moduleTemplateSchema, type ModuleTemplate } from '../../templates/schema';
 import { templates } from '../schema';
+import { withTransaction } from '../transaction';
 import type { Db } from '../types';
 
 import type { SettingsRepository } from './settings';
@@ -40,27 +41,21 @@ export function createTemplatesRepository(
     });
   }
 
-  return {
-    listModules,
-
-    async getModule(id: string): Promise<StoredModule | undefined> {
-      return (await listModules()).find((module) => module.id === id);
-    },
-
-    /**
-     * Stores modules. `replace` overwrites modules with the same id; `add` keeps existing ones
-     * and reports them as skipped.
-     */
-    async saveModules(
-      modules: ModuleTemplate[],
-      mode: 'replace' | 'add',
-    ): Promise<SaveModulesResult> {
-      const existing = new Set((await listModules()).map((module) => module.id));
+  /**
+   * Stores modules atomically. `replace` overwrites modules with the same id; `add` keeps existing
+   * ones (and ids already saved earlier in the same batch) and reports them as skipped.
+   */
+  async function saveModules(
+    modules: ModuleTemplate[],
+    mode: 'replace' | 'add',
+  ): Promise<SaveModulesResult> {
+    return withTransaction(db, async () => {
+      const known = new Set((await listModules()).map((module) => module.id));
       const result: SaveModulesResult = { saved: [], skipped: [] };
       const importedAt = now();
 
       for (const module of modules) {
-        if (mode === 'add' && existing.has(module.id)) {
+        if (mode === 'add' && known.has(module.id)) {
           result.skipped.push(module.id);
           continue;
         }
@@ -78,10 +73,21 @@ export function createTemplatesRepository(
             target: templates.id,
             set: { name: module.name, json: module, importedAt },
           });
+        known.add(module.id);
         result.saved.push(module.id);
       }
       return result;
+    });
+  }
+
+  return {
+    listModules,
+
+    async getModule(id: string): Promise<StoredModule | undefined> {
+      return (await listModules()).find((module) => module.id === id);
     },
+
+    saveModules,
 
     async setActive(id: string, active: boolean): Promise<void> {
       await db.update(templates).set({ active }).where(eq(templates.id, id));
@@ -96,11 +102,12 @@ export function createTemplatesRepository(
      * from coming back on the next launch.
      */
     async seedDefaults(): Promise<boolean> {
-      if (await settingsRepo.get('templatesSeeded')) return false;
-      const defaults = loadDefaultTemplates();
-      await this.saveModules(defaults.modules, 'add');
-      await settingsRepo.set('templatesSeeded', true);
-      return true;
+      return withTransaction(db, async () => {
+        if (await settingsRepo.get('templatesSeeded')) return false;
+        await saveModules(loadDefaultTemplates().modules, 'add');
+        await settingsRepo.set('templatesSeeded', true);
+        return true;
+      });
     },
   };
 }
