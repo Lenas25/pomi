@@ -362,7 +362,8 @@ export const es = {
     stateDone: 'hecho hoy',
     statePending: 'pendiente',
     consistency: '{{done}} de los últimos {{total}} días',
-    consistencyLabel: '{{name}}: {{done}} de los últimos {{total}} días',
+    consistencyLabel:
+      '{{name}}: {{done}} de los últimos {{total}} días. Hoy cuenta cuando lo completas',
     water: {
       title: 'Agua',
       drop: 'Vaso {{index}} de {{total}}',
@@ -384,6 +385,7 @@ export const es = {
       noGoal: 'Aún no hay meta: esta semana medimos tu línea base.',
       manualLabel: 'Pasos de hoy',
       manualHint: 'Escribe los pasos que llevas hoy.',
+      manualKeepsMax: 'Si Health Connect cuenta más pasos, se queda el número mayor.',
       save: 'Guardar pasos',
       saved: 'Guardado',
       invalid: 'Escribe un número entre 0 y {{max}}.',

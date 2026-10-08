@@ -3,10 +3,6 @@ import { format, parseISO, subDays } from 'date-fns';
 import type { Repositories } from '../db/repositories';
 import { HISTORY_DAYS, type HabitsData } from './habitsView';
 
-export function dayKey(date: Date = new Date()): string {
-  return format(date, 'yyyy-MM-dd');
-}
-
 /** Everything the Habits tab shows, read in one pass (all local, so this is near instant). */
 export async function loadHabitsData(repos: Repositories, today: string): Promise<HabitsData> {
   const historyFrom = format(subDays(parseISO(today), HISTORY_DAYS - 1), 'yyyy-MM-dd');

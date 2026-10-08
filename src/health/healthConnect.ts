@@ -20,6 +20,8 @@ async function ready(): Promise<void> {
   }
 }
 
+const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}/;
+
 const STEPS_READ = { accessType: 'read', recordType: 'Steps' } as const;
 
 /**
@@ -73,10 +75,18 @@ export function createHealthConnectAdapter(): HealthAdapter {
         },
         timeRangeSlicer: { period: 'DAYS', length: 1 },
       });
-      return Array.from({ length: dayCount }, (_unused, index) => ({
-        date: format(addDays(first, index), 'yyyy-MM-dd'),
-        steps: slices[index]?.result.COUNT_TOTAL ?? 0,
-      }));
+      // Slices are matched to days by their local start (`LocalDateTime.toString()`, e.g.
+      // `2026-10-05T00:00`), never by position: the library may omit or reorder slices.
+      const byDate = new Map<string, number>();
+      for (const slice of slices) {
+        const date = LOCAL_DATE.exec(slice.startTime)?.[0];
+        if (date === undefined) continue;
+        byDate.set(date, Math.max(byDate.get(date) ?? 0, slice.result.COUNT_TOTAL ?? 0));
+      }
+      return Array.from({ length: dayCount }, (_unused, index) => {
+        const date = format(addDays(first, index), 'yyyy-MM-dd');
+        return { date, steps: byDate.get(date) ?? 0 };
+      });
     },
 
     openSettings(): void {

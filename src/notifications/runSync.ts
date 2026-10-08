@@ -1,7 +1,6 @@
 // Pure core of the scheduler (no Expo imports, so it is unit tested with fakes).
-import { format } from 'date-fns';
-
 import { buildUpcoming, WINDOW_DAYS } from '../domain/notifications/buildUpcoming';
+import { dayKeyFor } from '../domain/time';
 import { signatureOf } from '../domain/notifications/diff';
 import type { Translate } from '../i18n';
 
@@ -24,7 +23,7 @@ export type SyncResult = ReconcileResult & { skipped: 'disabled' | 'no-permissio
 
 export async function runSync(deps: SyncDeps): Promise<SyncResult> {
   const now = deps.now();
-  const plan = await deps.loadPlan(format(now, 'yyyy-MM-dd'));
+  const plan = await deps.loadPlan(dayKeyFor(now));
   const none: ReconcileResult = { scheduled: 0, cancelled: 0, failed: 0 };
 
   if (!plan.enabled) {

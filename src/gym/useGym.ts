@@ -2,11 +2,12 @@
 // `program.ts`, `sessionViewModel.ts` and `setActions.ts`; this file only wires them to React.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { format, getDay } from 'date-fns';
+import { getDay, parseISO } from 'date-fns';
 
 import { getRepositories } from '../db';
 import { todaysRoutineId } from '../domain/gym/rotation';
 import { evaluateWhen } from '../domain/agenda/conditions';
+import { dayKeyFor } from '../domain/time';
 import { useT } from '../i18n';
 import { requestNotificationSync } from '../notifications/sync';
 import { getTimerStore } from '../timers/store';
@@ -26,10 +27,6 @@ import { createKeyedQueue, memoizeUntilFailure } from './asyncControl';
 import { createSetActions, nextLabelFor } from './setActions';
 
 const ROTATION_LOOKBACK = 40;
-
-export function todayKey(date: Date = new Date()): string {
-  return format(date, 'yyyy-MM-dd');
-}
 
 export type GymTabState =
   | { status: 'loading' }
@@ -64,7 +61,7 @@ export function useGymTab(): GymTabState & { reload: () => void } {
           }
           return;
         }
-        const today = todayKey();
+        const today = dayKeyFor(new Date());
         // A workout left open on an earlier day (app killed) is closed at its last set.
         await repos.workouts.finishStaleSessions(today);
         const recent = await repos.workouts.recentSessions(ROTATION_LOOKBACK);
@@ -162,9 +159,9 @@ export function useGymSession(routineId: string | undefined) {
         }
         programRef.current = program;
 
-        const today = todayKey();
+        const today = dayKeyFor(new Date());
         await repos.workouts.finishStaleSessions(today);
-        const weekday = getDay(new Date());
+        const weekday = getDay(parseISO(today));
         const steps = routine.steps.filter((step) => evaluateWhen(step.when, { weekday }));
 
         // Resume an unfinished session of today for this routine.
@@ -216,7 +213,7 @@ export function useGymSession(routineId: string | undefined) {
             const id = await getRepositories().workouts.createSession({
               programId: program.id,
               routineId,
-              date: todayKey(),
+              date: dayKeyFor(new Date()),
               startedAt: Date.now(),
             });
             sessionIdRef.current = id;

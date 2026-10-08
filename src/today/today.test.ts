@@ -32,6 +32,17 @@ beforeEach(async () => {
 afterEach(() => close());
 
 describe('loadTodayData', () => {
+  it("treats 00:30 as the end of the previous day and reads that day's logs", async () => {
+    await repos.activity.upsert(TODAY, 'walk', 'manual');
+    const late = await loadTodayData(repos, new Date(2026, 9, 6, 0, 30));
+    expect(late.today).toBe(TODAY);
+    expect(late.activityToday).toBe('walk');
+    expect(late.midnight.getTime()).toBe(new Date(2026, 9, 5).getTime());
+    const morning = await loadTodayData(repos, new Date(2026, 9, 6, 4, 0));
+    expect(morning.today).toBe('2026-10-06');
+    expect(morning.activityToday).toBeUndefined();
+  });
+
   it('builds the agenda of the day with the routine, the name and nothing done yet', async () => {
     const data = await loadTodayData(repos, NOW);
     expect(data.today).toBe(TODAY);

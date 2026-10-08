@@ -1,4 +1,4 @@
-import type { DailySteps, HealthAdapter, StepsSourceId } from './types';
+import type { HealthAdapter, StepsSourceId } from './types';
 
 /** The slice of the steps repository that sync needs. */
 export type StepsStore = {
@@ -14,18 +14,40 @@ export type SyncOutcome =
   | { status: 'update_required' }
   | { status: 'error'; error: unknown };
 
+type StoredSteps = { steps: number; source: StepsSourceId };
+
 /**
- * Whether a Health Connect reading replaces what is stored. An automatic count wins over a manual
- * one, but a zero never wipes a number the person typed (Health Connect can report 0 when no app
- * has written steps yet).
+ * What `steps_daily` should hold after `incoming` arrives, or `null` when nothing changes. The
+ * stored value is the MAX of what the person typed and what Health Connect counted, and it records
+ * the source of the winner, so a typed number is never lost to a lower automatic reading:
+ *  - nothing stored: write it (a Health Connect zero is "no data", it is not written);
+ *  - same source: the new value replaces the old one (a typo can be corrected, and Health Connect
+ *    may revise its own count downward);
+ *  - different sources: the larger wins, ties keep what is there.
  */
-export function shouldReplace(
-  existing: { steps: number; source: StepsSourceId } | undefined,
-  incoming: DailySteps,
-): boolean {
-  if (!existing) return true;
-  if (existing.source === 'health_connect') return existing.steps !== incoming.steps;
-  return incoming.steps > 0;
+export function mergeSteps(
+  existing: StoredSteps | undefined,
+  incoming: StoredSteps,
+): StoredSteps | null {
+  if (!existing)
+    return incoming.source === 'health_connect' && incoming.steps === 0 ? null : incoming;
+  if (existing.source === incoming.source) {
+    return existing.steps === incoming.steps ? null : incoming;
+  }
+  return incoming.steps > existing.steps ? incoming : null;
+}
+
+/** Applies `mergeSteps` to one day of the store. Returns whether a row was written. */
+export async function recordSteps(
+  store: StepsStore,
+  date: string,
+  steps: number,
+  source: StepsSourceId,
+): Promise<boolean> {
+  const next = mergeSteps(await store.get(date), { steps, source });
+  if (!next) return false;
+  await store.upsert(date, next.steps, next.source);
+  return true;
 }
 
 /**
@@ -49,11 +71,7 @@ export async function syncSteps(options: {
     let updated = 0;
     for (const day of await adapter.readDailySteps(from, to)) {
       const steps = Math.max(0, Math.round(day.steps));
-      const incoming = { date: day.date, steps };
-      if (shouldReplace(await store.get(day.date), incoming)) {
-        await store.upsert(day.date, steps, 'health_connect');
-        updated += 1;
-      }
+      if (await recordSteps(store, day.date, steps, 'health_connect')) updated += 1;
     }
     return { status: 'synced', updated };
   } catch (error) {

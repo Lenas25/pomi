@@ -7,8 +7,15 @@ import { requestNotificationSync } from '../notifications/sync';
 import { getRepositories } from '../db';
 import type { ActivityKind } from '../domain/habits/activity';
 import type { SleepSummary } from '../domain/formulas/sleep';
-import { connectAndSync, getHealthAdapter, syncSteps, type SyncOutcome } from '../health';
-import { dayKey, loadHabitsData } from './habitsData';
+import {
+  connectAndSync,
+  getHealthAdapter,
+  recordSteps,
+  syncSteps,
+  type SyncOutcome,
+} from '../health';
+import { dayKeyFor } from '../domain/time';
+import { loadHabitsData } from './habitsData';
 import { buildHabitsView, type HabitsView } from './habitsView';
 import { loadSleepSummary } from './sleepStats';
 
@@ -22,7 +29,8 @@ export type HabitsState =
   | { status: 'ready'; today: string; view: HabitsView; sleep: SleepSummary | null };
 
 const SYNC_DAYS = 7;
-const CONNECT_DAYS = 14;
+/** Health Connect only returns data from 30 days before the first grant, so that is the backfill. */
+const CONNECT_DAYS = 30;
 
 function feedOf(outcome: SyncOutcome): StepsFeed {
   return outcome.status === 'synced' ? 'connected' : outcome.status;
@@ -39,7 +47,7 @@ export function useHabits() {
     const ticket = (generation.current += 1);
     try {
       const repos = getRepositories();
-      const today = dayKey();
+      const today = dayKeyFor(new Date());
       const [data, sleep] = await Promise.all([
         loadHabitsData(repos, today),
         loadSleepSummary(repos, today),
@@ -55,7 +63,7 @@ export function useHabits() {
   /** Loads, then reads Health Connect in the background and reloads if it changed anything. */
   const refresh = useCallback(async (): Promise<void> => {
     await load();
-    const today = dayKey();
+    const today = dayKeyFor(new Date());
     const outcome = await syncSteps({
       adapter: getHealthAdapter(),
       store: getRepositories().steps,
@@ -69,7 +77,7 @@ export function useHabits() {
   const connect = useCallback(async (): Promise<void> => {
     setConnecting(true);
     try {
-      const today = dayKey();
+      const today = dayKeyFor(new Date());
       const outcome = await connectAndSync({
         adapter: getHealthAdapter(),
         store: getRepositories().steps,
@@ -109,30 +117,33 @@ export function useHabits() {
             }
           : current,
       );
-      await write(() => getRepositories().habitLogs.set(habitId, dayKey(), next));
+      await write(() => getRepositories().habitLogs.set(habitId, dayKeyFor(new Date()), next));
     },
     [write],
   );
 
   const setCheck = useCallback(
     (habitId: string, done: boolean) =>
-      write(() => getRepositories().habitLogs.set(habitId, dayKey(), done ? 1 : 0)),
+      write(() => getRepositories().habitLogs.set(habitId, dayKeyFor(new Date()), done ? 1 : 0)),
     [write],
   );
 
   const saveSteps = useCallback(
-    (steps: number) => write(() => getRepositories().steps.upsert(dayKey(), steps, 'manual')),
+    (steps: number) =>
+      write(async () => {
+        await recordSteps(getRepositories().steps, dayKeyFor(new Date()), steps, 'manual');
+      }),
     [write],
   );
 
   const saveFood = useCallback(
-    (text: string) => write(() => getRepositories().foodNotes.save(dayKey(), text)),
+    (text: string) => write(() => getRepositories().foodNotes.save(dayKeyFor(new Date()), text)),
     [write],
   );
 
   const answerActivity = useCallback(
     (kind: ActivityKind) =>
-      write(() => getRepositories().activity.upsert(dayKey(), kind, 'manual')),
+      write(() => getRepositories().activity.upsert(dayKeyFor(new Date()), kind, 'manual')),
     [write],
   );
 

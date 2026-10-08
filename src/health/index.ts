@@ -5,7 +5,7 @@ import { createManualAdapter } from './manual';
 import type { HealthAdapter } from './types';
 
 export type { DailySteps, HealthAdapter, HealthAvailability, StepsSourceId } from './types';
-export { connectAndSync, syncSteps, type SyncOutcome } from './sync';
+export { connectAndSync, mergeSteps, recordSteps, syncSteps, type SyncOutcome } from './sync';
 
 let adapter: HealthAdapter | undefined;
 

@@ -1,10 +1,10 @@
 // Real dependencies of `applyResponse` (database, expo-notifications). Used by the background task
 // (app closed) and by the foreground listener.
-import { format } from 'date-fns';
 import * as Notifications from 'expo-notifications';
 
 import { bootstrapDatabase } from '../db/useDatabaseReady';
 import { getRepositories } from '../db';
+import { dayKeyFor } from '../domain/time';
 
 import { ACTIONS } from './constants';
 import {
@@ -34,7 +34,7 @@ export function toResponseInput(response: Notifications.NotificationResponse): R
 function realDeps(): ResponseDeps {
   const repos = getRepositories();
   return {
-    today: () => format(new Date(), 'yyyy-MM-dd'),
+    today: () => dayKeyFor(new Date()),
     now: Date.now,
     claim: async (key) => {
       if (handledInMemory.has(key)) return false;

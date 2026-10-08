@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { connectAndSync, shouldReplace, syncSteps, type StepsStore } from './sync';
+import { connectAndSync, mergeSteps, recordSteps, syncSteps, type StepsStore } from './sync';
 import type { DailySteps, HealthAdapter, HealthAvailability, StepsSourceId } from './types';
 
 type Row = { steps: number; source: StepsSourceId };
@@ -61,7 +61,8 @@ describe('syncSteps', () => {
       from: '2026-10-05',
       to: '2026-10-06',
     });
-    expect(outcome).toEqual({ status: 'synced', updated: 2 });
+    expect(outcome).toEqual({ status: 'synced', updated: 1 });
+    expect(store.rows['2026-10-06']).toBeUndefined();
     expect(store.rows['2026-10-05']).toEqual({ steps: 6500, source: 'health_connect' });
   });
 
@@ -111,17 +112,36 @@ describe('syncSteps', () => {
   });
 });
 
-describe('shouldReplace', () => {
-  it('lets an automatic count replace a manual one only when it is positive', () => {
-    expect(shouldReplace({ steps: 100, source: 'manual' }, { date: 'd', steps: 5 })).toBe(true);
-    expect(shouldReplace({ steps: 100, source: 'manual' }, { date: 'd', steps: 0 })).toBe(false);
-    expect(shouldReplace({ steps: 100, source: 'health_connect' }, { date: 'd', steps: 0 })).toBe(
-      true,
-    );
-    expect(shouldReplace({ steps: 100, source: 'health_connect' }, { date: 'd', steps: 100 })).toBe(
-      false,
-    );
-    expect(shouldReplace(undefined, { date: 'd', steps: 0 })).toBe(true);
+describe('mergeSteps / recordSteps', () => {
+  const hc = (steps: number): Row => ({ steps, source: 'health_connect' });
+  const manual = (steps: number): Row => ({ steps, source: 'manual' });
+
+  it('writes when nothing is stored, except a Health Connect zero (no data)', () => {
+    expect(mergeSteps(undefined, hc(5))).toEqual(hc(5));
+    expect(mergeSteps(undefined, manual(0))).toEqual(manual(0));
+    expect(mergeSteps(undefined, hc(0))).toBeNull();
+  });
+
+  it('keeps the larger of manual and Health Connect and records the winning source', () => {
+    expect(mergeSteps(manual(5000), hc(3000))).toBeNull();
+    expect(mergeSteps(manual(5000), hc(7000))).toEqual(hc(7000));
+    expect(mergeSteps(hc(7000), manual(5000))).toBeNull();
+    expect(mergeSteps(hc(7000), manual(9000))).toEqual(manual(9000));
+    expect(mergeSteps(manual(5000), hc(5000))).toBeNull();
+  });
+
+  it('lets the same source correct itself in both directions', () => {
+    expect(mergeSteps(manual(5000), manual(4000))).toEqual(manual(4000));
+    expect(mergeSteps(hc(7000), hc(6500))).toEqual(hc(6500));
+    expect(mergeSteps(hc(7000), hc(7000))).toBeNull();
+  });
+
+  it('applies the merge to the store', async () => {
+    const store = fakeStore({ d: manual(4000) });
+    expect(await recordSteps(store, 'd', 2000, 'health_connect')).toBe(false);
+    expect(store.rows['d']).toEqual(manual(4000));
+    expect(await recordSteps(store, 'd', 6000, 'health_connect')).toBe(true);
+    expect(store.rows['d']).toEqual(hc(6000));
   });
 });
 
@@ -131,7 +151,7 @@ describe('connectAndSync', () => {
     const adapter = fakeAdapter({ grantsOnRequest: true, days });
     const outcome = await connectAndSync({ adapter, store, from: 'a', to: 'b' });
     expect(adapter.requests).toBe(1);
-    expect(outcome).toEqual({ status: 'synced', updated: 2 });
+    expect(outcome).toEqual({ status: 'synced', updated: 1 });
   });
 
   it('falls back to manual when the person refuses', async () => {

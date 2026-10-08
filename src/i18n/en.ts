@@ -363,7 +363,8 @@ export const en: Messages = {
     stateDone: 'done today',
     statePending: 'pending',
     consistency: '{{done}} of the last {{total}} days',
-    consistencyLabel: '{{name}}: {{done}} of the last {{total}} days',
+    consistencyLabel:
+      '{{name}}: {{done}} of the last {{total}} days. Today counts once you complete it',
     water: {
       title: 'Water',
       drop: 'Glass {{index}} of {{total}}',
@@ -385,6 +386,7 @@ export const en: Messages = {
       noGoal: 'No goal yet: this week we measure your baseline.',
       manualLabel: 'Steps today',
       manualHint: 'Type the steps you have taken today.',
+      manualKeepsMax: 'If Health Connect counts more steps, the larger number is kept.',
       save: 'Save steps',
       saved: 'Saved',
       invalid: 'Enter a number between 0 and {{max}}.',

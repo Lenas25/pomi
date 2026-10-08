@@ -1,9 +1,10 @@
 // Everything the Hoy screen needs, read in one pass (all local, near instant).
-import { format, startOfDay, subDays } from 'date-fns';
+import { format, subDays } from 'date-fns';
 
 import type { Repositories } from '../db/repositories';
 import { buildAgenda, type AgendaItem } from '../domain/agenda/buildAgenda';
 import { todaysRoutineId } from '../domain/gym/rotation';
+import { dayKeyFor, dayStartFor } from '../domain/time';
 import type { ActivityKind } from '../domain/habits/activity';
 import type { IdentityInput } from '../domain/today/identity';
 import { pickProgram, toRotationSessions } from '../gym/program';
@@ -17,6 +18,7 @@ const ROTATION_LOOKBACK = 40;
 
 export type TodayData = {
   today: string;
+  /** Local midnight that opens the logical day (the origin of the agenda minutes). */
   midnight: Date;
   userName: string | undefined;
   agenda: AgendaItem[];
@@ -29,9 +31,9 @@ export type TodayData = {
 };
 
 export async function loadTodayData(repos: Repositories, now: Date): Promise<TodayData> {
-  const today = format(now, 'yyyy-MM-dd');
-  const midnight = startOfDay(now);
-  const lookbackFrom = format(subDays(now, IDENTITY_LOOKBACK_DAYS), 'yyyy-MM-dd');
+  const today = dayKeyFor(now);
+  const midnight = dayStartFor(now);
+  const lookbackFrom = format(subDays(midnight, IDENTITY_LOOKBACK_DAYS), 'yyyy-MM-dd');
 
   const [habits, anchors, userName, stored, modules, sessions, recent] = await Promise.all([
     loadHabitsData(repos, today),
@@ -59,7 +61,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     : null;
   const routine = program?.routines.find((candidate) => candidate.id === routineId);
 
-  const agenda = buildAgenda(now, {
+  const agenda = buildAgenda(midnight, {
     profile: { weightKg: habits.profile.weightKg, workType: habits.profile.workType },
     anchors: anchors ?? {},
     gymDays: habits.gymDays,

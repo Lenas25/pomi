@@ -16,9 +16,9 @@ import {
 
 const defaults = loadDefaultTemplates();
 
-// 2026-10-05 is a Monday. `from` is the start of the day unless stated.
-const MONDAY = new Date(2026, 9, 5);
-const SATURDAY = new Date(2026, 9, 10);
+// 2026-10-05 is a Monday. `from` is 04:00, the start of the logical day (rollover), unless stated.
+const MONDAY = new Date(2026, 9, 5, 4, 0);
+const SATURDAY = new Date(2026, 9, 10, 4, 0);
 
 function state(overrides: Partial<UpcomingState> = {}): UpcomingState {
   const { settings, modules } = defaults;
@@ -70,6 +70,33 @@ describe('buildUpcoming ids and ordering', () => {
   it('covers a 3-day window (today plus two days)', () => {
     const days = new Set(list.map((n) => n.data.date));
     expect([...days].sort()).toEqual(['2026-10-05', '2026-10-06', '2026-10-07']);
+  });
+});
+
+describe('day rollover (04:00)', () => {
+  it("applies the 'done today' flags to the day still in progress after midnight", () => {
+    // Tuesday 03:30 still belongs to Monday: Monday's morning check-in being done must not hide
+    // Tuesday's.
+    const tuesdayNight = new Date(2026, 9, 6, 3, 30);
+    const list = buildUpcoming(
+      state({
+        today: {
+          activityLogged: false,
+          gymDone: false,
+          checkinsDone: { morning: true, night: false },
+          doneAgendaIds: [],
+        },
+      }),
+      tuesdayNight,
+    );
+    const morning = ofKind(list, 'checkin').filter((n) => n.data.checkin === 'morning');
+    expect(morning.map((n) => n.data.date)).toEqual(['2026-10-06', '2026-10-07']);
+  });
+
+  it('stamps the logical day on notifications that fire between midnight and 04:00', () => {
+    const list = buildUpcoming(state({ anchors: { wake: '08:00', sleepTargetH: 7.5 } }), MONDAY);
+    const bedtime = list.find((n) => clock(n.at) === '00:30');
+    expect(bedtime?.data.date).toBe('2026-10-05');
   });
 });
 

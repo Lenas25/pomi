@@ -143,6 +143,7 @@ function StepsCard({
   const [invalid, setInvalid] = useState(false);
   const [saved, setSaved] = useState(false);
   const { plan } = steps;
+  // The manual input is always there: a typed number is kept when it beats the automatic count.
   const connected = feed === 'connected';
   const notice = stepsNotice(feed);
 
@@ -188,32 +189,31 @@ function StepsCard({
           <Button label={t('habits.steps.deniedOpen')} onPress={onOpenSettings} variant="ghost" />
         ) : null}
 
-        {connected ? null : (
-          <View style={{ gap: theme.space[2] }}>
-            <TextField
-              label={t('habits.steps.manualLabel')}
-              placeholder={t('habits.steps.manualHint')}
-              value={text}
-              onChangeText={(value) => {
-                setText(value);
-                setSaved(false);
-              }}
-              inputMode="numeric"
-              maxLength={6}
-              onSubmitEditing={save}
-              error={invalid ? t('habits.steps.invalid', { max: MAX_MANUAL_STEPS }) : undefined}
-            />
-            <Button label={t('habits.steps.save')} onPress={save} variant="secondary" />
-            {saved ? (
-              <Text
-                accessibilityLiveRegion="polite"
-                style={[theme.text('caption'), { color: theme.color.success }]}
-              >
-                {t('habits.steps.saved')}
-              </Text>
-            ) : null}
-          </View>
-        )}
+        <View style={{ gap: theme.space[2] }}>
+          <TextField
+            label={t('habits.steps.manualLabel')}
+            placeholder={t('habits.steps.manualHint')}
+            value={text}
+            onChangeText={(value) => {
+              setText(value);
+              setSaved(false);
+            }}
+            inputMode="numeric"
+            maxLength={6}
+            onSubmitEditing={save}
+            error={invalid ? t('habits.steps.invalid', { max: MAX_MANUAL_STEPS }) : undefined}
+          />
+          {connected ? <Muted>{t('habits.steps.manualKeepsMax')}</Muted> : null}
+          <Button label={t('habits.steps.save')} onPress={save} variant="secondary" />
+          {saved ? (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={[theme.text('caption'), { color: theme.color.success }]}
+            >
+              {t('habits.steps.saved')}
+            </Text>
+          ) : null}
+        </View>
         <ConsistencyLine name={steps.name} data={steps.consistency} />
       </View>
     </Card>

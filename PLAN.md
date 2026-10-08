@@ -237,6 +237,7 @@ Además:
 
 ## 10. Check-ins
 
+- **Día lógico:** el día para los registros cambia a las 04:00 hora local (de 04:00 a 03:59), así que un check-in de noche a las 00:30 pertenece al día que termina.
 - **Mañana** (aviso 10 minutos después de `wake`): hora en que te dormiste, hora en que despertaste (prellenadas con el plan, se ajustan con un toque) y calidad del sueño del 1 al 5. Debe tomar menos de 10 segundos.
 - **Noche** (aviso 30 minutos antes de `bed`): energía 1–5, ánimo 1–5 y una nota opcional, más la nota de comida si el módulo está activo. Al terminar: "Listo por hoy. Cierra la app y descansa".
 - **Revisión mensual** (día configurable, por defecto el día 1): peso y medidas, fotos con la foto anterior en transparencia para alinear la pose, y la pantalla **"Tú hace 30 días vs. hoy"**: fuerza, medidas, fotos lado a lado, constancia y hallazgos del mes.

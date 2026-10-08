@@ -6,7 +6,7 @@ import { ArrowLeft } from 'phosphor-react-native';
 
 import { getDatabase, getRepositories } from '../db';
 import type { AnswerValue, CheckinKind } from '../domain/habits/checkins';
-import { dayKey } from '../habits/habitsData';
+import { dayKeyFor } from '../domain/time';
 import { useT } from '../i18n';
 import { Button } from '../ui/Button';
 import { CheckinSheet } from '../ui/CheckinSheet';
@@ -36,10 +36,12 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [done, setDone] = useState(false);
+  // Captured once at open: prefill and save always target the same day, even across the rollover.
+  const [day] = useState(() => dayKeyFor(new Date()));
 
   useEffect(() => {
     let cancelled = false;
-    loadCheckin(getRepositories(), kind, dayKey()).then(
+    loadCheckin(getRepositories(), kind, day).then(
       (loaded) => {
         if (cancelled) return;
         if (loaded.status === 'ready') {
@@ -56,7 +58,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
     return () => {
       cancelled = true;
     };
-  }, [kind]);
+  }, [kind, day]);
 
   const submit = useCallback(
     async (plan: CheckinPlan) => {
@@ -67,7 +69,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
           getDatabase(),
           getRepositories(),
           plan,
-          dayKey(),
+          day,
           answers,
           foodNote,
         );
@@ -85,7 +87,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
         setSubmitting(false);
       }
     },
-    [answers, foodNote, t],
+    [answers, day, foodNote, t],
   );
 
   const title = t(kind === 'morning' ? 'checkin.morningTitle' : 'checkin.nightTitle');

@@ -184,6 +184,28 @@ describe('stepsPlan', () => {
     expect(stepsPlan({ today: '2026-10-09', history: [] }).phase).toBe('baseline');
   });
 
+  it('ignores baseline days with no data instead of treating them as zero', () => {
+    const withGaps = [
+      { date: '2026-10-01', steps: 6000 },
+      { date: '2026-10-02', steps: 0 },
+      { date: '2026-10-03', steps: 8000 },
+      { date: '2026-10-04', steps: 0 },
+      { date: '2026-10-05', steps: 7000 },
+    ];
+    const plan = stepsPlan({ today: '2026-10-09', startedOn: '2026-10-01', history: withGaps });
+    expect(plan.baseline).toBe(7000); // mean of 6000, 8000, 7000
+    // Too few real days: the estimate wins, the zeros do not drag it down.
+    const thin = [
+      { date: '2026-10-01', steps: 6000 },
+      { date: '2026-10-02', steps: 0 },
+      { date: '2026-10-03', steps: 0 },
+    ];
+    expect(
+      stepsPlan({ today: '2026-10-09', startedOn: '2026-10-01', history: thin, estimate: 4000 })
+        .baseline,
+    ).toBe(4000);
+  });
+
   it('caps the goal', () => {
     const big = [1, 2, 3].map((day) => ({ date: `2026-10-0${day}`, steps: 14000 }));
     expect(stepsPlan({ today: '2026-10-09', startedOn: '2026-10-01', history: big }).goal).toBe(

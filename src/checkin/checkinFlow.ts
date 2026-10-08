@@ -101,7 +101,7 @@ export async function saveCheckin(
   }
   await withTransaction(db, async (tx) => {
     await repos.checkins.upsert(today, plan.kind, result.answers);
-    if (plan.foodPrompt !== null) await repos.foodNotes.save(today, foodNote, tx);
+    if (plan.foodPrompt !== null) await repos.foodNotes.saveIn(tx, today, foodNote);
   });
   return { ok: true };
 }

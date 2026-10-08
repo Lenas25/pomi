@@ -64,8 +64,8 @@ describe('Health Connect adapter', () => {
   it('reads one aggregated slice per local day and zero-fills missing slices', async () => {
     const adapter = createHealthConnectAdapter();
     mockLib.aggregateGroupByPeriod.mockResolvedValue([
-      { result: { COUNT_TOTAL: 4200 } },
-      { result: { COUNT_TOTAL: 8000 } },
+      { startTime: '2026-10-05T00:00', result: { COUNT_TOTAL: 4200 } },
+      { startTime: '2026-10-06T00:00', result: { COUNT_TOTAL: 8000 } },
     ]);
     const days = await adapter.readDailySteps('2026-10-05', '2026-10-07');
     expect(days).toEqual([
@@ -78,6 +78,20 @@ describe('Health Connect adapter', () => {
       timeRangeSlicer: { period: 'DAYS', length: 1 },
       timeRangeFilter: { operator: 'between' },
     });
+  });
+
+  it('maps slices by their local start date, not by position (omitted and reordered slices)', async () => {
+    const adapter = createHealthConnectAdapter();
+    mockLib.aggregateGroupByPeriod.mockResolvedValue([
+      { startTime: '2026-10-07T00:00', result: { COUNT_TOTAL: 900 } },
+      { startTime: '2026-10-05T00:00:30', result: { COUNT_TOTAL: 4200 } },
+      { startTime: 'not a date', result: { COUNT_TOTAL: 1 } },
+    ]);
+    expect(await adapter.readDailySteps('2026-10-05', '2026-10-07')).toEqual([
+      { date: '2026-10-05', steps: 4200 },
+      { date: '2026-10-06', steps: 0 },
+      { date: '2026-10-07', steps: 900 },
+    ]);
   });
 
   it('fails (instead of reading) when the client cannot be initialized, and retries later', async () => {

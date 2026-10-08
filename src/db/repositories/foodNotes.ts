@@ -7,6 +7,14 @@ import { withTransaction, type Tx } from '../transaction';
 export type FoodNoteRow = typeof foodNotes.$inferSelect;
 
 export function createFoodNotesRepository(db: Db) {
+  async function saveIn(tx: Tx, date: string, text: string): Promise<void> {
+    const trimmed = text.trim();
+    await withTransaction(tx, async () => {
+      await db.delete(foodNotes).where(eq(foodNotes.date, date));
+      if (trimmed !== '') await db.insert(foodNotes).values({ date, text: trimmed });
+    });
+  }
+
   return {
     /** The note of the day, if any (the app keeps ONE note per day). */
     async forDate(date: string): Promise<FoodNoteRow | undefined> {
@@ -19,16 +27,16 @@ export function createFoodNotesRepository(db: Db) {
     },
 
     /**
-     * Replaces the day's note; blank text removes it. Pass the `tx` of an enclosing transaction
-     * to join it (a plain `db` would queue behind it and never finish).
+     * Replaces the day's note; blank text removes it. Opens its OWN top-level transaction: never
+     * call it from inside a `withTransaction` callback (it would queue behind it forever). Use
+     * `saveIn(tx, ...)` there.
      */
-    async save(date: string, text: string, scope: Db | Tx = db): Promise<void> {
-      const trimmed = text.trim();
-      await withTransaction(scope, async () => {
-        await db.delete(foodNotes).where(eq(foodNotes.date, date));
-        if (trimmed !== '') await db.insert(foodNotes).values({ date, text: trimmed });
-      });
+    save(date: string, text: string): Promise<void> {
+      return withTransaction(db, (tx) => saveIn(tx, date, text));
     },
+
+    /** Same as `save`, joining the enclosing transaction `tx` (a savepoint). */
+    saveIn,
 
     async inRange(from: string, to: string): Promise<FoodNoteRow[]> {
       return db

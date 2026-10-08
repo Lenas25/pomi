@@ -1,5 +1,4 @@
-import { format } from 'date-fns';
-
+import { dayKeyFor } from '../domain/time';
 import { mapDraftToPersistence } from '../domain/onboarding/mapDraft';
 import type { OnboardingDraft } from '../domain/onboarding/draft';
 import { withTransaction } from '../db/transaction';
@@ -14,7 +13,7 @@ export async function completeOnboarding(
   db: Db,
   repositories: Repositories,
   draft: OnboardingDraft,
-  today: string = format(new Date(), 'yyyy-MM-dd'),
+  today: string = dayKeyFor(new Date()),
 ): Promise<void> {
   const { profile, settings } = mapDraftToPersistence(draft);
   await withTransaction(db, async () => {

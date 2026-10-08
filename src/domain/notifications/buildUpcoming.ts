@@ -1,7 +1,7 @@
 // The notifications Pomi wants scheduled in the next few days (PLAN §7.1). Pure: the agenda of
 // each day (`buildAgenda`) plus the extra prompts (survey, weekly review) become a flat list with
 // STABLE ids, so the scheduler can diff it against what the OS already holds.
-import { addDays, format, getDay, startOfDay } from 'date-fns';
+import { addDays, format, getDay } from 'date-fns';
 
 import type { Habit } from '../../templates/schema';
 import {
@@ -11,7 +11,7 @@ import {
   type AgendaItem,
   type AgendaState,
 } from '../agenda/buildAgenda';
-import { clockToMinutes } from '../time';
+import { clockToMinutes, dayKeyFor, dayStartFor } from '../time';
 
 /** The OS keeps at most this many scheduled notifications (iOS limit; Android OEMs cap too). */
 export const MAX_SCHEDULED = 64;
@@ -174,7 +174,8 @@ export function buildUpcoming(
 ): PlannedNotification[] {
   const anchors = resolveAnchors(state.anchors);
   const candidates: Candidate[] = [];
-  const first = startOfDay(from);
+  // Day 0 is the logical day in progress (before 04:00 it is still yesterday).
+  const first = dayStartFor(from);
   const fromMs = from.getTime();
 
   for (let dayIndex = 0; dayIndex < days; dayIndex += 1) {
@@ -198,7 +199,7 @@ export function buildUpcoming(
           id: stableId(kind, moduleId, itemId, at),
           at,
           kind,
-          data: { ...data, kind, date: format(at, 'yyyy-MM-dd') },
+          data: { ...data, kind, date: dayKeyFor(new Date(at)) },
         },
         dayIndex,
       });

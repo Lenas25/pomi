@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { createRepositories, type Repositories } from '../db/repositories';
+import type { Db } from '../db/types';
+import { withTransaction } from '../db/transaction';
 import { createTestDb } from '../db/testing/createTestDb';
 import { loadDefaultTemplates } from '../templates/defaults';
 import { loadHabitsData } from './habitsData';
@@ -8,10 +10,12 @@ import { buildHabitsView, nextWaterValue } from './habitsView';
 
 let repos: Repositories;
 let close: () => void;
+let db: Db;
 
 beforeEach(async () => {
   const test = await createTestDb();
   close = test.close;
+  db = test.db;
   repos = createRepositories(test.db, () => 1_000);
   await repos.templates.saveModules(loadDefaultTemplates().modules, 'add');
   await repos.profile.save({ weightKg: 60, workType: 'sentada' });
@@ -136,5 +140,19 @@ describe('activity and food note repositories', () => {
     ]);
     await repos.foodNotes.save('2026-10-06', '');
     expect(await repos.foodNotes.forDate('2026-10-06')).toBeUndefined();
+  });
+
+  it('joins an enclosing transaction through saveIn (and rolls back with it)', async () => {
+    await withTransaction(db, async (tx) => {
+      await repos.foodNotes.saveIn(tx, '2026-10-06', 'Dentro');
+    });
+    expect((await repos.foodNotes.forDate('2026-10-06'))?.text).toBe('Dentro');
+    await expect(
+      withTransaction(db, async (tx) => {
+        await repos.foodNotes.saveIn(tx, '2026-10-06', 'Nunca');
+        throw new Error('boom');
+      }),
+    ).rejects.toThrow('boom');
+    expect((await repos.foodNotes.forDate('2026-10-06'))?.text).toBe('Dentro');
   });
 });

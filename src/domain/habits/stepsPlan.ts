@@ -41,7 +41,8 @@ export function stepsPlan(input: StepsPlanInput): StepsPlan {
 
   const windowEnd = format(addDays(parseISO(startedOn), BASELINE_DAYS - 1), 'yyyy-MM-dd');
   const measured = input.history
-    .filter(({ date }) => date >= startedOn && date <= windowEnd)
+    // A day with no steps recorded is a day without data (not a measured zero): it is ignored.
+    .filter(({ date, steps }) => date >= startedOn && date <= windowEnd && steps > 0)
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(({ steps }) => steps);
   const baseline = stepsBaseline(measured, input.estimate);

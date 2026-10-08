@@ -46,11 +46,11 @@ export function createTemplatesRepository(
    * ones (and ids already saved earlier in the same batch) and reports them as skipped.
    */
   async function saveModulesIn(
-    scope: Db | Tx,
+    tx: Tx,
     modules: ModuleTemplate[],
     mode: 'replace' | 'add',
   ): Promise<SaveModulesResult> {
-    return withTransaction(scope, async () => {
+    return withTransaction(tx, async () => {
       const known = new Set((await listModules()).map((module) => module.id));
       const result: SaveModulesResult = { saved: [], skipped: [] };
       const importedAt = now();
@@ -81,8 +81,9 @@ export function createTemplatesRepository(
     });
   }
 
+  /** Opens its own top-level transaction: inside one, use `saveModulesIn(tx, ...)`. */
   const saveModules = (modules: ModuleTemplate[], mode: 'replace' | 'add') =>
-    saveModulesIn(db, modules, mode);
+    withTransaction(db, (tx) => saveModulesIn(tx, modules, mode));
 
   return {
     listModules,
@@ -92,6 +93,7 @@ export function createTemplatesRepository(
     },
 
     saveModules,
+    saveModulesIn,
 
     async setActive(id: string, active: boolean): Promise<void> {
       await db.update(templates).set({ active }).where(eq(templates.id, id));

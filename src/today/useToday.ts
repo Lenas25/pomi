@@ -10,6 +10,7 @@ import { getRepositories } from '../db';
 import type { ActivityKind } from '../domain/habits/activity';
 import { clampText, TITLE_MAX, type PlannedChannel } from '../domain/notifications/buildUpcoming';
 import { greetingKey, identityPhrase } from '../domain/today/identity';
+import { dayKeyFor, minutesIntoDay } from '../domain/time';
 import { buildTimeline, isAllDone, type TimelineEntry } from '../domain/today/timeline';
 import { useT } from '../i18n';
 import { requestNotificationSync } from '../notifications/sync';
@@ -44,6 +45,7 @@ export function useToday() {
   const [load, setLoad] = useState<TodayLoad>({ status: 'loading' });
   const [now, setNow] = useState(() => new Date());
   const generation = useRef(0);
+  const loadedDay = useRef<string | undefined>(undefined);
 
   const reload = useCallback(async (): Promise<void> => {
     const ticket = (generation.current += 1);
@@ -51,6 +53,7 @@ export function useToday() {
       const data = await loadTodayData(getRepositories(), new Date());
       if (ticket === generation.current) {
         setNow(new Date());
+        loadedDay.current = data.today;
         setLoad({ status: 'ready', data });
       }
     } catch (error) {
@@ -61,7 +64,12 @@ export function useToday() {
 
   // The "now" row follows the clock; coming back to the app also refreshes the data.
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), CLOCK_TICK_MS);
+    const interval = setInterval(() => {
+      const tick = new Date();
+      setNow(tick);
+      // The logical day rolled over (04:00) while the app stayed open: load the new day.
+      if (loadedDay.current !== undefined && dayKeyFor(tick) !== loadedDay.current) void reload();
+    }, CLOCK_TICK_MS);
     const subscription = AppState.addEventListener('change', (next) => {
       if (next === 'active') void reload();
     });
@@ -74,7 +82,7 @@ export function useToday() {
   const view = useMemo(() => {
     if (load.status !== 'ready') return null;
     const { data } = load;
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const nowMinutes = minutesIntoDay(now);
     const progress = progressFrom(data.agenda, data.facts, data.state, data.midnight);
     const entries = buildTimeline(data.agenda, nowMinutes, progress);
     const phrase = identityPhrase({ today: data.today, ...data.identity });
