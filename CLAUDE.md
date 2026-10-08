@@ -77,6 +77,13 @@ Create other `src/` folders from PLAN §5 (`domain`, `db`, `notifications`, `tim
 - **Water:** 33 ml/kg + 500 ml per gym hour (1 h per session by default), rounded **UP** to 250 ml glasses.
 - **Steps v1:** goal fixed after the baseline week (baseline + 1000, rounded to 500, cap 10000). Weekly auto-adjust only through suggestions (v2), never silently.
 
+### Companion features (PLAN §14b)
+
+- **v1:** evening "¿Te moviste hoy?" notification with actions (gym / walk / no) writing `activity_logs` even with the app closed ("Hoy no" is never a miss); sleep-cycle calculator (`wake − n×90 − 15`, n = 4..6).
+- **v2:** sleep debt (7 days, daily surplus capped at 60 min, min 4 days), social jetlag (midsleep difference, 14 days), water curve by hour (suggestions only), "Tu ritmo" profile (min 21 days, prudent wording), Sunday "Carta de Pomi", configurable sedentary nudge from Health Connect hourly steps in a background task (approximate, ~15 min; Android may delay it).
+- **v3:** optional on-device LLM ("Pomi conversa"): deterministic engines compute every number, the LLM only verbalizes via tool calls, strict healthy-life scope, no medical advice, template fallback.
+- Every number comes from a pure engine in `src/domain`; text generation never computes.
+
 ### Timers and notifications
 
 - Timers store an `endsAt` timestamp. 3-2-1 beeps only in foreground; the end alarm is a scheduled local notification, so it works with the screen off.

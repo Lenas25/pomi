@@ -143,6 +143,7 @@ type Schedule = {
 - `set_logs` (sessionId, stepId, setIndex, weightKg, reps, rir 0–3, durationSec, doneAt)
 - `habit_logs` (habitId, date, value)
 - `steps_daily` (date, steps, source: health_connect | manual)
+- `activity_logs` (id, date, kind: gym | walk | none, source: notification | manual, loggedAt): respuestas a "¿Te moviste hoy?" (sección 14b)
 - `checkins` (date, kind: morning | night | monthly, answers JSON)
 - `metric_entries` (metricId, date, value)
 - `photos` (date, pose, uri local)
@@ -288,6 +289,75 @@ Función pura `buildInsights(data, today)`, ejecutada una vez por semana. Muestr
 - Solo se incluye lo seleccionado. Las fotos nunca van por defecto.
 - **Importar un programa de gym** que te envíe tu entrenador (JSON validado, con vista previa y opción de reemplazar o agregar).
 
+## 14b. Acompañamiento
+
+Pomi acompaña: pregunta con cariño, calcula con datos reales y nunca juzga. Todo lo de esta sección es opcional, se puede apagar y usa lenguaje prudente ("parece", "tiende a", "podría"); ninguna cifra la inventa un texto: la calcula un motor determinista y puro.
+
+### v1: preguntas y ayudas simples
+
+**"¿Te moviste hoy?" (microencuesta de la noche)**
+
+- Notificación local por la tarde-noche (por defecto 20:00, configurable) con tres acciones: **Fui al gym**, **Caminé** y **Hoy no**.
+- Cada acción guarda una fila en `activity_logs` (`kind`: `gym`, `walk` o `none`; `source`: `notification`) **aunque la app esté cerrada**: la acción no abre la app y se procesa en segundo plano. Verificar en la documentación de `expo-notifications` el mecanismo vigente para respuestas en segundo plano antes de implementarlo.
+- Si ya hay una sesión de gym terminada hoy o una respuesta de hoy, el aviso no se envía (o se cancela).
+- **Hoy no** responde con calidez: "Pasa. Mañana seguimos" (pose `tranqui`). Nunca cuenta como falta ni rompe la constancia.
+- Alimenta la constancia, el motor de hallazgos y "Tu ritmo" (v2).
+
+**Calculadora de ciclos de sueño**
+
+- Ciclos de 90 minutos. Horas de dormir sugeridas: `despertar − n × 90 min − 15 min` (15 min para conciliar el sueño), con `n` = 4, 5 y 6.
+- Se muestran junto a la meta de sueño ("tu meta: 7 h 30 min; opciones por ciclos: 23:25, 21:55, 20:25"). Es una guía: la meta de horas sigue mandando.
+- Cruza la medianoche correctamente (la hora de dormir puede ser del día anterior).
+
+### v2: aprender de tu ritmo
+
+**Deuda de sueño (ventana móvil de 7 días)**
+
+- Por día: `faltante = meta − dormido`. El **sobrante de un día cuenta como máximo 60 min** (dormir mucho un día no borra una semana corta).
+- `deuda = max(0, Σ faltantes del día)` sobre los últimos 7 días, con un mínimo de **4 días con dato**; si no, no se muestra.
+- Se muestra como "Esta semana te faltaron unas 3 h de sueño", nunca como alarma.
+
+**Jetlag social**
+
+- `|punto medio del sueño en días libres − punto medio en días de semana|`, con punto medio = hora de dormir + duración / 2 (cruzando la medianoche).
+- Ventana de 14 días; mínimo 3 días de semana y 2 días libres con dato. Días libres = sábado y domingo (editable).
+- Desde 60 min se menciona con suavidad ("Tu sueño del fin de semana se corre casi 1 h 20 min").
+
+**Curva de agua por hora**
+
+- Promedio de ml registrados por franja horaria en los últimos 14 días (mínimo 7 días con registro).
+- Detecta **huecos de la tarde**: 3 horas seguidas despierta, entre 12:00 y 19:00, sin registros en al menos 5 de 7 días.
+- Resultado: una **sugerencia** (nunca un cambio automático) para mover o añadir avisos en ese hueco. Comparte la regla "Agua" de la sección 11.
+
+**"Tu ritmo" (perfil de estilo de vida)**
+
+- Se construye con los check-ins; **mínimo 21 días con datos** y al menos 7 días en cada grupo que se compara (igual que la sección 12).
+- Contenido: tendencia de cronotipo (punto medio del sueño en días libres: "tiendes a ser más de mañana / intermedia / más de noche"; es una tendencia, no un diagnóstico), días en que más te mueves (gym, caminatas, pasos) y relación entre energía y sueño (solo si la diferencia es ≥ 0.5 puntos en la escala de 1 a 5).
+- Lenguaje prudente y sin etiquetas fijas. Se actualiza una vez por semana.
+
+**Carta de Pomi (resumen semanal, domingo)**
+
+- Una carta corta (máximo 5 líneas) que acompaña la revisión semanal: constancia, un logro, un dato de sueño o agua y una invitación amable para la semana.
+- Plantillas de texto con huecos que rellenan los motores; si la semana tuvo pocos datos, una carta breve y cálida sin cifras. Nunca reprocha.
+
+**Aviso de sedentarismo (pausa activa sugerida)**
+
+- Lee los pasos por hora de Health Connect en una **tarea en segundo plano** (granularidad aproximada de unos 15 min, no exacta).
+- Si en los últimos **N minutos** (por defecto 90) hay **menos pasos que el umbral**, dentro de la ventana de horas despierta y en días de trabajo, sugiere una **pausa activa** ("Llevas un rato sentada. ¿Estiramos 2 minutos?").
+- Totalmente configurable: activar o apagar, ventana horaria (por defecto de `wake + 1 h` a `bed − 2 h`), umbral de pasos, minutos N, días, y el interruptor **"No llevo el celular al caminar"**, que desactiva el aviso porque los pasos del celular no representan el movimiento real.
+- Máximo 1 aviso cada 2 horas y 3 por día; respeta las horas de silencio.
+- **Nota honesta en la app:** Android puede retrasar o saltarse tareas en segundo plano (ahorro de batería, optimización por fabricante, modo Doze), así que el aviso es una ayuda aproximada, no un recordatorio exacto.
+
+### v3: compañera con IA en el dispositivo (opcional)
+
+"Pomi conversa" (detalles pendientes de investigación):
+
+- Modelo de lenguaje **descargable de forma opcional**, que corre **sin conexión** en el dispositivo.
+- **Los motores deterministas calculan todas las cifras**; el modelo solo las redacta y responde mediante *tool calls* sobre los datos locales (sueño, agua, pasos, gym). Nunca inventa ni calcula números.
+- *System prompt* con alcance estricto: solo los temas de vida saludable de la persona (sueño, agua, movimiento, gym, hábitos); sin consejo médico; lenguaje prudente; fuera de ese alcance responde con amabilidad que no puede ayudar.
+- **Respaldo:** si el dispositivo no tiene suficiente RAM, o la persona lo desactiva, se usan los textos de plantilla de siempre. La app nunca depende del modelo.
+- Los datos no salen del dispositivo.
+
 ## 15. Roadmap con criterios de aceptación
 
 ### v1: base útil (Android)
@@ -301,10 +371,12 @@ Función pura `buildInsights(data, today)`, ejecutada una vez por semana. Muestr
 - [ ] Pantalla Hoy.
 - [ ] Scheduler con ventana de 3 días, canales, alarmas exactas y acciones en la notificación.
 - [ ] Cronómetros que suenan con la pantalla apagada.
+- [ ] Microencuesta "¿Te moviste hoy?" con acciones en la notificación que guardan en `activity_logs` aun con la app cerrada.
+- [ ] Calculadora de ciclos de sueño junto a la meta de sueño.
 - [ ] Respaldo completo en JSON.
 - [ ] APK con EAS Build.
 
-**Hecho cuando:** con el celular bloqueado llegan los avisos de agua, gym, check-ins y dormir; un descanso de 2 minutos suena con la pantalla apagada; y al abrir el Día 1 aparece la meta de hoy calculada con la sesión anterior.
+**Hecho cuando:** con el celular bloqueado llegan los avisos de agua, gym, check-ins, dormir y "¿Te moviste hoy?" (y tocar una acción lo registra sin abrir la app); un descanso de 2 minutos suena con la pantalla apagada; y al abrir el Día 1 aparece la meta de hoy calculada con la sesión anterior.
 
 ### v2: aprender de ti
 
@@ -313,6 +385,7 @@ Función pura `buildInsights(data, today)`, ejecutada una vez por semana. Muestr
 - [ ] Progreso: constancia, gráficos de fuerza y medidas.
 - [ ] Revisión mensual con fotos y "Tú hace 30 días vs. hoy".
 - [ ] Compartir: texto y PDF (Entrenador, Nutricionista, IA).
+- [ ] Acompañamiento (sección 14b): deuda de sueño, jetlag social, curva de agua por hora, "Tu ritmo", Carta de Pomi del domingo y aviso de sedentarismo configurable.
 
 ### v3: descubrirte
 
@@ -320,6 +393,7 @@ Función pura `buildInsights(data, today)`, ejecutada una vez por semana. Muestr
 - [ ] Volumen semanal por músculo.
 - [ ] Editor de programas de gym dentro de la app.
 - [ ] Inglés completo; CSV y JSON en reportes; importar programas de un entrenador.
+- [ ] Opcional: "Pomi conversa", compañera con IA en el dispositivo (sección 14b), tras investigar modelos y requisitos de RAM.
 
 ### v4: comunidad
 
@@ -331,9 +405,9 @@ Función pura `buildInsights(data, today)`, ejecutada una vez por semana. Muestr
 
 ## 16. Calidad
 
-- Tests unitarios obligatorios para: fórmulas de agua, pasos y sueño; meta de hoy (los 5 casos de 9.4); rotación; parser de `reps`; `buildAgenda`; `buildUpcoming` (límite de 64, horas de silencio); motor de sugerencias (cada regla, el máximo semanal y el bloqueo de 4 semanas tras un rechazo); motor de hallazgos (mínimo de datos, umbrales y redacción); generadores de reportes.
+- Tests unitarios obligatorios para: fórmulas de agua, pasos y sueño; meta de hoy (los 5 casos de 9.4); rotación; parser de `reps`; `buildAgenda`; `buildUpcoming` (límite de 64, horas de silencio); motor de sugerencias (cada regla, el máximo semanal y el bloqueo de 4 semanas tras un rechazo); motor de hallazgos (mínimo de datos, umbrales y redacción); generadores de reportes; deuda de sueño, jetlag social, ciclos de sueño, curva de agua por hora, detector de sedentarismo (umbral, ventana, días y desactivación) y registro de actividad desde la acción de la notificación (`activity_logs`).
 - Datos de prueba: un generador de 60 días de datos sintéticos para probar sugerencias, hallazgos y gráficos.
-- Checklist manual en Android antes de cada versión: avisos con la app cerrada, cronómetro con la pantalla apagada, reinicio del celular, cambio de zona horaria, permiso de Health Connect denegado y modo claro/oscuro.
+- Checklist manual en Android antes de cada versión: avisos con la app cerrada, acciones de "¿Te moviste hoy?" con la app cerrada, cronómetro con la pantalla apagada, reinicio del celular, cambio de zona horaria, permiso de Health Connect denegado y modo claro/oscuro.
 - Sin `any`. Errores de importación con mensajes claros en español.
 
 ## 17. Open source
