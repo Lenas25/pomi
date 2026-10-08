@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { getRepositories } from '../db';
 import type { SettingsValue } from '../db/repositories/settings';
@@ -11,7 +12,14 @@ import { resolveSedentaryConfig } from './runNudge';
 
 type Stored = SettingsValue<'sedentaryNudge'>;
 
-export type SedentaryNotice = 'unavailable' | 'denied' | 'saveFailed' | null;
+export type SedentaryNotice =
+  | 'unavailable'
+  | 'denied'
+  | 'bgDenied'
+  | 'featureUnavailable'
+  | 'missingPermission'
+  | 'saveFailed'
+  | null;
 
 /** Reads and saves the nudge preferences; the background job follows every change. */
 export function useSedentarySettings() {
@@ -75,5 +83,36 @@ export function useSedentarySettings() {
     [save],
   );
 
-  return { config, notice, update, setEnabled };
+  const awaitingReturn = useRef(false);
+
+  /** Re-checks both permissions; if one is gone while the nudge is on, turns it off and says why. */
+  const recheck = useCallback(async () => {
+    const stored = await getRepositories().settings.get('sedentaryNudge');
+    if (!resolveSedentaryConfig(stored).enabled) return;
+    const adapter = getHealthAdapter();
+    const ok = await Promise.all([adapter.hasPermission(), adapter.hasBackgroundPermission()])
+      .then(([steps, background]) => steps && background)
+      .catch(() => false);
+    if (ok) return;
+    await save({ enabled: false });
+    setNotice('missingPermission');
+  }, [save]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && awaitingReturn.current) {
+        awaitingReturn.current = false;
+        void recheck();
+      }
+    });
+    return () => subscription.remove();
+  }, [recheck]);
+
+  /** Opens Health Connect; when the person comes back the permissions are checked again. */
+  const openHealthSettings = useCallback(() => {
+    awaitingReturn.current = true;
+    getHealthAdapter().openSettings();
+  }, []);
+
+  return { config, notice, update, setEnabled, openHealthSettings };
 }

@@ -338,6 +338,7 @@ Pomi acompaña: pregunta con cariño, calcula con datos reales y nunca juzga. To
 
 - Se construye con los check-ins; **mínimo 21 días con datos** y al menos 7 días en cada grupo que se compara (igual que la sección 12).
 - Contenido: tendencia de cronotipo (punto medio del sueño en días libres: "tiendes a ser más de mañana / intermedia / más de noche"; es una tendencia, no un diagnóstico), días en que más te mueves (gym, caminatas, pasos) y relación entre energía y sueño (solo si la diferencia es ≥ 0.5 puntos en la escala de 1 a 5).
+- [DESIGN] Excepción para la tendencia de cronotipo: al ser un único grupo (solo días libres), basta con un mínimo de 4 noches libres con datos, en lugar de los 7 días por grupo.
 - Lenguaje prudente y sin etiquetas fijas. Se actualiza una vez por semana.
 
 **Carta de Pomi (resumen semanal, domingo)**
@@ -348,7 +349,7 @@ Pomi acompaña: pregunta con cariño, calcula con datos reales y nunca juzga. To
 **Aviso de sedentarismo (pausa activa sugerida)**
 
 - Lee los pasos por hora de Health Connect en una **tarea en segundo plano** (granularidad aproximada de unos 15 min, no exacta).
-- Si en los últimos **N minutos** (por defecto 90) hay **menos pasos que el umbral**, dentro de la ventana de horas despierta y en días de trabajo, sugiere una **pausa activa** ("Llevas un rato sentada. ¿Estiramos 2 minutos?").
+- Si en los últimos **N minutos** (por defecto 90) hay **menos pasos que el umbral**, dentro de la ventana de horas despierta y en días de trabajo, sugiere una **pausa activa** ("Parece que llevas un rato sin moverte. ¿Estiramos 2 minutos?").
 - Totalmente configurable: activar o apagar, ventana horaria (por defecto de `wake + 1 h` a `bed − 2 h`), umbral de pasos, minutos N, días, y el interruptor **"No llevo el celular al caminar"**, que desactiva el aviso porque los pasos del celular no representan el movimiento real.
 - Máximo 1 aviso cada 2 horas y 3 por día; respeta las horas de silencio.
 - **Nota honesta en la app:** Android puede retrasar o saltarse tareas en segundo plano (ahorro de batería, optimización por fabricante, modo Doze), así que el aviso es una ayuda aproximada, no un recordatorio exacto.

@@ -109,6 +109,10 @@ export const settingsSchemas = {
   goalsChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   sedentaryNudge: sedentaryNudgeSchema,
   sedentaryHistory: sedentaryHistorySchema,
+  /** Epoch ms of the last heavy background run (suggestions + notification sync, at most every ~6 h). */
+  backgroundLastHeavyRunAt: z.number().nonnegative(),
+  /** Interval (minutes) the periodic job was last registered with; re-registering resets its period. */
+  backgroundIntervalMin: z.number().int().positive(),
   /** Day the person put away the one companion card of Hoy ("Tu ritmo"); it stays away that day. */
   companionCardDismissed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Last notification responses already applied (dedupes the background task vs the listener). */
@@ -124,6 +128,9 @@ export type SettingsKey = keyof typeof settingsSchemas;
 export type SettingsValue<K extends SettingsKey> = z.infer<(typeof settingsSchemas)[K]>;
 
 let savepointCounter = 0;
+/** Per-Db promise chain: concurrent `set` calls (savepoints share one connection) never interleave. */
+const setLocks = new WeakMap<object, Promise<unknown>>();
+
 const HANDLED_KEY = 'handledNotificationResponses';
 /** Handled notification responses kept for dedupe. */
 const HANDLED_LIMIT = 40;
@@ -171,6 +178,45 @@ export function createSettingsRepository(db: Db, now: () => number = Date.now) {
     }
   }
 
+  async function setUnlocked<K extends SettingsKey>(
+    key: K,
+    value: SettingsValue<K>,
+  ): Promise<void> {
+    const json = JSON.stringify(value);
+    if (key !== 'gymDays' && key !== 'goals') {
+      await write(key, json);
+      return;
+    }
+    // Value and stamp are ONE unit: a savepoint works at the top level (it opens the
+    // transaction) and nested inside the caller's transaction (it only rolls back its part).
+    const savepoint = `settings_set_${(savepointCounter += 1)}`;
+    await db.run(sql.raw(`savepoint ${savepoint}`));
+    let released = false;
+    try {
+      const before = await readRaw(key);
+      await write(key, json);
+      const today = dayKeyFor(new Date(now()));
+      if (key === 'gymDays' && normalizedGymDays(before) !== normalizedGymDays(json)) {
+        await write('gymDaysChangedOn', JSON.stringify(today));
+      }
+      if (key === 'goals' && stepsGoalOf(before) !== stepsGoalOf(json)) {
+        await write('goalsChangedOn', JSON.stringify(today));
+      }
+      await db.run(sql.raw(`release savepoint ${savepoint}`));
+      released = true;
+    } catch (error) {
+      // After a successful release the savepoint no longer exists: nothing to roll back.
+      if (released) throw error;
+      try {
+        await db.run(sql.raw(`rollback to savepoint ${savepoint}`));
+        await db.run(sql.raw(`release savepoint ${savepoint}`));
+      } catch {
+        // Keep the original failure.
+      }
+      throw error;
+    }
+  }
+
   return {
     /** Returns `undefined` when the key is missing or its stored value no longer matches the schema. */
     async get<K extends SettingsKey>(key: K): Promise<SettingsValue<K> | undefined> {
@@ -191,36 +237,17 @@ export function createSettingsRepository(db: Db, now: () => number = Date.now) {
      * different `goals.stepsGoal` -> `goalsChangedOn`. The suggestions engine reads the stamps so
      * it never judges a new plan by the old one.
      */
-    async set<K extends SettingsKey>(key: K, value: SettingsValue<K>): Promise<void> {
-      const json = JSON.stringify(value);
-      if (key !== 'gymDays' && key !== 'goals') {
-        await write(key, json);
-        return;
-      }
-      // Value and stamp are ONE unit: a savepoint works at the top level (it opens the
-      // transaction) and nested inside the caller's transaction (it only rolls back its part).
-      const savepoint = `settings_set_${(savepointCounter += 1)}`;
-      await db.run(sql.raw(`savepoint ${savepoint}`));
-      try {
-        const before = await readRaw(key);
-        await write(key, json);
-        const today = dayKeyFor(new Date(now()));
-        if (key === 'gymDays' && normalizedGymDays(before) !== normalizedGymDays(json)) {
-          await write('gymDaysChangedOn', JSON.stringify(today));
-        }
-        if (key === 'goals' && stepsGoalOf(before) !== stepsGoalOf(json)) {
-          await write('goalsChangedOn', JSON.stringify(today));
-        }
-        await db.run(sql.raw(`release savepoint ${savepoint}`));
-      } catch (error) {
-        try {
-          await db.run(sql.raw(`rollback to savepoint ${savepoint}`));
-          await db.run(sql.raw(`release savepoint ${savepoint}`));
-        } catch {
-          // Keep the original failure.
-        }
-        throw error;
-      }
+    set<K extends SettingsKey>(key: K, value: SettingsValue<K>): Promise<void> {
+      const previous = setLocks.get(db) ?? Promise.resolve();
+      const run = previous.then(
+        () => setUnlocked(key, value),
+        () => setUnlocked(key, value),
+      );
+      setLocks.set(
+        db,
+        run.catch(() => undefined),
+      );
+      return run;
     },
 
     /**

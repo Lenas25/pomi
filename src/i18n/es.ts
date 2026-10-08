@@ -803,6 +803,13 @@ export const es = {
     unavailable: 'Health Connect no está disponible en este teléfono.',
     denied:
       'No pudimos activarlo: falta el permiso de Health Connect. Puedes intentarlo cuando quieras.',
+    bgDenied:
+      'No pudimos activarlo: falta el permiso para leer Health Connect en segundo plano. Puedes darlo en los ajustes de Health Connect.',
+    featureUnavailable:
+      'Tu versión de Health Connect no permite la lectura en segundo plano, así que no podemos activar el aviso. Actualiza Health Connect e inténtalo de nuevo.',
+    missingPermission:
+      'Apagamos el aviso porque falta un permiso de Health Connect. Puedes volver a activarlo cuando quieras.',
+    openHealthSettings: 'Abrir ajustes de Health Connect',
     saveFailed: 'No pudimos guardar el cambio.',
     window: 'Mirar los últimos',
     windowOption: '{{min}} minutos',
@@ -815,10 +822,10 @@ export const es = {
     noPhoneOn:
       'Los pasos del celular no reflejan tu movimiento real, así que el aviso queda apagado.',
     honest:
-      'Es una ayuda aproximada. Android puede retrasar o saltarse las tareas en segundo plano (ahorro de batería, modo Doze) y esta necesita conexión a internet para ejecutarse, así que algún aviso puede no llegar. Solo avisa entre una hora después de despertar y dos antes de dormir, y nunca insiste.',
+      'Es una ayuda aproximada. Android puede retrasar o saltarse las tareas en segundo plano (ahorro de batería, modo Doze) y esta necesita conexión a internet para ejecutarse, así que algún aviso puede no llegar. Solo avisa entre una hora después de despertar y dos antes de dormir, y nunca insiste. Si tu teléfono o reloj no ha enviado pasos en las últimas 6 horas, no avisa: sin datos no podemos saber si estuviste quieto.',
     notification: {
       title: 'Pausa activa',
-      body: 'Llevas un rato sin moverte. ¿Estiramos 2 minutos?',
+      body: 'Parece que llevas un rato sin moverte. ¿Estiramos 2 minutos?',
     },
   },
   companion: {
@@ -886,7 +893,7 @@ export const es = {
       dismiss: 'Ahora no',
       sleepDebt: {
         title: '≈ {{hours}} de sueño pendiente',
-        body: 'Esta semana llevas un poco de sueño pendiente. Una noche algo más temprana puede ayudar.',
+        body: 'Esta semana llevas un poco de sueño pendiente, según tus check-ins.',
       },
       jetlag: {
         title: 'Tu sueño se corre en el fin de semana',

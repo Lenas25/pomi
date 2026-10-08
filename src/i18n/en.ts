@@ -805,6 +805,13 @@ export const en: Messages = {
     unavailable: 'Health Connect is not available on this phone.',
     denied:
       'We could not turn it on: the Health Connect permission is missing. You can try again any time.',
+    bgDenied:
+      'We could not turn it on: the permission to read Health Connect in the background is missing. You can grant it in the Health Connect settings.',
+    featureUnavailable:
+      'Your Health Connect version does not allow background reads, so we cannot turn the reminder on. Update Health Connect and try again.',
+    missingPermission:
+      'We turned the reminder off because a Health Connect permission is missing. You can turn it on again any time.',
+    openHealthSettings: 'Open Health Connect settings',
     saveFailed: 'We could not save the change.',
     window: 'Look at the last',
     windowOption: '{{min}} minutes',
@@ -816,10 +823,10 @@ export const en: Messages = {
     noPhone: 'I do not carry my phone when I walk',
     noPhoneOn: 'Phone steps do not show your real movement, so the reminder stays off.',
     honest:
-      'This is an approximate help. Android can delay or skip background tasks (battery saver, Doze mode) and this one needs an internet connection to run, so some reminders may not arrive. It only reminds between one hour after you wake up and two before bed, and it never insists.',
+      'This is an approximate help. Android can delay or skip background tasks (battery saver, Doze mode) and this one needs an internet connection to run, so some reminders may not arrive. It only reminds between one hour after you wake up and two before bed, and it never insists. If your phone or watch has not sent steps in the last 6 hours, it stays quiet: without data we cannot know whether you were still.',
     notification: {
       title: 'Active break',
-      body: 'You have not moved for a while. Shall we stretch for 2 minutes?',
+      body: 'It looks like you have not moved for a while. Shall we stretch for 2 minutes?',
     },
   },
   companion: {
@@ -885,7 +892,7 @@ export const en: Messages = {
       dismiss: 'Not now',
       sleepDebt: {
         title: '≈ {{hours}} of sleep owed',
-        body: 'This week you owe a little sleep. A slightly earlier night may help.',
+        body: 'This week you owe a little sleep, according to your check-ins.',
       },
       jetlag: {
         title: 'Your sleep shifts on weekends',

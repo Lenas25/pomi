@@ -20,24 +20,17 @@ import * as TaskManager from 'expo-task-manager';
 
 import { getDatabase, getRepositories } from '../db';
 import { bootstrapDatabase } from '../db/useDatabaseReady';
+import { getHealthAdapter } from '../health';
 import { nudgeNeedsFrequentWorker } from '../sedentary/runNudge';
 import { runSedentaryNudgeForReal } from '../sedentary/nudgeTask';
 import { runDailySuggestions } from '../suggestions/run';
 
+import { intervalFor, runBackgroundJob, shouldRegister } from './backgroundPolicy';
 import { handleNotificationResponse } from './handleResponse';
 import { runNotificationSync } from './sync';
 
 export const NOTIFICATION_RESPONSE_TASK = 'pomi-notification-response';
 export const NOTIFICATION_SYNC_TASK = 'pomi-notification-sync';
-/** Minutes between background refills (the system treats it as a minimum). */
-export const SYNC_INTERVAL_MIN = 6 * 60;
-/** The minimum WorkManager allows; used while the sedentary nudge is on. */
-export const FREQUENT_INTERVAL_MIN = 15;
-
-/** Minutes between runs of the single background job. */
-export function workerIntervalFor(frequent: boolean): number {
-  return frequent ? FREQUENT_INTERVAL_MIN : SYNC_INTERVAL_MIN;
-}
 
 function isResponse(data: unknown): data is Notifications.NotificationResponse {
   return typeof data === 'object' && data !== null && 'actionIdentifier' in data;
@@ -56,20 +49,23 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
 );
 
 TaskManager.defineTask(NOTIFICATION_SYNC_TASK, async () => {
-  try {
-    await bootstrapDatabase();
+  const repos = () => getRepositories();
+  const result = await runBackgroundJob({
+    now: () => new Date(),
+    bootstrap: bootstrapDatabase,
+    lastHeavyRunAt: () => repos().settings.get('backgroundLastHeavyRunAt'),
+    saveHeavyRunAt: (ms) => repos().settings.set('backgroundLastHeavyRunAt', ms),
     // Once per day: look for suggestions while the app is closed (the card waits on Hoy).
-    await runDailySuggestions(getDatabase(), getRepositories()).catch(() => []);
-    // Same mutex as the foreground triggers; a failure still answers Failed to WorkManager.
-    await runNotificationSync();
-    // The nudge never makes the job fail: a missed nudge is fine, it is approximate by nature.
-    await runSedentaryNudgeForReal().catch((error: unknown) => {
-      if (__DEV__) console.warn('Sedentary nudge failed', error);
-    });
-    return BackgroundTask.BackgroundTaskResult.Success;
-  } catch {
-    return BackgroundTask.BackgroundTaskResult.Failed;
-  }
+    suggestions: () => runDailySuggestions(getDatabase(), getRepositories()),
+    sync: runNotificationSync,
+    nudge: runSedentaryNudgeForReal,
+    report: (what, error) => {
+      if (__DEV__) console.warn(`Background job: ${what} failed`, error);
+    },
+  });
+  return result === 'success'
+    ? BackgroundTask.BackgroundTaskResult.Success
+    : BackgroundTask.BackgroundTaskResult.Failed;
 });
 
 /** Registers both tasks (persisted by the OS; calling it again is harmless). */
@@ -79,16 +75,25 @@ export async function registerBackgroundTasks(): Promise<void> {
 }
 
 /**
- * (Re)registers the periodic job with the interval the current settings need: every ~15 minutes
- * while the sedentary nudge is on, every 6 hours otherwise. Call it again after the nudge settings
- * change.
+ * Registers the periodic job with the cadence the current settings need (15 minutes while the
+ * nudge can run, 6 hours otherwise). The registration is remembered: registering again resets the
+ * WorkManager period, so it only happens when the cadence flips or the job is not registered
+ * (fresh install, restored backup on another phone). Call it after the nudge settings change.
  */
 export async function refreshBackgroundSchedule(): Promise<void> {
   if ((await BackgroundTask.getStatusAsync()) !== BackgroundTask.BackgroundTaskStatus.Available) {
     return;
   }
-  const frequent = nudgeNeedsFrequentWorker(await getRepositories().settings.get('sedentaryNudge'));
-  await BackgroundTask.registerTaskAsync(NOTIFICATION_SYNC_TASK, {
-    minimumInterval: workerIntervalFor(frequent),
-  });
+  const settings = getRepositories().settings;
+  const config = await settings.get('sedentaryNudge');
+  const permitted = nudgeNeedsFrequentWorker(config)
+    ? await getHealthAdapter()
+        .hasBackgroundPermission()
+        .catch(() => false)
+    : false;
+  const wanted = intervalFor(config, permitted);
+  const registered = await TaskManager.isTaskRegisteredAsync(NOTIFICATION_SYNC_TASK);
+  if (!shouldRegister(wanted, await settings.get('backgroundIntervalMin'), registered)) return;
+  await BackgroundTask.registerTaskAsync(NOTIFICATION_SYNC_TASK, { minimumInterval: wanted });
+  await settings.set('backgroundIntervalMin', wanted);
 }

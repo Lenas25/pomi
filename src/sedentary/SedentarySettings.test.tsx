@@ -12,9 +12,16 @@ const mocked = jest.mocked(useSedentarySettings);
 
 const update = jest.fn(async () => undefined);
 const setEnabled = jest.fn(async () => undefined);
+const openHealthSettings = jest.fn();
 
 function mockSettings(stored: Parameters<typeof resolveSedentaryConfig>[0], notice = null) {
-  mocked.mockReturnValue({ config: resolveSedentaryConfig(stored), notice, update, setEnabled });
+  mocked.mockReturnValue({
+    config: resolveSedentaryConfig(stored),
+    notice,
+    update,
+    setEnabled,
+    openHealthSettings,
+  });
 }
 
 function renderIt() {
@@ -70,5 +77,19 @@ describe('SedentarySettings', () => {
     mockSettings(undefined, 'denied' as never);
     await renderIt();
     expect(screen.getByText(/falta el permiso de Health Connect/)).toBeTruthy();
+  });
+
+  it('offers the Health Connect settings when a permission is missing', async () => {
+    mockSettings(undefined, 'bgDenied' as never);
+    await renderIt();
+    expect(screen.getByText(/falta el permiso para leer Health Connect/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Abrir ajustes de Health Connect' }));
+    expect(openHealthSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('documents the no-recent-data limitation', async () => {
+    mockSettings(undefined);
+    await renderIt();
+    expect(screen.getByText(/últimas 6 horas/)).toBeTruthy();
   });
 });

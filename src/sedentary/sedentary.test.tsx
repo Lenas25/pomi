@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
-import { workerIntervalFor } from '../notifications/backgroundTasks';
+import { intervalFor } from '../notifications/backgroundPolicy';
 import { categoryDefinitions } from '../notifications/categories';
 import { ACTIONS } from '../notifications/constants';
 import { DEFAULT_SEDENTARY, type NudgeHistory } from '../domain/sedentary';
@@ -121,6 +121,16 @@ describe('runSedentaryNudge', () => {
     await expect(runSedentaryNudge(failing.deps)).rejects.toThrow('no channel');
     expect(failing.saveHistory).toHaveBeenLastCalledWith(previous);
 
+    // First nudge ever: a failed notification must not leave a count behind either.
+    const fresh = setup({
+      notify: async () => {
+        throw new Error('no channel');
+      },
+    });
+    await expect(runSedentaryNudge(fresh.deps)).rejects.toThrow('no channel');
+    expect(fresh.history()?.count).toBe(0);
+    expect(fresh.history()?.lastAt).toBeUndefined();
+
     const unsaved = setup({
       saveHistory: async () => {
         throw new Error('db');
@@ -147,8 +157,9 @@ describe('configuration', () => {
     expect(nudgeNeedsFrequentWorker(undefined)).toBe(false);
     expect(nudgeNeedsFrequentWorker({ enabled: true })).toBe(true);
     expect(nudgeNeedsFrequentWorker({ enabled: true, noPhone: true })).toBe(false);
-    expect(workerIntervalFor(true)).toBe(15);
-    expect(workerIntervalFor(false)).toBe(360);
+    expect(intervalFor({ enabled: true }, true)).toBe(15);
+    expect(intervalFor({ enabled: true }, false)).toBe(360);
+    expect(intervalFor(undefined, true)).toBe(360);
   });
 });
 
@@ -192,7 +203,17 @@ describe('ensureNudgePermissions', () => {
           requestBackgroundPermission: jest.fn(async () => false),
         }),
       ),
-    ).toBe('denied');
+    ).toBe('bgDenied');
+    expect(
+      await ensureNudgePermissions(
+        adapter({
+          hasBackgroundPermission: async () => false,
+          requestBackgroundPermission: jest.fn(async () => {
+            throw new Error('feature missing');
+          }),
+        }),
+      ),
+    ).toBe('featureUnavailable');
     expect(
       await ensureNudgePermissions(
         adapter({

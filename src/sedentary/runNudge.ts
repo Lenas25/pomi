@@ -84,7 +84,8 @@ export async function runSedentaryNudge(deps: NudgeDeps): Promise<NudgeDecision>
   try {
     await deps.notify();
   } catch (error) {
-    if (history) await deps.saveHistory(history).catch(() => undefined);
+    // Give the count back, even when there was no history before (a failed nudge consumes nothing).
+    await deps.saveHistory(history ?? { date: next.date, count: 0 }).catch(() => undefined);
     throw error;
   }
   return decision;

@@ -10,8 +10,16 @@ import { NumberStepper } from '../ui/Stepper';
 import { useTheme } from '../ui/theme';
 import { WINDOW_OPTIONS_MIN } from '../domain/sedentary';
 
-import { useSedentarySettings } from './useSedentarySettings';
+import { useSedentarySettings, type SedentaryNotice } from './useSedentarySettings';
+import { Button } from '../ui/Button';
 
+/** Notices that the Health Connect settings screen can fix. */
+const FIXABLE_NOTICES: readonly SedentaryNotice[] = [
+  'denied',
+  'bgDenied',
+  'featureUnavailable',
+  'missingPermission',
+];
 const THRESHOLD_STEP = 50;
 /** Monday first. */
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
@@ -20,7 +28,7 @@ const DAY_KEYS = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6'] as const;
 export function SedentarySettings() {
   const t = useT();
   const theme = useTheme();
-  const { config, notice, update, setEnabled } = useSedentarySettings();
+  const { config, notice, update, setEnabled, openHealthSettings } = useSedentarySettings();
   if (!config) return null;
 
   const muted = [theme.text('caption'), { color: theme.color.textMuted }];
@@ -136,6 +144,13 @@ export function SedentarySettings() {
           >
             {t(`sedentary.${notice}`)}
           </Text>
+        ) : null}
+        {FIXABLE_NOTICES.includes(notice) ? (
+          <Button
+            label={t('sedentary.openHealthSettings')}
+            variant="secondary"
+            onPress={openHealthSettings}
+          />
         ) : null}
         <Text style={muted}>{t('sedentary.honest')}</Text>
       </View>
