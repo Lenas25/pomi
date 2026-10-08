@@ -479,6 +479,7 @@ export const es = {
       habits: 'Hábitos',
       checkins: 'Check-ins',
       reminders: 'Recordatorios',
+      review: 'Revisión semanal',
     },
   },
   permissions: {
@@ -496,7 +497,7 @@ export const es = {
     },
     alarms: {
       title: 'Alarmas exactas',
-      body: 'Sin este permiso, Android 12 o superior puede retrasar tus avisos y el fin de cada descanso. Con él suenan a la hora justa.',
+      body: 'Opcional. Sirve para que el fin de cada descanso del gym suene a la hora justa. Tus avisos llegan igual, quizá con unos minutos de diferencia.',
       hint: 'Android no deja que Pomi lo compruebe. Abre el ajuste y activa «Alarmas y recordatorios».',
       open: 'Abrir ajuste de alarmas',
       unsupported: 'Tu versión de Android no necesita este permiso.',
@@ -649,7 +650,7 @@ export const es = {
     },
     identity: {
       first: 'Hoy empieza algo bueno. Sin prisa.',
-      weeks: 'Llevas {{n}} semanas entrenando de forma constante',
+      weeks: 'Entrenaste en {{n}} de las últimas 8 semanas',
       moving: 'Ya te estás moviendo. Sigue a tu ritmo.',
       water: 'Cuidaste tu agua {{done}} de los últimos 10 días',
       fallback: 'Un paso a la vez. Hoy cuenta.',
@@ -661,6 +662,8 @@ export const es = {
     itemLabel: '{{time}}, {{title}}, {{status}}',
     allDayLabel: 'Durante el día',
     markDone: 'Marcar «{{title}}» como hecho',
+    doneState: '«{{title}}», hecho',
+    actions: { done: 'Marcar como hecho' },
     openItem: 'Abrir «{{title}}»',
     menu: {
       title: 'Opciones de «{{title}}»',

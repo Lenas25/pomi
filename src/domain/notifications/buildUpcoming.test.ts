@@ -73,6 +73,25 @@ describe('buildUpcoming ids and ordering', () => {
   });
 });
 
+describe('72 hour rolling window', () => {
+  it('opened in the evening it still plans about three days ahead', () => {
+    const evening = new Date(2026, 9, 5, 21, 0);
+    const list = buildUpcoming(state(), evening);
+    const last = Math.max(...list.map((n) => n.at));
+    // Thursday morning is inside the window (before Thursday 21:00), nothing is beyond it.
+    expect(last).toBeGreaterThan(new Date(2026, 9, 8, 5, 0).getTime());
+    expect(last).toBeLessThanOrEqual(evening.getTime() + 72 * 3_600_000);
+    expect(new Set(list.map((n) => n.data.date))).toContain('2026-10-08');
+  });
+
+  it('never plans beyond from + days × 24 h', () => {
+    const noon = new Date(2026, 9, 5, 12, 0);
+    const list = buildUpcoming(state(), noon, 2);
+    expect(list.every((n) => n.at <= noon.getTime() + 48 * 3_600_000)).toBe(true);
+    expect(list.some((n) => n.data.date === '2026-10-07')).toBe(true);
+  });
+});
+
 describe('day rollover (04:00)', () => {
   it("applies the 'done today' flags to the day still in progress after midnight", () => {
     // Tuesday 03:30 still belongs to Monday: Monday's morning check-in being done must not hide
@@ -90,7 +109,8 @@ describe('day rollover (04:00)', () => {
       tuesdayNight,
     );
     const morning = ofKind(list, 'checkin').filter((n) => n.data.checkin === 'morning');
-    expect(morning.map((n) => n.data.date)).toEqual(['2026-10-06', '2026-10-07']);
+    // 72 h from Tuesday 03:30 reach Thursday's morning check-in.
+    expect(morning.map((n) => n.data.date)).toEqual(['2026-10-06', '2026-10-07', '2026-10-08']);
   });
 
   it('stamps the logical day on notifications that fire between midnight and 04:00', () => {

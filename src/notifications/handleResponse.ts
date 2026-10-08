@@ -9,14 +9,11 @@ import { dayKeyFor } from '../domain/time';
 import { ACTIONS } from './constants';
 import {
   applyResponse,
-  claimKey,
   type ResponseDeps,
   type ResponseInput,
   type ResponseOutcome,
 } from './responses';
 import { requestNotificationSync } from './sync';
-
-const handledInMemory = new Set<string>();
 
 export function toResponseInput(response: Notifications.NotificationResponse): ResponseInput {
   const { request, date } = response.notification;
@@ -36,14 +33,8 @@ function realDeps(): ResponseDeps {
   return {
     today: () => dayKeyFor(new Date()),
     now: Date.now,
-    claim: async (key) => {
-      if (handledInMemory.has(key)) return false;
-      handledInMemory.add(key);
-      const stored = (await repos.settings.get('handledNotificationResponses')) ?? [];
-      const { handled, isNew } = claimKey(stored, key);
-      if (isNew) await repos.settings.set('handledNotificationResponses', handled);
-      return isNew;
-    },
+    claim: (key) => repos.settings.claimNotificationResponse(key),
+    release: (key) => repos.settings.releaseNotificationResponse(key),
     logActivity: (date, kind) => repos.activity.upsert(date, kind, 'notification'),
     incrementHabit: (habitId, date) => repos.habitLogs.increment(habitId, date),
     setHabitDone: (habitId, date) => repos.habitLogs.set(habitId, date, 1),

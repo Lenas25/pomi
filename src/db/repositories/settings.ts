@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
@@ -71,6 +71,10 @@ export const settingsSchemas = {
 export type SettingsKey = keyof typeof settingsSchemas;
 export type SettingsValue<K extends SettingsKey> = z.infer<(typeof settingsSchemas)[K]>;
 
+const HANDLED_KEY = 'handledNotificationResponses';
+/** Handled notification responses kept for dedupe. */
+const HANDLED_LIMIT = 40;
+
 export function createSettingsRepository(db: Db) {
   return {
     /** Returns `undefined` when the key is missing or its stored value no longer matches the schema. */
@@ -92,6 +96,46 @@ export function createSettingsRepository(db: Db) {
         .insert(settings)
         .values({ key, value: json })
         .onConflictDoUpdate({ target: settings.key, set: { value: json } });
+    },
+
+    /**
+     * Claims a notification response for exactly one handler: a SINGLE upsert-if-absent statement
+     * (no read-then-write window between the background task and the foreground listener).
+     * Returns `false` when the key was already claimed. Bounded to the last `HANDLED_LIMIT` keys.
+     */
+    async claimNotificationResponse(responseKey: string): Promise<boolean> {
+      const rows = await db
+        .insert(settings)
+        .values({ key: HANDLED_KEY, value: JSON.stringify([responseKey]) })
+        .onConflictDoUpdate({
+          target: settings.key,
+          set: { value: sql`json_insert(settings.value, '$[#]', ${responseKey})` },
+          setWhere: sql`NOT EXISTS (SELECT 1 FROM json_each(settings.value) AS handled WHERE handled.value = ${responseKey})`,
+        })
+        .returning({ key: settings.key });
+      if (rows.length === 0) return false;
+      await db
+        .update(settings)
+        .set({
+          value: sql`(SELECT json_group_array(handled.value) FROM json_each(settings.value) AS handled WHERE handled.key >= json_array_length(settings.value) - ${HANDLED_LIMIT})`,
+        })
+        .where(
+          and(
+            eq(settings.key, HANDLED_KEY),
+            sql`json_array_length(settings.value) > ${HANDLED_LIMIT}`,
+          ),
+        );
+      return true;
+    },
+
+    /** Undoes `claimNotificationResponse` (the action failed, so a retry must be able to run). */
+    async releaseNotificationResponse(responseKey: string): Promise<void> {
+      await db
+        .update(settings)
+        .set({
+          value: sql`(SELECT json_group_array(handled.value) FROM json_each(settings.value) AS handled WHERE handled.value <> ${responseKey})`,
+        })
+        .where(eq(settings.key, HANDLED_KEY));
     },
 
     async remove(key: SettingsKey): Promise<void> {

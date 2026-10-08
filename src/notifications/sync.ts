@@ -79,30 +79,38 @@ export type SyncReason =
   | 'dataChanged'
   | 'background';
 
-let running: Promise<unknown> | undefined;
-let again = false;
+// One mutex serializes EVERY sync (foreground triggers and the background task), so two runs never
+// diff against the same OS state at once.
+let lock: Promise<unknown> = Promise.resolve();
+
+function exclusive<T>(job: () => Promise<T>): Promise<T> {
+  const result = lock.then(job, job);
+  lock = result.catch(() => undefined);
+  return result;
+}
+
+/** Serialized sync that REPORTS failures (the background task must answer Failed to WorkManager). */
+export function runNotificationSync(): Promise<SyncResult> {
+  return exclusive(syncNotifications);
+}
+
+let queued: Promise<unknown> | undefined;
 
 /**
- * Asks for a sync from anywhere. Runs are serialized and coalesced: requests that arrive while one
- * runs trigger exactly one more run afterwards, so the last state always wins.
+ * Asks for a sync from anywhere. Runs are serialized and coalesced: requests that arrive while a
+ * run is still WAITING share it; one that arrives while a run is executing queues exactly one more,
+ * so the last state always wins. Failures are swallowed (logged in development).
  */
 export function requestNotificationSync(_reason: SyncReason): Promise<unknown> {
-  if (running) {
-    again = true;
-    return running;
-  }
-  const run = (async () => {
+  if (queued) return queued;
+  const run = exclusive(async () => {
+    queued = undefined;
     try {
-      do {
-        again = false;
-        await syncNotifications();
-      } while (again);
+      await syncNotifications();
     } catch (error) {
       if (__DEV__) console.warn('Notification sync failed', error);
-    } finally {
-      running = undefined;
     }
-  })();
-  running = run;
+  });
+  queued = run;
   return run;
 }

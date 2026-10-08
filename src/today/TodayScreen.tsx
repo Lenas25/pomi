@@ -108,7 +108,16 @@ export function TodayScreen() {
                   return highlight ? { highlight } : {};
                 })()}
                 accessibilityLabel={entryAccessibilityLabel(entry, t)}
-                checkLabel={t('today.markDone', { title: entryTitle(entry, t) })}
+                checkLabel={t(entry.status === 'done' ? 'today.doneState' : 'today.markDone', {
+                  title: entryTitle(entry, t),
+                })}
+                actionLabels={{
+                  done: t('today.actions.done'),
+                  postpone: t('today.menu.snooze'),
+                  skip: t('today.menu.skip'),
+                }}
+                onPostpone={() => void today.postpone(entry)}
+                onSkip={() => void today.skip(entry)}
                 onPress={() => today.open(entry)}
                 onCheck={() => void today.done(entry)}
                 onLongPress={() => setMenuFor(entry)}

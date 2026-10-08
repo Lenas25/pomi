@@ -7,8 +7,9 @@
 //    `opensAppToForeground: false`, so the app does not open. On iOS this is not supported
 //    (Pomi v1 is Android only).
 //    https://docs.expo.dev/versions/latest/sdk/notifications/#run-javascript-in-response-to-incoming-notifications
-// 2. A periodic WorkManager job (expo-background-task, >= 15 min, system decided, needs network
-//    and battery constraints) that refills the rolling 3-day window.
+// 2. A periodic WorkManager job (expo-background-task, >= 15 min, system decided) that refills the rolling 3-day window. The library hardcodes
+//    `NetworkType.CONNECTED` in its WorkManager request (BackgroundTaskScheduler.kt); it is not
+//    configurable, so the job never runs offline. The 72 h window is what covers that.
 //    https://docs.expo.dev/versions/latest/sdk/background-task/
 import * as BackgroundTask from 'expo-background-task';
 import * as Notifications from 'expo-notifications';
@@ -17,7 +18,7 @@ import * as TaskManager from 'expo-task-manager';
 import { bootstrapDatabase } from '../db/useDatabaseReady';
 
 import { handleNotificationResponse } from './handleResponse';
-import { syncNotifications } from './sync';
+import { runNotificationSync } from './sync';
 
 export const NOTIFICATION_RESPONSE_TASK = 'pomi-notification-response';
 export const NOTIFICATION_SYNC_TASK = 'pomi-notification-sync';
@@ -43,7 +44,8 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
 TaskManager.defineTask(NOTIFICATION_SYNC_TASK, async () => {
   try {
     await bootstrapDatabase();
-    await syncNotifications();
+    // Same mutex as the foreground triggers; a failure still answers Failed to WorkManager.
+    await runNotificationSync();
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
     return BackgroundTask.BackgroundTaskResult.Failed;

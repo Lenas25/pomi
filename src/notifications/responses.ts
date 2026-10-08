@@ -21,16 +21,23 @@ export type ResponseInput = {
 const payloadSchema = z.looseObject({
   source: z.literal(SOURCE),
   kind: z.string(),
-  channel: z.enum(['gym', 'habits', 'checkins', 'reminders']),
+  channel: z.enum(['gym', 'habits', 'checkins', 'reminders', 'review']),
   habitId: z.string().optional(),
+  /** Logical day (`yyyy-MM-dd`) the notification was planned for. */
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 export type ResponseDeps = {
   /** `yyyy-MM-dd` of today. */
   today: () => string;
   now: () => number;
-  /** First caller wins: `false` when this response was already applied (other runtime / listener). */
+  /** First caller wins (atomic): `false` when this response was already claimed (other runtime / listener). */
   claim: (key: string) => Promise<boolean>;
+  /** Gives the claim back, so a response whose action failed can be retried. */
+  release: (key: string) => Promise<void>;
   logActivity: (date: string, kind: ActivityKind) => Promise<void>;
   incrementHabit: (habitId: string, date: string) => Promise<void>;
   setHabitDone: (habitId: string, date: string) => Promise<void>;
@@ -69,24 +76,39 @@ export async function applyResponse(
     action in ACTIVITY_BY_ACTION;
   if (!isKnownAction) return 'ignored';
 
-  if (!(await deps.claim(`${input.notificationId}|${action}|${input.deliveredAt}`))) {
-    return 'duplicate';
+  const key = `${input.notificationId}|${action}|${input.deliveredAt}`;
+  if (!(await deps.claim(key))) return 'duplicate';
+  try {
+    return await perform(input, payload, deps);
+  } catch (error) {
+    // The action did not happen: give the claim back so the response can be applied again.
+    await deps.release(key).catch(() => undefined);
+    throw error;
   }
-  const today = deps.today();
+}
+
+async function perform(
+  input: ResponseInput,
+  payload: z.infer<typeof payloadSchema>,
+  deps: ResponseDeps,
+): Promise<ResponseOutcome> {
+  const action = input.actionIdentifier;
+  // The data belongs to the day the notification was planned for, not to the moment of the tap.
+  const date = payload.date ?? deps.today();
 
   const activity = ACTIVITY_BY_ACTION[action];
   if (activity !== undefined) {
     // "Hoy no" is an answer, never a miss.
-    await deps.logActivity(today, activity);
+    await deps.logActivity(date, activity);
     return 'handled';
   }
   if (action === ACTIONS.addWater && payload.habitId) {
-    await deps.incrementHabit(payload.habitId, today);
+    await deps.incrementHabit(payload.habitId, date);
     return 'handled';
   }
   if (action === ACTIONS.done) {
     if (!payload.habitId) return 'ignored';
-    await deps.setHabitDone(payload.habitId, today);
+    await deps.setHabitDone(payload.habitId, date);
     return 'handled';
   }
   if (action === ACTIONS.snooze) {
@@ -103,16 +125,6 @@ export async function applyResponse(
     return 'handled';
   }
   return 'ignored';
-}
-
-/** Keeps a bounded list of handled keys; returns the new list and whether `key` was new. */
-export function claimKey(
-  handled: readonly string[],
-  key: string,
-  limit = 40,
-): { handled: string[]; isNew: boolean } {
-  if (handled.includes(key)) return { handled: [...handled], isNew: false };
-  return { handled: [...handled, key].slice(-limit), isNew: true };
 }
 
 export type NotificationRoute =

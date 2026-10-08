@@ -9,7 +9,13 @@ function renderThemed(ui: ReactElement) {
 }
 
 function setup(status: TimelineItemStatus) {
-  const handlers = { onPress: jest.fn(), onCheck: jest.fn(), onLongPress: jest.fn() };
+  const handlers = {
+    onPress: jest.fn(),
+    onCheck: jest.fn(),
+    onLongPress: jest.fn(),
+    onPostpone: jest.fn(),
+    onSkip: jest.fn(),
+  };
   const ui = (
     <TimelineItem
       status={status}
@@ -17,7 +23,8 @@ function setup(status: TimelineItemStatus) {
       title="Gym"
       subtitle="Día 1"
       accessibilityLabel="06:00, Gym, Pendiente"
-      checkLabel="Marcar «Gym» como hecho"
+      checkLabel={status === 'done' ? '«Gym», hecho' : 'Marcar «Gym» como hecho'}
+      actionLabels={{ done: 'Hecho', postpone: 'Posponer', skip: 'Omitir' }}
       {...handlers}
     />
   );
@@ -35,7 +42,7 @@ describe('TimelineItem', () => {
   it('the check button is the alternative to the swipe', async () => {
     const { ui, handlers } = setup('upcoming');
     await renderThemed(ui);
-    await fireEvent.press(screen.getByRole('checkbox', { name: 'Marcar «Gym» como hecho' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Marcar «Gym» como hecho' }));
     expect(handlers.onCheck).toHaveBeenCalledTimes(1);
   });
 
@@ -49,13 +56,37 @@ describe('TimelineItem', () => {
     expect(handlers.onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('a done row is checked, struck through and dimmed; a skipped one is not checked', async () => {
-    const { unmount } = await renderThemed(setup('done').ui);
-    const done = screen.getByRole('checkbox');
-    expect(done.props.accessibilityState).toMatchObject({ checked: true });
+  it('exposes done / postpone / skip as labeled accessibility actions', async () => {
+    const { ui, handlers } = setup('upcoming');
+    await renderThemed(ui);
+    const row = screen.getByRole('button', { name: '06:00, Gym, Pendiente' });
+    expect(row.props.accessibilityActions).toEqual([
+      { name: 'done', label: 'Hecho' },
+      { name: 'postpone', label: 'Posponer' },
+      { name: 'skip', label: 'Omitir' },
+    ]);
+    for (const actionName of ['done', 'postpone', 'skip']) {
+      await fireEvent(row, 'accessibilityAction', { nativeEvent: { actionName } });
+    }
+    expect(handlers.onCheck).toHaveBeenCalledTimes(1);
+    expect(handlers.onPostpone).toHaveBeenCalledTimes(1);
+    expect(handlers.onSkip).toHaveBeenCalledTimes(1);
+  });
+
+  it('a done row is dimmed and struck through, and its check button says it is done', async () => {
+    await renderThemed(setup('done').ui);
     expect(screen.getByText('Gym')).toHaveStyle({ textDecorationLine: 'line-through' });
-    await unmount();
-    await renderThemed(setup('skipped').ui);
-    expect(screen.getByRole('checkbox').props.accessibilityState).toMatchObject({ checked: false });
+    expect(screen.getByRole('button', { name: '«Gym», hecho' })).toBeTruthy();
+  });
+
+  it('calls the latest onCheck after a re-render (the gesture reads it from a ref)', async () => {
+    const first = jest.fn();
+    const second = jest.fn();
+    const base = setup('upcoming').ui;
+    const withHandler = (onCheck: () => void) => ({ ...base, props: { ...base.props, onCheck } });
+    const view = await renderThemed(withHandler(first));
+    await view.rerender(<ThemeProvider mode="light">{withHandler(second)}</ThemeProvider>);
+    await fireEvent.press(screen.getByRole('button', { name: 'Marcar «Gym» como hecho' }));
+    expect(second).toHaveBeenCalledTimes(1);
   });
 });

@@ -3,11 +3,21 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import { createRepositories, type Repositories } from '../db/repositories';
 import { createTestDb } from '../db/testing/createTestDb';
 import { buildTimeline, type TimelineEntry } from '../domain/today/timeline';
+import { es } from '../i18n/es';
+import type { Translate } from '../i18n';
 import { loadDefaultTemplates } from '../templates/defaults';
+
+import { snoozeContent } from './labels';
 
 import { markDone, postpone, skipToday, type TodayActionDeps } from './todayActions';
 import { loadTodayData } from './todayData';
-import { emptyTodayState, progressFrom, todayStateFor, type TodayState } from './todayView';
+import {
+  emptyTodayState,
+  progressFrom,
+  settledSnoozeIds,
+  todayStateFor,
+  type TodayState,
+} from './todayView';
 
 let repos: Repositories;
 let close: () => void;
@@ -121,6 +131,7 @@ describe('timeline actions', () => {
   const logCheck = jest.fn<TodayActionDeps['logCheck']>();
   const addWater = jest.fn<TodayActionDeps['addWater']>();
   const scheduleSnooze = jest.fn<TodayActionDeps['scheduleSnooze']>();
+  const cancelSnoozes = jest.fn<TodayActionDeps['cancelSnoozes']>();
   let deps: TodayActionDeps;
   let entries: TimelineEntry[];
 
@@ -129,6 +140,7 @@ describe('timeline actions', () => {
     logCheck.mockResolvedValue(undefined);
     addWater.mockResolvedValue(undefined);
     scheduleSnooze.mockResolvedValue(undefined);
+    cancelSnoozes.mockResolvedValue(undefined);
     state = emptyTodayState(TODAY);
     deps = {
       today: TODAY,
@@ -140,6 +152,7 @@ describe('timeline actions', () => {
       logCheck,
       addWater,
       scheduleSnooze,
+      cancelSnoozes,
     };
     const data = await loadTodayData(repos, NOW);
     entries = buildTimeline(
@@ -209,10 +222,74 @@ describe('timeline actions', () => {
     expect(progress.skippedIds.has('gym')).toBe(true);
   });
 
+  it('cancels the postponed reminder when the row is done or skipped, and before postponing again', async () => {
+    await markDone(entry('habit:movimiento:caminar-comida'), deps);
+    expect(cancelSnoozes).toHaveBeenLastCalledWith('habit:movimiento:caminar-comida');
+    await markDone(entry('reminder:sueno:dormir'), deps);
+    expect(cancelSnoozes).toHaveBeenLastCalledWith('reminder:sueno:dormir');
+    await skipToday(entry('gym'), deps);
+    expect(cancelSnoozes).toHaveBeenLastCalledWith('gym');
+    cancelSnoozes.mockClear();
+    await postpone(entry('gym'), deps);
+    expect(cancelSnoozes).toHaveBeenCalledWith('gym');
+    // Opening a screen (gym) is not "done": nothing is cancelled by markDone.
+    cancelSnoozes.mockClear();
+    await markDone(entry('gym'), deps);
+    expect(cancelSnoozes).not.toHaveBeenCalled();
+  });
+
+  it('finds postponed rows that real data already settled', async () => {
+    const data = await loadTodayData(repos, NOW);
+    await repos.habitLogs.set('caminar-comida', TODAY, 1);
+    const after = await loadTodayData(repos, NOW);
+    const snoozed = { 'habit:movimiento:caminar-comida': 1, gym: 2 };
+    expect(settledSnoozeIds(data.agenda, data.facts, { ...data.state, snoozed })).toEqual([]);
+    expect(settledSnoozeIds(after.agenda, after.facts, { ...after.state, snoozed })).toEqual([
+      'habit:movimiento:caminar-comida',
+    ]);
+    expect(
+      settledSnoozeIds(after.agenda, after.facts, { ...after.state, snoozed, skipped: ['gym'] }),
+    ).toEqual(['habit:movimiento:caminar-comida', 'gym']);
+  });
+
   it('todayStateFor keeps the stored state of today only', () => {
     const stored = { ...emptyTodayState(TODAY), skipped: ['gym'] };
     expect(todayStateFor(stored, TODAY)).toBe(stored);
     expect(todayStateFor(stored, '2026-10-06')).toEqual(emptyTodayState('2026-10-06'));
     expect(todayStateFor(undefined, TODAY)).toEqual(emptyTodayState(TODAY));
+  });
+});
+
+describe('snoozeContent', () => {
+  const translate: Translate = (key, options) => {
+    const text = key
+      .split('.')
+      .reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], es);
+    return String(text ?? key).replace(/\{\{(\w+)\}\}/g, (_, name: string) =>
+      String(options?.[name] ?? ''),
+    );
+  };
+
+  it('uses the body of its kind, within the BRAND limits', async () => {
+    const data = await loadTodayData(repos, NOW);
+    const entries = buildTimeline(
+      data.agenda,
+      600,
+      progressFrom(data.agenda, data.facts, data.state, data.midnight),
+    );
+    const pick = (id: string) => {
+      const found = entries.find((candidate) => candidate.id === id);
+      if (!found) throw new Error(`missing ${id}`);
+      return snoozeContent(found, translate);
+    };
+    expect(pick('gym')).toEqual({ title: es.notify.gym.title, body: es.notify.gym.body });
+    expect(pick('checkin:night').body).toBe(es.notify.checkinNight.body);
+    expect(pick('reminder:sueno:dormir').title).toBe(es.notify.reminder.title);
+    expect(pick('habit:movimiento:caminar-comida').body).toBe(es.notify.habit.body);
+    for (const entry of entries) {
+      const { title, body } = snoozeContent(entry, translate);
+      expect([...title].length).toBeLessThanOrEqual(30);
+      expect([...body].length).toBeLessThanOrEqual(80);
+    }
   });
 });

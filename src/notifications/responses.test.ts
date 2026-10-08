@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ACTIONS, SNOOZE_MINUTES } from './constants';
 import {
   applyResponse,
-  claimKey,
   routeForNotification,
   type ResponseDeps,
   type ResponseInput,
@@ -31,6 +30,9 @@ beforeEach(() => {
       if (claimed.has(key)) return false;
       claimed.add(key);
       return true;
+    },
+    release: async (key) => {
+      claimed.delete(key);
     },
     logActivity,
     incrementHabit,
@@ -114,12 +116,32 @@ describe('safety', () => {
   });
 });
 
-describe('claimKey', () => {
-  it('remembers recent keys and bounds the list', () => {
-    const first = claimKey([], 'a', 3);
-    expect(first).toEqual({ handled: ['a'], isNew: true });
-    expect(claimKey(first.handled, 'a', 3).isNew).toBe(false);
-    expect(claimKey(['a', 'b', 'c'], 'd', 3).handled).toEqual(['b', 'c', 'd']);
+describe('failure and dates', () => {
+  it('gives the claim back when the action fails, so a retry applies it', async () => {
+    incrementHabit.mockRejectedValueOnce(new Error('disk full'));
+    await expect(applyResponse(input(ACTIONS.addWater, { habitId: 'agua' }), deps)).rejects.toThrow(
+      'disk full',
+    );
+    const retry = await applyResponse(input(ACTIONS.addWater, { habitId: 'agua' }), deps);
+    expect(retry).toBe('handled');
+    expect(incrementHabit).toHaveBeenCalledTimes(2);
+  });
+
+  it('writes to the day the notification was planned for, not the day of the tap', async () => {
+    // Tapped on the 7th, planned for the 5th.
+    deps = { ...deps, today: () => '2026-10-07' };
+    await applyResponse(input(ACTIONS.addWater, { habitId: 'agua', date: '2026-10-05' }), deps);
+    await applyResponse(input(ACTIONS.done, { habitId: 'pausa', date: '2026-10-05' }), deps);
+    await applyResponse(input(ACTIONS.gym, { date: '2026-10-05' }), deps);
+    expect(incrementHabit).toHaveBeenCalledWith('agua', '2026-10-05');
+    expect(setHabitDone).toHaveBeenCalledWith('pausa', '2026-10-05');
+    expect(logActivity).toHaveBeenCalledWith('2026-10-05', 'gym');
+  });
+
+  it('falls back to today when the payload carries no date', async () => {
+    const { date: _omit, ...data } = input(ACTIONS.addWater).data as Record<string, unknown>;
+    await applyResponse({ ...input(ACTIONS.addWater), data: { ...data, habitId: 'agua' } }, deps);
+    expect(incrementHabit).toHaveBeenCalledWith('agua', '2026-10-05');
   });
 });
 

@@ -1,3 +1,4 @@
+import { BODY_MAX, clampText, TITLE_MAX } from '../domain/notifications/buildUpcoming';
 import { minutesToClock } from '../domain/time';
 import type { TimelineEntry } from '../domain/today/timeline';
 import type { Language, Translate } from '../i18n';
@@ -53,4 +54,26 @@ export function entryHighlight(
     exercise,
     goal: t(message.key, localizeTargetParams(message.params, language)),
   });
+}
+
+/** Title and body of the reminder that brings a postponed row back, by kind of row (BRAND §9 limits). */
+export function snoozeContent(entry: TimelineEntry, t: Translate): { title: string; body: string } {
+  switch (entry.kind) {
+    case 'gym':
+      return { title: t('notify.gym.title'), body: t('notify.gym.body') };
+    case 'checkin': {
+      const key = entry.id === 'checkin:morning' ? 'notify.checkinMorning' : 'notify.checkinNight';
+      return { title: t(`${key}.title`), body: t(`${key}.body`) };
+    }
+    case 'reminder':
+      return {
+        title: t('notify.reminder.title'),
+        body: clampText(entryTitle(entry, t), BODY_MAX),
+      };
+    default:
+      return {
+        title: clampText(entryTitle(entry, t), TITLE_MAX),
+        body: t('notify.habit.body'),
+      };
+  }
 }

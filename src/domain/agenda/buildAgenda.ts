@@ -44,6 +44,8 @@ export type AgendaItem = {
   label: AgendaLabel;
   moduleId?: string;
   habitId?: string;
+  /** `habit` / `water` / `steps`: how the template tracks it (only a `check` can be marked done). */
+  habitType?: 'check' | 'counter';
   reminderId?: string;
   /** `gym`: today's routine and the steps whose `when` passes. */
   routineId?: string;
@@ -221,6 +223,7 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
         label: { type: 'template' as const, text: habit.name },
         moduleId: module.id,
         habitId: habit.id,
+        habitType: habit.type,
       };
 
       const times = (habit.schedules ?? []).flatMap((schedule) =>

@@ -41,6 +41,33 @@ describe('settings', () => {
   });
 });
 
+describe('settings: notification response claims', () => {
+  it('claims a key once, releases it for a retry and keeps a bounded list', async () => {
+    expect(await repos.settings.claimNotificationResponse('a')).toBe(true);
+    expect(await repos.settings.claimNotificationResponse('a')).toBe(false);
+    expect(await repos.settings.claimNotificationResponse('b')).toBe(true);
+    await repos.settings.releaseNotificationResponse('a');
+    expect(await repos.settings.get('handledNotificationResponses')).toEqual(['b']);
+    expect(await repos.settings.claimNotificationResponse('a')).toBe(true);
+
+    for (let index = 0; index < 60; index += 1) {
+      await repos.settings.claimNotificationResponse(`k${index}`);
+    }
+    const kept = (await repos.settings.get('handledNotificationResponses')) ?? [];
+    expect(kept).toHaveLength(40);
+    expect(kept[39]).toBe('k59');
+    expect(await repos.settings.claimNotificationResponse('k59')).toBe(false);
+  });
+
+  it('lets exactly one of two concurrent claims win', async () => {
+    const results = await Promise.all([
+      repos.settings.claimNotificationResponse('same'),
+      repos.settings.claimNotificationResponse('same'),
+    ]);
+    expect(results.filter(Boolean)).toHaveLength(1);
+  });
+});
+
 describe('settings with corrupt rows', () => {
   it('treats unparseable JSON and schema mismatches as missing', async () => {
     await rawDb.insert(settings).values({ key: 'themeMode', value: '{not json' });

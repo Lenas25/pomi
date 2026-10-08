@@ -14,6 +14,8 @@ export type TodayActionDeps = {
   addWater: (habitId: string, date: string) => Promise<void>;
   /** A local notification at `at` that brings the item back (best effort). */
   scheduleSnooze: (entry: TimelineEntry, at: number) => Promise<void>;
+  /** Cancels every `snooze:timeline:<id>:*` notification of the row (best effort). */
+  cancelSnoozes: (entryId: string) => Promise<void>;
 };
 
 export type ActionResult =
@@ -32,6 +34,8 @@ export async function markDone(entry: TimelineEntry, deps: TodayActionDeps): Pro
       return { type: 'navigate', target: action.target };
     case 'logCheck':
       await deps.logCheck(action.habitId, deps.today);
+      // Done: its postponed reminder must not come back.
+      await deps.cancelSnoozes(entry.id).catch(() => undefined);
       return { type: 'changed' };
     case 'addWater':
       await deps.addWater(action.habitId, deps.today);
@@ -43,6 +47,7 @@ export async function markDone(entry: TimelineEntry, deps: TodayActionDeps): Pro
         acked: [...without(state.acked, entry.id), entry.id],
         skipped: without(state.skipped, entry.id),
       });
+      await deps.cancelSnoozes(entry.id).catch(() => undefined);
       return { type: 'changed' };
     }
   }
@@ -57,7 +62,9 @@ export async function postpone(entry: TimelineEntry, deps: TodayActionDeps): Pro
     snoozed: { ...state.snoozed, [entry.id]: at },
     skipped: without(state.skipped, entry.id),
   });
-  // A reminder that cannot be scheduled (no permission) must not undo the postponement.
+  // Postponing again replaces the earlier reminder; one that cannot be scheduled (no permission)
+  // must not undo the postponement.
+  await deps.cancelSnoozes(entry.id).catch(() => undefined);
   await deps.scheduleSnooze(entry, at).catch(() => undefined);
   return { type: 'changed' };
 }
@@ -76,5 +83,6 @@ export async function skipToday(
     skipped: [...without(state.skipped, entry.id), entry.id],
     snoozed,
   });
+  await deps.cancelSnoozes(entry.id).catch(() => undefined);
   return { type: 'changed' };
 }

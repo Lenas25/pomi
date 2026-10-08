@@ -79,20 +79,32 @@ export function buildTimeline(
   }));
 }
 
-/** Kinds whose completion the person controls; steps are automatic and reminders informative. */
-const REQUIRED_KINDS: ReadonlySet<AgendaKind> = new Set<AgendaKind>([
-  'gym',
-  'checkin',
-  'water',
-  'habit',
-]);
+/**
+ * Rows the person can actually complete: gym and check-ins; water only with a daily target
+ * (without a weight there is nothing to reach); habits only when they are checks (a counter that
+ * is not water has no "done" meaning). Steps are automatic and reminders informative.
+ */
+export function isRequired(entry: TimelineEntry): boolean {
+  switch (entry.kind) {
+    case 'gym':
+    case 'checkin':
+      return true;
+    case 'water':
+      return entry.item.target?.glasses !== undefined;
+    case 'habit':
+      return entry.item.habitType === 'check';
+    case 'steps':
+    case 'reminder':
+      return false;
+  }
+}
 
 /**
  * "Listo por hoy": every required entry is done or skipped. An empty day is not "done" (there is
  * nothing to rest from), and an unanswered "¿Te moviste hoy?" does not block it.
  */
 export function isAllDone(entries: readonly TimelineEntry[]): boolean {
-  const required = entries.filter((entry) => REQUIRED_KINDS.has(entry.kind));
+  const required = entries.filter(isRequired);
   return (
     required.length > 0 && required.every((e) => e.status === 'done' || e.status === 'skipped')
   );
@@ -111,6 +123,7 @@ export function doneActionFor(entry: TimelineEntry): EntryAction {
   const { item } = entry;
   switch (entry.kind) {
     case 'habit':
+      if (item.habitType === 'counter') return { type: 'open', target: 'habits' };
       return item.habitId ? { type: 'logCheck', habitId: item.habitId } : { type: 'acknowledge' };
     case 'water':
       return item.habitId

@@ -7,6 +7,7 @@ export const CHANNEL_IDS: Record<PlannedChannel, string> = {
   habits: 'habits',
   checkins: 'checkins',
   reminders: 'reminders',
+  review: 'review',
 };
 
 /** Action identifiers (no `:` or `-`, see the expo-notifications docs on categories). */

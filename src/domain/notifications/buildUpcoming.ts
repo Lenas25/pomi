@@ -30,7 +30,7 @@ export type NotificationKind =
   'gym' | 'water' | 'habit' | 'checkin' | 'reminder' | 'review' | 'survey';
 
 /** Android channels of planned notifications (timers have their own, outside this list). */
-export type PlannedChannel = 'gym' | 'habits' | 'checkins' | 'reminders';
+export type PlannedChannel = 'gym' | 'habits' | 'checkins' | 'reminders' | 'review';
 
 /** Interactive categories (ids avoid `:` and `-`, as the Expo docs ask). */
 export type CategoryId = 'pomi_habit' | 'pomi_water' | 'pomi_survey' | 'pomi_snooze';
@@ -162,10 +162,12 @@ function habitText(habit: Habit | undefined, item: AgendaItem): PlannedText {
 
 type Candidate = { planned: PlannedNotification; dayIndex: number };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /**
- * Notifications from `from` onwards for `days` calendar days (today included), quiet hours
- * removed, ordered by time and trimmed to `MAX_SCHEDULED` (earlier days and higher priority
- * kinds win the slots).
+ * Notifications from `from` up to `from + days × 24 h` (a rolling window, not calendar days, so an
+ * evening open still plans about three days), quiet hours removed, ordered by time and trimmed to
+ * `MAX_SCHEDULED` (earlier days and higher priority kinds win the slots).
  */
 export function buildUpcoming(
   state: UpcomingState,
@@ -177,8 +179,10 @@ export function buildUpcoming(
   // Day 0 is the logical day in progress (before 04:00 it is still yesterday).
   const first = dayStartFor(from);
   const fromMs = from.getTime();
+  const untilMs = fromMs + days * DAY_MS;
 
-  for (let dayIndex = 0; dayIndex < days; dayIndex += 1) {
+  // One extra logical day: the window ends mid-day, so the last day is only partly inside it.
+  for (let dayIndex = 0; dayIndex <= days; dayIndex += 1) {
     const day = addDays(first, dayIndex);
     const isToday = dayIndex === 0;
     const agenda = buildAgenda(day, isToday ? state : { ...state, todayRoutine: undefined });
@@ -281,7 +285,7 @@ export function buildUpcoming(
 
     if ((state.weeklyReviewEnabled ?? true) && getDay(day) === SUNDAY) {
       add('review', 'core', 'weekly', WEEKLY_REVIEW_MINUTES, {
-        channel: 'checkins',
+        channel: 'review',
         category: null,
         text: { type: 'key', key: 'notify.review' },
       });
@@ -289,7 +293,7 @@ export function buildUpcoming(
   }
 
   const upcoming = candidates.filter(({ planned }) => {
-    if (planned.at <= fromMs) return false;
+    if (planned.at <= fromMs || planned.at > untilMs) return false;
     const date = new Date(planned.at);
     return !isQuietMinute(date.getHours() * 60 + date.getMinutes(), anchors.bed, anchors.wake);
   });

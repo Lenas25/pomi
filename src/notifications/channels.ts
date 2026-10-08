@@ -30,6 +30,12 @@ export async function ensureChannels(t: Translate): Promise<void> {
       name: t('notify.channels.reminders'),
       importance: AndroidImportance.DEFAULT,
     },
+    // Own channel from the start: the weekly review can be muted without touching check-ins.
+    {
+      id: CHANNEL_IDS.review,
+      name: t('notify.channels.review'),
+      importance: AndroidImportance.DEFAULT,
+    },
   ];
   await Promise.all(
     definitions.map((channel) =>

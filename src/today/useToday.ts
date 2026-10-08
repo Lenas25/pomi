@@ -8,14 +8,14 @@ import * as Notifications from 'expo-notifications';
 
 import { getRepositories } from '../db';
 import type { ActivityKind } from '../domain/habits/activity';
-import { clampText, TITLE_MAX, type PlannedChannel } from '../domain/notifications/buildUpcoming';
+import { type PlannedChannel } from '../domain/notifications/buildUpcoming';
 import { greetingKey, identityPhrase } from '../domain/today/identity';
 import { dayKeyFor, minutesIntoDay } from '../domain/time';
 import { buildTimeline, isAllDone, type TimelineEntry } from '../domain/today/timeline';
 import { useT } from '../i18n';
 import { requestNotificationSync } from '../notifications/sync';
 
-import { entryTitle } from './labels';
+import { snoozeContent } from './labels';
 import {
   markDone,
   postpone,
@@ -24,7 +24,9 @@ import {
   type TodayActionDeps,
 } from './todayActions';
 import { loadTodayData, type TodayData } from './todayData';
-import { progressFrom, todayStateFor } from './todayView';
+import { progressFrom, settledSnoozeIds, todayStateFor } from './todayView';
+
+const SNOOZE_PREFIX = 'snooze:timeline:';
 
 const CLOCK_TICK_MS = 30_000;
 
@@ -39,6 +41,17 @@ const CHANNEL_BY_KIND: Record<TimelineEntry['kind'], PlannedChannel> = {
   steps: 'habits',
   habit: 'habits',
 };
+
+/** Cancels the postponed reminders (`snooze:timeline:<entryId>:<at>`) of one row. */
+async function cancelTimelineSnoozes(entryId: string): Promise<void> {
+  const prefix = `${SNOOZE_PREFIX}${entryId}:`;
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    scheduled
+      .filter((request) => request.identifier.startsWith(prefix))
+      .map((request) => Notifications.cancelScheduledNotificationAsync(request.identifier)),
+  );
+}
 
 export function useToday() {
   const t = useT();
@@ -55,6 +68,10 @@ export function useToday() {
         setNow(new Date());
         loadedDay.current = data.today;
         setLoad({ status: 'ready', data });
+        // Done elsewhere (Hábitos, a notification action): the postponed reminder must not come back.
+        for (const id of settledSnoozeIds(data.agenda, data.facts, data.state)) {
+          void cancelTimelineSnoozes(id).catch(() => undefined);
+        }
       }
     } catch (error) {
       if (__DEV__) console.error('Could not load Hoy', error);
@@ -111,11 +128,12 @@ export function useToday() {
         addWater: (habitId, date) => repos.habitLogs.increment(habitId, date),
         scheduleSnooze: async (entry, at) => {
           if (!(await Notifications.getPermissionsAsync()).granted) return;
+          const { title, body } = snoozeContent(entry, t);
           await Notifications.scheduleNotificationAsync({
-            identifier: `snooze:timeline:${entry.id}:${at}`,
+            identifier: `${SNOOZE_PREFIX}${entry.id}:${at}`,
             content: {
-              title: clampText(entryTitle(entry, t), TITLE_MAX),
-              body: t('notify.habit.body'),
+              title,
+              body,
               sound: true,
               data: {
                 source: 'pomi',
@@ -131,6 +149,7 @@ export function useToday() {
             },
           });
         },
+        cancelSnoozes: cancelTimelineSnoozes,
       };
     },
     [t],

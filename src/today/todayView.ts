@@ -99,3 +99,18 @@ export function waterProgress(view: HabitsView): { done: number; total: number }
   const water = view.water;
   return water?.target ? { done: water.value, total: water.target.glasses } : null;
 }
+
+/**
+ * Postponed rows that are settled by now (done through real data, acknowledged or skipped): their
+ * `snooze:timeline:*` reminders must be cancelled so they do not insist.
+ */
+export function settledSnoozeIds(
+  agenda: readonly AgendaItem[],
+  facts: LiveFacts,
+  state: TodayState,
+): string[] {
+  const done = doneIdsFrom(agenda, facts);
+  return Object.keys(state.snoozed).filter(
+    (id) => done.has(id) || state.acked.includes(id) || state.skipped.includes(id),
+  );
+}

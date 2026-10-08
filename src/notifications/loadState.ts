@@ -28,6 +28,7 @@ export async function loadNotificationPlan(
     morning,
     night,
     habitLogs,
+    todayState,
   ] = await Promise.all([
     repos.templates.listModules(),
     repos.profile.get(),
@@ -42,6 +43,7 @@ export async function loadNotificationPlan(
     repos.checkins.get(today, 'morning'),
     repos.checkins.get(today, 'night'),
     repos.habitLogs.forDate(today),
+    repos.settings.get('todayState'),
   ]);
 
   const active = modules.filter((module) => module.active).map((module) => module.template);
@@ -49,23 +51,29 @@ export async function loadNotificationPlan(
     (entry) => entry.session.finishedAt !== null && entry.sets.length > 0,
   );
 
-  // Water reminders stop for today once the goal is reached.
-  const doneAgendaIds: string[] = [];
-  const glassesBy = new Map(habitLogs.map((log) => [log.habitId, log.value]));
+  // Reminders of what is already done stop for today ("nunca se insiste"): the water goal reached,
+  // a check habit logged, and anything acknowledged or skipped from the Hoy timeline.
+  const doneAgendaIds = new Set<string>();
+  const valueBy = new Map(habitLogs.map((log) => [log.habitId, log.value]));
   for (const module of active) {
     for (const habit of module.habits ?? []) {
-      if (habit.type !== 'counter' || typeof habit.target !== 'object') continue;
-      if (habit.target.formula !== 'water') continue;
+      const logged = valueBy.get(habit.id) ?? 0;
+      if (habit.type === 'check') {
+        if (logged >= 1) doneAgendaIds.add(`habit:${module.id}:${habit.id}`);
+        continue;
+      }
+      if (typeof habit.target !== 'object' || habit.target.formula !== 'water') continue;
       const target = waterTargetFor(today, {
         weightKg: profile?.weightKg ?? undefined,
         gymDays: gymDays ?? [],
         glassMl: habit.glassMl,
         goals: goals ?? {},
       });
-      if (target && (glassesBy.get(habit.id) ?? 0) >= target.glasses) {
-        doneAgendaIds.push(`water:${module.id}:${habit.id}`);
-      }
+      if (target && logged >= target.glasses) doneAgendaIds.add(`water:${module.id}:${habit.id}`);
     }
+  }
+  if (todayState?.date === today) {
+    for (const id of [...todayState.acked, ...todayState.skipped]) doneAgendaIds.add(id);
   }
 
   const state: UpcomingState = {
@@ -81,7 +89,7 @@ export async function loadNotificationPlan(
       activityLogged: activity !== undefined || gymDone,
       gymDone,
       checkinsDone: { morning: morning !== undefined, night: night !== undefined },
-      doneAgendaIds,
+      doneAgendaIds: [...doneAgendaIds],
     },
   };
   // Before the onboarding finishes there is no plan to remind about.

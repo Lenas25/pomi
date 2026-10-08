@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { Check } from 'phosphor-react-native';
@@ -19,12 +19,18 @@ type TimelineItemProps = {
   highlight?: string;
   /** Spoken description of the whole row (time, title and status). */
   accessibilityLabel: string;
+  /** Spoken name of the check button; it states the state ("Marcar «Gym» como hecho" / "«Gym», hecho"). */
   checkLabel: string;
+  /** Names of the screen-reader actions on the row. */
+  actionLabels: { done: string; postpone: string; skip: string };
   onPress: () => void;
   /** The 48 dp check button and the swipe right. */
   onCheck: () => void;
   /** Long press: the options (postpone, skip). */
   onLongPress: () => void;
+  /** Direct screen-reader actions (no long press needed). */
+  onPostpone: () => void;
+  onSkip: () => void;
 };
 
 /**
@@ -40,14 +46,23 @@ export function TimelineItem({
   highlight,
   accessibilityLabel,
   checkLabel,
+  actionLabels,
   onPress,
   onCheck,
   onLongPress,
+  onPostpone,
+  onSkip,
 }: TimelineItemProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
   // The drag follows the finger on the JS thread (a short, local gesture): core Animated is enough.
   const [offset] = useState(() => new Animated.Value(0));
+  // The gesture reads the latest `onCheck` from a ref, so a new handler does not rebuild the
+  // PanResponder (the ref is only read inside the gesture callbacks, never during render).
+  const onCheckRef = useRef(onCheck);
+  useEffect(() => {
+    onCheckRef.current = onCheck;
+  }, [onCheck]);
   const finished = status === 'done';
   const muted = status === 'skipped';
 
@@ -63,6 +78,7 @@ export function TimelineItem({
 
   const responder = useMemo(
     () =>
+      // eslint-disable-next-line react-hooks/refs -- the ref is read only inside the gesture callbacks
       PanResponder.create({
         // Only a mostly horizontal drag takes over, so the list keeps scrolling vertically.
         onMoveShouldSetPanResponder: (_event, gesture) =>
@@ -72,11 +88,11 @@ export function TimelineItem({
         },
         onPanResponderRelease: (_event, gesture) => {
           settle();
-          if (isSwipeDone(gesture.dx, gesture.dy)) onCheck();
+          if (isSwipeDone(gesture.dx, gesture.dy)) onCheckRef.current();
         },
         onPanResponderTerminate: settle,
       }),
-    [offset, onCheck, reduceMotion, settle],
+    [offset, reduceMotion, settle],
   );
 
   return (
@@ -101,9 +117,23 @@ export function TimelineItem({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        accessibilityActions={[{ name: 'longpress' }]}
+        accessibilityActions={[
+          { name: 'done', label: actionLabels.done },
+          { name: 'postpone', label: actionLabels.postpone },
+          { name: 'skip', label: actionLabels.skip },
+        ]}
         onAccessibilityAction={(event) => {
-          if (event.nativeEvent.actionName === 'longpress') onLongPress();
+          switch (event.nativeEvent.actionName) {
+            case 'done':
+              onCheck();
+              break;
+            case 'postpone':
+              onPostpone();
+              break;
+            case 'skip':
+              onSkip();
+              break;
+          }
         }}
         onPress={onPress}
         onLongPress={onLongPress}
@@ -149,9 +179,8 @@ export function TimelineItem({
         </View>
       </Pressable>
       <Pressable
-        accessibilityRole="checkbox"
+        accessibilityRole="button"
         accessibilityLabel={checkLabel}
-        accessibilityState={{ checked: finished }}
         onPress={onCheck}
         style={{
           width: theme.touch.gym,

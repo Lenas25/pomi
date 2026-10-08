@@ -480,6 +480,7 @@ export const en: Messages = {
       habits: 'Habits',
       checkins: 'Check-ins',
       reminders: 'Reminders',
+      review: 'Weekly review',
     },
   },
   permissions: {
@@ -497,7 +498,7 @@ export const en: Messages = {
     },
     alarms: {
       title: 'Exact alarms',
-      body: 'Without this permission, Android 12 or later may delay your alerts and the end of each rest. With it they ring on the dot.',
+      body: 'Optional. It lets the end of each gym rest ring on the dot. Your alerts still arrive, maybe a few minutes apart.',
       hint: 'Android does not let Pomi check it. Open the setting and turn on "Alarms & reminders".',
       open: 'Open alarm setting',
       unsupported: 'Your Android version does not need this permission.',
@@ -651,7 +652,7 @@ export const en: Messages = {
     },
     identity: {
       first: 'Something good starts today. No rush.',
-      weeks: "You've been training consistently for {{n}} weeks",
+      weeks: 'You trained in {{n}} of the last 8 weeks',
       moving: "You're already moving. Keep your own pace.",
       water: 'You took care of your water {{done}} of the last 10 days',
       fallback: 'One step at a time. Today counts.',
@@ -663,6 +664,8 @@ export const en: Messages = {
     itemLabel: '{{time}}, {{title}}, {{status}}',
     allDayLabel: 'During the day',
     markDone: 'Mark "{{title}}" as done',
+    doneState: '"{{title}}", done',
+    actions: { done: 'Mark as done' },
     openItem: 'Open "{{title}}"',
     menu: {
       title: 'Options for "{{title}}"',

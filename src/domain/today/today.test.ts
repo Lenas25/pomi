@@ -197,6 +197,7 @@ describe('buildTimeline status mapping', () => {
 describe('isAllDone', () => {
   const required = agenda
     .filter((item) => ['gym', 'checkin', 'water', 'habit'].includes(item.kind))
+    .filter((item) => item.kind !== 'habit' || item.habitType === 'check')
     .map((item) => item.id);
 
   it('needs every gym / check-in / water / habit item done or skipped', () => {
@@ -218,6 +219,46 @@ describe('isAllDone', () => {
     );
     expect(isAllDone(skipped)).toBe(true);
     expect(isAllDone([])).toBe(false);
+  });
+});
+
+describe('rows that cannot be completed never block "Listo por hoy"', () => {
+  const requiredIds = (items: typeof agenda) =>
+    items
+      .filter((item) => ['gym', 'checkin', 'water', 'habit'].includes(item.kind))
+      .map((item) => item.id);
+
+  it('water without a target (no weight) is not required', () => {
+    const noWeight = buildAgenda(MONDAY, { ...agendaState(), profile: { workType: 'sentada' } });
+    const water = noWeight.find((item) => item.kind === 'water');
+    expect(water?.target).toBeUndefined();
+    const doneExceptWater = requiredIds(noWeight).filter((id) => id !== water?.id);
+    expect(
+      isAllDone(buildTimeline(noWeight, at(22), progress({ doneIds: new Set(doneExceptWater) }))),
+    ).toBe(true);
+  });
+
+  it('a counter that is not water (no check semantics) is not required and opens Hábitos', () => {
+    const counterModule = {
+      id: 'extra',
+      name: 'Extra',
+      icon: 'Coffee',
+      habits: [{ id: 'cafes', name: 'Cafés', type: 'counter' as const, unit: 'tazas' }],
+    };
+    const items = buildAgenda(MONDAY, {
+      ...agendaState(),
+      modules: [...defaults.modules, counterModule],
+    });
+    const counter = items.find((item) => item.habitId === 'cafes');
+    expect(counter).toMatchObject({ kind: 'habit', habitType: 'counter' });
+    const entries = buildTimeline(
+      items,
+      at(22),
+      progress({ doneIds: new Set(requiredIds(items).filter((id) => id !== counter?.id)) }),
+    );
+    expect(isAllDone(entries)).toBe(true);
+    const entry = entries.find((candidate) => candidate.id === counter?.id);
+    expect(entry && doneActionFor(entry)).toEqual({ type: 'open', target: 'habits' });
   });
 });
 

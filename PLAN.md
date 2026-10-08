@@ -163,7 +163,7 @@ type Schedule = {
 - Función pura `buildUpcoming(state, from, days)` que devuelve los avisos de los próximos N días con id estable.
 - **Ventana móvil de 3 días:** se reprograma al abrir la app, al cambiar la configuración, al aceptar una sugerencia y en una background task cuando sea posible.
 - **Límite de iOS: 64 avisos programados.** Prioriza por fecha y recorta.
-- **Android:** canales separados (Gym, Hábitos, Check-ins, Cronómetros); permiso de **alarmas exactas** en Android 12 o superior, con explicación; pantalla de ayuda para quitar la **optimización de batería** según el fabricante.
+- **Android:** canales separados (Gym, Hábitos, Check-ins, Recordatorios, Revisión semanal, Cronómetros); permiso de **alarmas exactas** en Android 12 o superior, con explicación; pantalla de ayuda para quitar la **optimización de batería** según el fabricante.
 - **Acciones en la notificación:** "Hecho", "Posponer 10 min" y, en el agua, "+1 vaso".
 - **Horas de silencio** entre `bed` y `wake`.
 - Los avisos de check-in se envían una sola vez, y nunca se insiste si se ignoran.
@@ -478,7 +478,7 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 - [ ] Timelapse de fotos.
 - [ ] Arte generativo que crece con tus datos (explorar).
 - [ ] Accountability con 1 o 2 personas (requiere decidir cómo sin romper el principio local-first).
-- [ ] iOS (HealthKit) y publicación en tiendas.
+- [ ] iOS (HealthKit) y publicación en tiendas. Antes de subir a Play: declarar el permiso `SCHEDULE_EXACT_ALARM` (uso: fin de los descansos del gym) o quitarlo; los avisos de hábitos no dependen de él.
 
 ## 16. Calidad
 
