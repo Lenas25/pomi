@@ -434,26 +434,26 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 
 ### v1: base útil (Android)
 
-- [ ] Proyecto Expo (development build), TypeScript strict, expo-router, Drizzle con migraciones, ESLint y Prettier.
-- [ ] Esquema zod e importación de `/templates`.
-- [ ] Onboarding "Conocerte" con "Tu punto de partida" (fórmulas 9.1–9.3).
-- [ ] Gym: rotación, sesión con kg, reps y RIR, descanso automático, cardio con tramos y **meta de hoy** (9.4).
-- [ ] Hábitos: agua con avisos, pasos (Health Connect o manual) y pausas activas.
-- [ ] Check-ins de mañana y noche.
-- [ ] Pantalla Hoy.
-- [ ] Scheduler con ventana de 3 días, canales, alarmas exactas y acciones en la notificación.
-- [ ] Cronómetros que suenan con la pantalla apagada.
-- [ ] Microencuesta "¿Te moviste hoy?" con acciones en la notificación que guardan en `activity_logs` aun con la app cerrada.
-- [ ] Calculadora de ciclos de sueño junto a la meta de sueño.
-- [ ] Respaldo completo en JSON.
+- [x] Proyecto Expo (development build), TypeScript strict, expo-router, Drizzle con migraciones, ESLint y Prettier.
+- [x] Esquema zod e importación de `/templates`.
+- [x] Onboarding "Conocerte" con "Tu punto de partida" (fórmulas 9.1–9.3).
+- [x] Gym: rotación, sesión con kg, reps y RIR, descanso automático, cardio con tramos y **meta de hoy** (9.4).
+- [x] Hábitos: agua con avisos, pasos (Health Connect o manual) y pausas activas.
+- [x] Check-ins de mañana y noche.
+- [x] Pantalla Hoy.
+- [x] Scheduler con ventana de 3 días, canales, alarmas exactas y acciones en la notificación.
+- [x] Cronómetros que suenan con la pantalla apagada.
+- [x] Microencuesta "¿Te moviste hoy?" con acciones en la notificación que guardan en `activity_logs` aun con la app cerrada.
+- [x] Calculadora de ciclos de sueño junto a la meta de sueño.
+- [x] Respaldo completo en JSON.
 - [ ] APK con EAS Build.
 
 **Hecho cuando:** con el celular bloqueado llegan los avisos de agua, gym, check-ins, dormir y "¿Te moviste hoy?" (y tocar una acción lo registra sin abrir la app); un descanso de 2 minutos suena con la pantalla apagada; y al abrir el Día 1 aparece la meta de hoy calculada con la sesión anterior.
 
 ### v2: aprender de ti
 
-- [ ] Motor de sugerencias (sección 11) con aceptar o rechazar.
-- [ ] Revisión semanal.
+- [x] Motor de sugerencias (sección 11) con aceptar o rechazar.
+- [x] Revisión semanal.
 - [ ] Progreso: constancia, gráficos de fuerza y medidas.
 - [ ] Revisión mensual con fotos y "Tú hace 30 días vs. hoy".
 - [ ] Compartir: texto y PDF (Entrenador, Nutricionista, IA).

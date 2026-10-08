@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import type { TimelineEntry } from '../domain/today/timeline';
 import { ActivityCard } from '../habits/ActivityCard';
@@ -97,6 +97,25 @@ export function TodayScreen() {
           />
         ) : null}
         <InsightSlot />
+
+        {data.reviewEntry ? (
+          <Card variant="highlight">
+            <View style={{ gap: theme.space[3] }}>
+              <View style={{ gap: theme.space[1] }}>
+                <Text
+                  accessibilityRole="header"
+                  style={[theme.text('title-sm'), { color: theme.color.text }]}
+                >
+                  {t('review.entry.title')}
+                </Text>
+                <Text style={[theme.text('body'), { color: theme.color.text }]}>
+                  {t('review.entry.body')}
+                </Text>
+              </View>
+              <Button label={t('review.entry.open')} onPress={() => router.push('/revision')} />
+            </View>
+          </Card>
+        ) : null}
 
         {data.activityToday === undefined ? (
           <ActivityCard answer={undefined} onAnswer={(kind) => void today.answerActivity(kind)} />

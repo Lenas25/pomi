@@ -11,6 +11,8 @@ import { ThemeProvider } from '../ui/theme';
 
 import { TodayScreen } from './TodayScreen';
 import type { TodayData } from './todayData';
+import { router } from 'expo-router';
+
 import { useToday, type TodayLoad } from './useToday';
 
 jest.mock('expo-router', () => ({
@@ -47,6 +49,7 @@ function dataWith(
     activityToday: activity,
     routineName: 'Día 1',
     gymGoal,
+    reviewEntry: false,
     suggestion: undefined,
     identity: { gymDates: [], plannedGymDays: 4, waterDays: null, firstDay: false, ...overrides },
   };
@@ -164,6 +167,20 @@ describe('TodayScreen', () => {
     });
     await renderThemed(<TodayScreen />);
     expect(screen.getByText('Plan actualizado')).toBeTruthy();
+  });
+
+  it('offers the weekly review on Sundays and opens it', async () => {
+    mockToday({ ...dataWith(), reviewEntry: true });
+    await renderThemed(<TodayScreen />);
+    expect(screen.getByText('Tu semana está lista')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver mi semana' }));
+    expect(jest.mocked(router.push)).toHaveBeenCalledWith('/revision');
+  });
+
+  it('does not offer the weekly review on other days', async () => {
+    mockToday(dataWith());
+    await renderThemed(<TodayScreen />);
+    expect(screen.queryByText('Tu semana está lista')).toBeNull();
   });
 
   it('highlights the goal of the first main exercise on the gym row', async () => {

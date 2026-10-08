@@ -158,6 +158,10 @@ describe('routeForNotification', () => {
     expect(routeForNotification({ source: 'pomi', kind: 'survey', channel: 'checkins' })).toEqual({
       pathname: '/hoy',
     });
+    // The Sunday notification opens the weekly review.
+    expect(routeForNotification({ source: 'pomi', kind: 'review', channel: 'review' })).toEqual({
+      pathname: '/revision',
+    });
     expect(routeForNotification({})).toBeNull();
   });
 });

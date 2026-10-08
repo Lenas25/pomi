@@ -45,7 +45,8 @@ export function toHistory(rows: readonly SuggestionRow[]): SuggestionHistoryEntr
   );
 }
 
-function waterHabit(modules: readonly { active: boolean; template: ModuleTemplate }[]) {
+/** The first active counter whose target is the water formula. */
+export function waterHabit(modules: readonly { active: boolean; template: ModuleTemplate }[]) {
   for (const { active, template } of modules) {
     if (!active) continue;
     for (const habit of template.habits ?? []) {

@@ -110,6 +110,14 @@ describe('loadTodayData', () => {
     expect(data.identity.gymDates).toEqual([TODAY]);
   });
 
+  it('offers the weekly review only on Sundays, and not when it is turned off', async () => {
+    expect((await loadTodayData(repos, NOW)).reviewEntry).toBe(false); // Monday
+    const sunday = new Date(2026, 9, 11, 10, 0);
+    expect((await loadTodayData(repos, sunday)).reviewEntry).toBe(true);
+    await repos.settings.set('notificationPrefs', { weeklyReview: false });
+    expect((await loadTodayData(repos, sunday)).reviewEntry).toBe(false);
+  });
+
   it('flags the first day (onboarding finished today) and ignores a stored state of another day', async () => {
     await repos.settings.set('startedOn', TODAY);
     await repos.settings.set('todayState', {

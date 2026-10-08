@@ -33,6 +33,8 @@ export type TodayData = {
   routineName: string | undefined;
   /** Target of the first main exercise of today's routine (the gym row highlight). */
   gymGoal: GymGoal | undefined;
+  /** Sunday (and the weekly review is on): Hoy offers "Tu semana". */
+  reviewEntry: boolean;
   /** The oldest pending suggestion (Hoy shows at most one card). */
   suggestion: { id: number; payload: SuggestionPayload } | undefined;
   identity: Omit<IdentityInput, 'today'>;
@@ -51,7 +53,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
   const midnight = dayStartFor(now);
   const lookbackFrom = format(subDays(midnight, IDENTITY_LOOKBACK_DAYS), 'yyyy-MM-dd');
 
-  const [habits, anchors, shifts, userName, stored, modules, sessions, recent, pending] =
+  const [habits, anchors, shifts, userName, stored, modules, sessions, recent, pending, prefs] =
     await Promise.all([
       loadHabitsData(repos, today),
       repos.settings.get('anchors'),
@@ -62,6 +64,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
       repos.workouts.sessionsInRange(lookbackFrom, today),
       repos.workouts.recentSessions(ROTATION_LOOKBACK),
       repos.suggestions.pending(),
+      repos.settings.get('notificationPrefs'),
     ]);
   const view = buildHabitsView(habits, today);
 
@@ -111,6 +114,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     activityToday: view.activityToday,
     routineName: routine?.name,
     gymGoal,
+    reviewEntry: getDay(midnight) === 0 && (prefs?.weeklyReview ?? true),
     suggestion: firstReadable(pending),
     identity: {
       gymDates,
