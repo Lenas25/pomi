@@ -14,15 +14,17 @@ import {
   toModuleJson,
 } from './edit';
 import { generateProgram, normalizeInput } from './generate';
-import { eligibleExercises, loadsLimitation } from './library';
-import { evaluateParq, screeningStatus } from './parq';
-import { MAJOR_MUSCLES, REST, restFor, VOLUME } from './params';
+import { exerciseIdOfStep, GENERATED_PROGRAM_ID, stepIdFor } from './program';
+import { coverageProblems, eligibleExercises, loadsLimitation } from './library';
+import { evaluateParq, PARQ_REFERRAL_QUESTIONS, screeningStatus } from './parq';
+import { cardioReserveMin, MAJOR_MUSCLES, REST, restFor, VOLUME } from './params';
 import {
   EQUIPMENT,
   EVIDENCE_IDS,
   GOALS,
   LEVELS,
   LIMITATIONS,
+  type EffectiveInput,
   type Equipment,
   type GeneratedProgram,
   type GeneratorInput,
@@ -171,6 +173,9 @@ describe('exercise library', () => {
   });
 });
 
+/** Combinations whose weekly band does not fit the 60 min budget (the proposal warns about them). */
+const TIGHT_FIT = new Set(['hypertrophy/advanced/dumbbells', 'hypertrophy/advanced/bodyweight']);
+
 describe('the volume per muscle', () => {
   it.each(grid)(
     '%s lands every tracked muscle inside its weekly band (E1, E12)',
@@ -185,17 +190,25 @@ describe('the volume per muscle', () => {
       });
       const band = VOLUME[goal][level];
       expect(result.summary.weekly.length).toBeGreaterThanOrEqual(MAJOR_MUSCLES.length);
+      // Home advanced hypertrophy keeps the long table rests (HOME_REST_CAP only applies to fat loss
+      // and health), so the glute-priority band does not fit 60 min: the proposal must SAY so.
+      const tight = TIGHT_FIT.has(`${goal}/${level}/${equipment}`);
+      const low = result.summary.weekly.filter((volume) => volume.status === 'low');
+      expect(low.length > 0).toBe(tight);
+      expect(
+        result.summary.warnings
+          .filter((w) => w.code === 'volumeBelowRange')
+          .map((w) => w.params.muscle),
+      ).toEqual(low.map((volume) => volume.muscle));
       for (const volume of result.summary.weekly) {
-        expect(volume.sets).toBeGreaterThanOrEqual(volume.min);
+        if (!tight) expect(volume.sets).toBeGreaterThanOrEqual(volume.min);
         expect(volume.sets).toBeLessThanOrEqual(volume.max);
-        expect(volume.sets).toBeGreaterThanOrEqual(4); // never below 4 (E1)
         expect(volume.sets).toBeLessThanOrEqual(20); // never above 20 (E1)
         if (MAJOR_MUSCLES.includes(volume.muscle) && !volume.priority) {
           expect(volume.min).toBe(band.min);
           expect(volume.max).toBe(band.max);
         }
       }
-      expect(result.summary.warnings.filter((w) => w.code === 'volumeBelowRange')).toEqual([]);
     },
   );
 
@@ -413,6 +426,67 @@ describe('PAR-Q+ screening (E10)', () => {
     expect(result).toEqual({ ok: false, reason: 'acknowledgementRequired' });
   });
 
+  it('a "yes" to chest pain (2) or supervised-only activity (7) BLOCKS generation, acknowledged or not', () => {
+    for (const question of PARQ_REFERRAL_QUESTIONS) {
+      const answers = [false, false, false, false, false, false, false];
+      answers[question - 1] = true;
+      for (const acknowledged of [false, true]) {
+        const screening = { answers, acknowledged };
+        expect(screeningStatus(screening)).toBe('referral');
+        expect(generateProgram(input({ screening }), library, tEs)).toEqual({
+          ok: false,
+          reason: 'referralRequired',
+        });
+      }
+    }
+    expect(PARQ_REFERRAL_QUESTIONS).toEqual([2, 7]);
+    expect(evaluateParq([false, true, false, false, false, false, false]).referral).toBe(true);
+    // Questions 1, 3, 4, 5, 6 only restrict the routine.
+    for (const question of [1, 3, 4, 5, 6]) {
+      const answers = [false, false, false, false, false, false, false];
+      answers[question - 1] = true;
+      expect(evaluateParq(answers).referral).toBe(false);
+      expect(screeningStatus({ answers, acknowledged: true })).toBe('restricted');
+    }
+  });
+
+  it('the gentle routine uses machines and body weight only, no loaded hinge, no ramp-up, 3-4 RIR', () => {
+    for (const equipment of EQUIPMENT) {
+      const result = generate({
+        goal: 'hypertrophy',
+        level: 'advanced',
+        equipment,
+        daysPerWeek: 3,
+        screening: { ...ONE_YES, acknowledged: true },
+      });
+      expect(result.input.restricted).toBe(true);
+      for (const session of result.plan.sessions) {
+        for (const entry of session.entries) {
+          const exercise = byId.get(entry.exerciseId);
+          expect(exercise?.machine === true || exercise?.equipment.includes('bodyweight')).toBe(
+            true,
+          );
+          if (exercise?.pattern === 'hip_hinge') expect(exercise.bodyweight).toBe(true);
+        }
+      }
+      for (const routine of result.program.routines) {
+        for (const step of routine.steps) {
+          if (step.type !== 'sets') continue;
+          const exercise = byId.get(exerciseIdOfStep(step.id));
+          expect(step.approach).toBeUndefined();
+          // Anything that is not a machine is done unloaded.
+          if (exercise?.machine !== true) {
+            expect(step.bodyweight).toBe(true);
+            expect(step.incrementKg).toBeUndefined();
+          }
+        }
+        const effort = routine.steps.find((step) => step.id === 'w-effort');
+        expect(effort?.name).toContain('3 a 4');
+      }
+      expect(result.program.rules?.rirTarget).toEqual([3, 4]);
+    }
+  });
+
   it('after acknowledgement it only offers the low-intensity beginner template', () => {
     const result = generate({
       goal: 'hypertrophy',
@@ -439,7 +513,7 @@ describe('PAR-Q+ screening (E10)', () => {
         expect(byId.get(entry.exerciseId)?.minLevel).toBe('beginner');
       }
     }
-    expect(result.program.rules?.rirTarget).toEqual([2, 3]);
+    expect(result.program.rules?.rirTarget).toEqual([3, 4]);
   });
 
   it('a clean questionnaire generates normally', () => {
@@ -456,7 +530,7 @@ describe('the program in the template format', () => {
           { goal, level, equipment, daysPerWeek: DEFAULT_DAYS[goal][level] },
           t,
         );
-        const imported = importTemplate(toModuleJson(result));
+        const imported = importTemplate(toModuleJson(result, tEs));
         expect(imported.ok).toBe(true);
         if (imported.ok && imported.template.kind === 'module') {
           expect(imported.template.id).toBe(GENERATED_MODULE_ID);
@@ -472,7 +546,7 @@ describe('the program in the template format', () => {
     for (const routine of result.program.routines) {
       const sets = routine.steps.filter((step) => step.type === 'sets');
       expect(new Set(sets.map((step) => step.id)).size).toBe(sets.length);
-      for (const step of sets) expect(byId.has(step.id)).toBe(true);
+      for (const step of sets) expect(byId.has(exerciseIdOfStep(step.id))).toBe(true);
     }
   });
 
@@ -524,7 +598,7 @@ describe('the program in the template format', () => {
     for (const routine of result.program.routines) {
       for (const step of routine.steps) {
         if (step.type !== 'sets') continue;
-        const exercise = byId.get(step.id);
+        const exercise = byId.get(exerciseIdOfStep(step.id));
         expect(step.restSec).toBe(
           restFor('hypertrophy', 'intermediate', 'gym', !!exercise?.compound),
         );
@@ -540,7 +614,7 @@ describe('the program in the template format', () => {
           if (step.type !== 'sets') continue;
           const parsed = parseReps(step.reps);
           expect(parsed).not.toBeNull();
-          if (byId.get(step.id)?.unilateral) expect(parsed?.perSide).toBe(true);
+          if (byId.get(exerciseIdOfStep(step.id))?.unilateral) expect(parsed?.perSide).toBe(true);
         }
       }
     }
@@ -600,7 +674,7 @@ describe('evidence metadata', () => {
         expect(result.evidence.map((ref) => ref.id)).toContain(id);
       }
     }
-    expect(toModuleJson(result)._evidence).toEqual(result.evidence.map((ref) => ref.id));
+    expect(toModuleJson(result, tEs)._evidence).toEqual(result.evidence.map((ref) => ref.id));
     // The metadata never reaches the program text.
     expect(JSON.stringify(result.program)).not.toMatch(/E1\b|evidence/);
   });
@@ -748,3 +822,236 @@ describe('equipment helpers', () => {
     expect(home('gym').some((exercise) => exercise?.equipment.length === 1)).toBe(true);
   });
 });
+
+describe('review decisions (generator)', () => {
+  it('beginners track the large muscles only and stay within 16 sets and 7 exercises per session', () => {
+    for (const goal of GOALS) {
+      for (const equipment of EQUIPMENT) {
+        const result = generate({ goal, level: 'beginner', equipment, daysPerWeek: 3 });
+        expect(result.summary.weekly.every((volume) => MAJOR_MUSCLES.includes(volume.muscle))).toBe(
+          true,
+        );
+        for (const session of result.summary.sessions) {
+          expect(session.sets).toBeLessThanOrEqual(16);
+          expect(session.exercises).toBeLessThanOrEqual(7);
+        }
+      }
+    }
+  });
+
+  it('home rests are capped only for fat loss and health (E4)', () => {
+    expect(restFor('hypertrophy', 'advanced', 'dumbbells', true)).toBe(180);
+    expect(restFor('strength', 'advanced', 'bodyweight', true)).toBe(210);
+    expect(restFor('fatLoss', 'intermediate', 'dumbbells', true)).toBe(90);
+    expect(restFor('health', 'beginner', 'bodyweight', false)).toBe(60);
+    expect(restFor('fatLoss', 'intermediate', 'gym', true)).toBe(120);
+  });
+
+  it('reserves cardio BEFORE lifting for health (~60%) and fat loss (~40%)', () => {
+    const health = generate({ goal: 'health', level: 'beginner', daysPerWeek: 3, sessionMin: 45 });
+    const fat = generate({
+      goal: 'fatLoss',
+      level: 'intermediate',
+      daysPerWeek: 3,
+      sessionMin: 45,
+    });
+    expect(cardioReserveMin({ goal: 'health', sessionMin: 45 })).toBe(20);
+    expect(cardioReserveMin({ goal: 'fatLoss', sessionMin: 45 })).toBe(15);
+    expect(cardioReserveMin({ goal: 'hypertrophy', sessionMin: 45 })).toBe(0);
+    for (const [plan, reserve] of [
+      [health, 20],
+      [fat, 15],
+    ] as const) {
+      for (const session of plan.plan.sessions) {
+        expect(session.cardioMin).toBeGreaterThanOrEqual(reserve);
+        expect(session.cardioOptional).toBe(false);
+      }
+      for (const session of plan.summary.sessions) expect(session.minutes).toBeLessThanOrEqual(45);
+    }
+    const share = (plan: GeneratedProgram) =>
+      plan.plan.sessions.reduce((sum, session) => sum + session.cardioMin, 0) /
+      (plan.plan.sessions.length * 40);
+    expect(share(health)).toBeGreaterThan(share(fat));
+  });
+
+  it('adds 1-2 OPTIONAL cardio sessions of 20-30 min for hypertrophy and strength when time allows', () => {
+    const roomy = generate({
+      goal: 'hypertrophy',
+      level: 'beginner',
+      daysPerWeek: 3,
+      sessionMin: 90,
+    });
+    const withCardio = roomy.plan.sessions.filter((session) => session.cardioMin > 0);
+    expect(withCardio.length).toBeGreaterThanOrEqual(1);
+    expect(withCardio.length).toBeLessThanOrEqual(2);
+    for (const session of withCardio) {
+      expect(session.cardioOptional).toBe(true);
+      expect(session.cardioMin).toBeGreaterThanOrEqual(20);
+      expect(session.cardioMin).toBeLessThanOrEqual(30);
+    }
+    const names = roomy.program.routines.flatMap((routine) =>
+      routine.steps.filter((step) => step.id === 'cardio').map((step) => step.name),
+    );
+    expect(names.every((name) => name.includes('opcional'))).toBe(true);
+    // The cardio always comes after the lifting and never breaks the time budget.
+    for (const routine of roomy.program.routines) {
+      const last = routine.steps[routine.steps.length - 1];
+      if (routine.steps.some((step) => step.id === 'cardio')) expect(last?.id).toBe('cardio');
+    }
+    for (const session of roomy.summary.sessions) expect(session.minutes).toBeLessThanOrEqual(90);
+    expect(roomy.summary.rules.map((rule) => rule.id)).toContain('cardioOptional');
+    // A tight budget leaves no room, so there is none.
+    const tight = generate({ goal: 'strength', level: 'advanced', daysPerWeek: 4, sessionMin: 45 });
+    expect(tight.plan.sessions.every((session) => session.cardioMin === 0)).toBe(true);
+  });
+
+  it('step ids carry the equipment option and the rep family, so history is only kept when comparable', () => {
+    const squat = byId.get('box-squat');
+    const rdl = byId.get('rdl');
+    const plank = byId.get('plank');
+    const curl = byId.get('hammer-curl');
+    if (!squat || !rdl || !plank || !curl) throw new Error('library changed');
+    const base = effective({ equipment: 'gym' });
+    expect(stepIdFor(rdl, base)).toBe('rdl');
+    expect(stepIdFor(rdl, effective({ equipment: 'dumbbells' }))).toBe('rdl@db');
+    expect(stepIdFor(squat, effective({ equipment: 'bodyweight' }))).toBe('box-squat@bw');
+    expect(stepIdFor(rdl, effective({ goal: 'strength' }))).toBe('rdl~s');
+    expect(stepIdFor(rdl, effective({ goal: 'strength', equipment: 'dumbbells' }))).toBe(
+      'rdl@db~s',
+    );
+    // Holds have no reps; a one-equipment exercise has no equipment suffix.
+    expect(stepIdFor(plank, effective({ goal: 'strength' }))).toBe('plank@bw');
+    expect(stepIdFor(byId.get('leg-curl') ?? curl, base)).toBe('leg-curl');
+    // Fat loss and health share the 8-15 family with hypertrophy.
+    expect(stepIdFor(rdl, effective({ goal: 'fatLoss' }))).toBe('rdl');
+    // Ids inside a generated program use it, and stay unique per routine.
+    const home = generate({ equipment: 'dumbbells', goal: 'strength', daysPerWeek: 3 });
+    for (const routine of home.program.routines) {
+      const ids = routine.steps.filter((step) => step.type === 'sets').map((step) => step.id);
+      expect(new Set(ids).size).toBe(ids.length);
+      for (const id of ids) {
+        const exercise = byId.get(exerciseIdOfStep(id));
+        expect(id).toBe(stepIdFor(exercise ?? squat, home.input));
+      }
+    }
+  });
+
+  it('never puts two calves or two glute medius exercises in one session, and spreads a muscle over its sessions', () => {
+    for (const [name, goal, level, equipment] of grid) {
+      void name;
+      const result = generate({ goal, level, equipment, daysPerWeek: DEFAULT_DAYS[goal][level] });
+      for (const session of result.plan.sessions) {
+        for (const pattern of ['calves', 'glute_med'] as const) {
+          const same = session.entries.filter(
+            (entry) => byId.get(entry.exerciseId)?.pattern === pattern,
+          );
+          expect(same.length).toBeLessThanOrEqual(1);
+        }
+      }
+    }
+    // Balance: no session carries more than ~twice the direct sets of the same muscle's lightest one.
+    const result = generate({ goal: 'hypertrophy', level: 'intermediate', daysPerWeek: 4 });
+    const byMuscle = new Map<string, number[]>();
+    for (const session of result.plan.sessions) {
+      const units = new Map<string, number>();
+      for (const entry of session.entries) {
+        const exercise = byId.get(entry.exerciseId);
+        for (const muscle of exercise?.muscles.primary ?? []) {
+          units.set(muscle, (units.get(muscle) ?? 0) + entry.sets);
+        }
+      }
+      for (const [muscle, sets] of units)
+        byMuscle.set(muscle, [...(byMuscle.get(muscle) ?? []), sets]);
+    }
+    for (const [muscle, sets] of byMuscle) {
+      if (sets.length >= 2 && MAJOR_MUSCLES.includes(muscle as never)) {
+        expect(Math.max(...sets)).toBeLessThanOrEqual(Math.min(...sets) * 2 + 2);
+      }
+    }
+  });
+
+  it('swap options keep the session inside the minutes the person asked for', () => {
+    const tight = generate({
+      goal: 'hypertrophy',
+      level: 'intermediate',
+      daysPerWeek: 4,
+      sessionMin: 45,
+    });
+    for (const session of tight.plan.sessions) {
+      for (const entry of session.entries) {
+        for (const option of swapOptions(tight, library, session.id, entry.exerciseId)) {
+          const swapped = swapExercise(
+            tight,
+            library,
+            tEs,
+            session.id,
+            entry.exerciseId,
+            option.id,
+          );
+          const minutes = swapped?.summary.sessions.find((item) => item.id === session.id)?.minutes;
+          expect(minutes).toBeLessThanOrEqual(45);
+        }
+      }
+    }
+  });
+
+  it('keeps the contraindication tags consistent inside the movement families', () => {
+    const tags = (id: string) => byId.get(id)?.contraindications ?? [];
+    // Every free (unsupported) hinge loads the lower back; the supported cable one does not.
+    for (const exercise of library) {
+      if (exercise.pattern === 'hip_hinge' && exercise.machine !== true) {
+        expect(tags(exercise.id)).toContain('lower_back');
+      }
+    }
+    // Every lunge-type exercise loads the knee.
+    for (const exercise of library) {
+      if (exercise.pattern === 'lunge') expect(tags(exercise.id)).toContain('knee');
+    }
+    // Planks load the shoulder; the supine dead bug and the quadruped bird dog do not.
+    expect(tags('plank')).toContain('shoulder');
+    expect(tags('side-plank')).toContain('shoulder');
+    expect(tags('deadbug')).not.toContain('shoulder');
+    // Push-ups: the incline one is the shoulder-friendly regression, the others load it.
+    for (const id of ['push-up', 'fist-push-up', 'pike-push-up'])
+      expect(tags(id)).toContain('shoulder');
+    expect(tags('incline-push-up')).not.toContain('shoulder');
+    // No guided machine loads a joint on its own.
+    for (const exercise of library) {
+      if (
+        exercise.machine === true &&
+        exercise.pattern !== 'knee_extension' &&
+        exercise.pattern !== 'squat'
+      ) {
+        expect(exercise.contraindications.filter((joint) => joint !== 'shoulder')).toEqual([]);
+      }
+    }
+  });
+
+  it('writes the module name through i18n and a stable program id', () => {
+    const a = generate({ goal: 'hypertrophy', daysPerWeek: 3 });
+    const b = generate({ goal: 'strength', daysPerWeek: 4 });
+    expect(a.program.id).toBe(GENERATED_PROGRAM_ID);
+    expect(b.program.id).toBe(GENERATED_PROGRAM_ID);
+    expect(toModuleJson(a, tEs).name).toBe('Gimnasio');
+    expect(toModuleJson(a, tEn).name).toBe('Gym');
+  });
+
+  it('the gentle routine library coverage has no holes', () => {
+    expect(coverageProblems(library)).toEqual([]);
+  });
+});
+
+function effective(overrides: Partial<EffectiveInput> = {}): EffectiveInput {
+  return {
+    goal: 'hypertrophy',
+    focusRegion: undefined,
+    level: 'beginner',
+    daysPerWeek: 3,
+    sessionMin: 60,
+    equipment: 'gym',
+    limitations: [],
+    seed: 'pomi',
+    restricted: false,
+    ...overrides,
+  };
+}

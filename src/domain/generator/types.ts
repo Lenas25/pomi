@@ -112,7 +112,10 @@ export type EffectiveInput = {
   equipment: Equipment;
   limitations: readonly Limitation[];
   seed: string;
-  /** A PAR-Q+ "yes" was acknowledged: only the low-intensity beginner template. */
+  /**
+   * A PAR-Q+ "yes" (not a referral question) was acknowledged: a gentle beginner routine with
+   * machines and body weight only, 3-4 RIR, no loaded hinge, no ramp-up sets.
+   */
   restricted: boolean;
 };
 
@@ -126,8 +129,10 @@ export type PlanSession = {
   /** "A", "B"... among the sessions of the same kind. */
   letter: string;
   entries: PlanEntry[];
-  /** Minutes of easy cardio added at the end (health and fat loss). */
+  /** Minutes of easy cardio added at the end. */
   cardioMin: number;
+  /** The cardio is a suggestion on top of the lifting (hypertrophy and strength), not the plan. */
+  cardioOptional: boolean;
 };
 export type Plan = { sessions: PlanSession[] };
 
@@ -145,6 +150,7 @@ export type RuleId =
   | 'time'
   | 'limitations'
   | 'cardio'
+  | 'cardioOptional'
   | 'screening';
 
 export type RuleRef = {
@@ -207,7 +213,12 @@ export type GeneratedProgram = {
   summary: PlanSummary;
 };
 
-export type GenerationFailure = 'screeningRequired' | 'acknowledgementRequired' | 'noExercises';
+export type GenerationFailure =
+  | 'screeningRequired'
+  | 'acknowledgementRequired'
+  /** PAR-Q+ question 2 or 7 answered "yes": no routine is generated, the person is referred. */
+  | 'referralRequired'
+  | 'noExercises';
 
 export type GenerationResult =
   { ok: true; value: GeneratedProgram } | { ok: false; reason: GenerationFailure };

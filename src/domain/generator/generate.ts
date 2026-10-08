@@ -18,7 +18,7 @@ import {
 } from './types';
 
 export const DEFAULT_SEED = 'pomi';
-/** E10: the low-intensity beginner template that a PAR-Q+ "yes" is limited to. */
+/** E10: the gentle beginner routine that a (non-referral) PAR-Q+ "yes" is limited to. */
 const RESTRICTED = { days: 3, sessionMin: 45 } as const;
 
 type Normalized =
@@ -29,6 +29,7 @@ type Normalized =
 export function normalizeInput(input: GeneratorInput): Normalized {
   const status = screeningStatus(input.screening);
   if (status === 'incomplete') return { ok: false, reason: 'screeningRequired' };
+  if (status === 'referral') return { ok: false, reason: 'referralRequired' };
   if (status === 'acknowledgementRequired') {
     return { ok: false, reason: 'acknowledgementRequired' };
   }

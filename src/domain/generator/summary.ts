@@ -4,8 +4,12 @@ import { eligibleExercises, muscleUnits, type Exercise, type ExerciseLibrary } f
 import {
   CARDIO_MAX_SESSION,
   CARDIO_MIN_SESSION,
+  CARDIO_RESERVE_SHARE,
   CARDIO_STEP,
   DELOAD_PCT,
+  OPTIONAL_CARDIO_MAX,
+  OPTIONAL_CARDIO_MIN,
+  OPTIONAL_CARDIO_SESSIONS,
   MAJOR_MUSCLES,
   SESSION_LIMITS,
   STALL_SESSIONS,
@@ -34,19 +38,43 @@ import {
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
 
-/** Cardio fills what is left of the session after the lifting (health and fat loss, E8). */
+const stepDown = (minutes: number) => Math.floor(minutes / CARDIO_STEP) * CARDIO_STEP;
+
+/**
+ * Cardio per session (E8, E9, E12).
+ * - Fat loss and health: the plan RESERVED its cardio minutes before the lifting was planned
+ *   (`cardioReserveMin`), so what is left after the lifting is at least that; use what is left,
+ *   up to 30 min per session.
+ * - Hypertrophy and strength: cardio is optional. It goes only to the (up to two) sessions that
+ *   still have 20-30 min free, flagged `cardioOptional`, always AFTER the lifting.
+ */
 export function assignCardio(
   plan: Plan,
   byId: ReadonlyMap<string, Exercise>,
   input: EffectiveInput,
 ): void {
-  const wants = input.goal === 'fatLoss' || input.goal === 'health';
-  for (const session of plan.sessions) {
+  const mandatory = input.goal === 'fatLoss' || input.goal === 'health';
+  const free = plan.sessions.map((session) => {
     session.cardioMin = 0;
-    if (!wants) continue;
-    const left = input.sessionMin - sessionMinutes(session, byId, input);
-    const minutes = Math.floor(Math.min(left, CARDIO_MAX_SESSION) / CARDIO_STEP) * CARDIO_STEP;
-    session.cardioMin = minutes >= CARDIO_MIN_SESSION ? minutes : 0;
+    session.cardioOptional = false;
+    return input.sessionMin - sessionMinutes(session, byId, input);
+  });
+  if (mandatory) {
+    plan.sessions.forEach((session, index) => {
+      const minutes = stepDown(Math.min(free[index] ?? 0, CARDIO_MAX_SESSION));
+      session.cardioMin = minutes >= CARDIO_MIN_SESSION ? minutes : 0;
+    });
+    return;
+  }
+  // The sessions with the most free time first (ties: the earlier session).
+  const candidates = plan.sessions
+    .map((session, index) => ({ session, left: stepDown(free[index] ?? 0), index }))
+    .filter((item) => item.left >= OPTIONAL_CARDIO_MIN)
+    .sort((a, b) => b.left - a.left || a.index - b.index)
+    .slice(0, OPTIONAL_CARDIO_SESSIONS);
+  for (const { session, left } of candidates) {
+    session.cardioMin = Math.min(left, OPTIONAL_CARDIO_MAX);
+    session.cardioOptional = true;
   }
 }
 
@@ -67,7 +95,7 @@ function splitKind(days: number): 'full' | 'upperLower' | 'upperLowerPpl' | 'ppl
 
 function rulesFor(input: EffectiveInput, bands: ReadonlyMap<Muscle, Band>): RuleRef[] {
   const band = VOLUME[input.goal][input.level];
-  const [rirMin, rirMax] = rirTarget(input.goal, input.level);
+  const [rirMin, rirMax] = rirTarget(input.goal, input.level, input.restricted);
   const [compoundReps, isolationReps] = [
     repsFor(input.goal, input.level, input.equipment, true),
     repsFor(input.goal, input.level, input.equipment, false),
@@ -140,8 +168,18 @@ function rulesFor(input: EffectiveInput, bands: ReadonlyMap<Muscle, Band>): Rule
     rules.push({
       id: 'cardio',
       evidence: ['E8', 'E9'],
-      design: false,
-      params: { target: WHO_AEROBIC_MIN },
+      design: true,
+      params: {
+        target: WHO_AEROBIC_MIN,
+        share: Math.round(CARDIO_RESERVE_SHARE[input.goal] * 100),
+      },
+    });
+  } else {
+    rules.push({
+      id: 'cardioOptional',
+      evidence: ['E8', 'E12'],
+      design: true,
+      params: { min: OPTIONAL_CARDIO_MIN, max: OPTIONAL_CARDIO_MAX },
     });
   }
   if (input.restricted) {

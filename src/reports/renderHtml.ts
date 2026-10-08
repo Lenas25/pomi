@@ -21,6 +21,8 @@ export type HtmlContext = {
   language: Language;
   /** Photo file name -> `data:image/jpeg;base64,...`. A photo without an entry is listed, not drawn. */
   photoSources?: Readonly<Record<string, string>>;
+  /** Photos left out of the PDF to keep it light; a note says so. */
+  photosDropped?: number;
 };
 
 const ESCAPES: Record<string, string> = {
@@ -169,7 +171,10 @@ function measuresHtml(section: MeasuresReport, { t, language }: HtmlContext): st
     .join('');
 }
 
-function photosHtml(section: PhotosReport, { t, photoSources = {} }: HtmlContext): string {
+function photosHtml(
+  section: PhotosReport,
+  { t, photoSources = {}, photosDropped = 0 }: HtmlContext,
+): string {
   if (section.empty) return paragraph(t('reports.empty'));
   const figures = section.items
     .map((item) => {
@@ -185,9 +190,12 @@ function photosHtml(section: PhotosReport, { t, photoSources = {} }: HtmlContext
     section.total > section.items.length
       ? paragraph(t('reports.photos.shown', { shown: section.items.length }))
       : '';
+  const dropped =
+    photosDropped > 0 ? paragraph(t('reports.photos.dropped', { count: photosDropped })) : '';
   return (
     paragraph(t('reports.photos.total', { total: section.total })) +
     shown +
+    dropped +
     `<div class="photos">${figures}</div>`
   );
 }
@@ -226,7 +234,7 @@ th, td { border: 1px solid ${p.border}; padding: 4px ${REPORT_SPACE.small}px; te
 thead th { background: ${p.accent}; color: ${p.onAccent}; }
 tbody th { font-weight: 700; }
 .photos { display: flex; flex-wrap: wrap; gap: ${REPORT_SPACE.small}px; }
-figure { margin: 0; width: 30%; break-inside: avoid; }
+figure { margin: 0; width: 45%; break-inside: avoid; }
 img { width: 100%; height: auto; border-radius: ${REPORT_RADIUS}px; }
 figcaption { font-size: ${REPORT_TYPE.caption}px; }
 footer { margin-top: ${REPORT_SPACE.large}px; font-size: ${REPORT_TYPE.caption}px; color: ${p.muted}; }

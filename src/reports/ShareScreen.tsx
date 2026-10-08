@@ -50,10 +50,15 @@ export function ShareScreen() {
         return prepared.format === 'text' ? shareText(prepared.message, title) : 'dismissed';
       }
       const photos = model.sections.find((section) => section.kind === 'photos');
-      const photoSources = await readPhotoSources(
+      const { sources: photoSources, dropped: photosDropped } = await readPhotoSources(
         photos?.kind === 'photos' ? photos.items.map((item) => item.name) : [],
       );
-      const prepared = prepareReport(model, 'pdf', { t: translate, language, photoSources });
+      const prepared = prepareReport(model, 'pdf', {
+        t: translate,
+        language,
+        photoSources,
+        photosDropped,
+      });
       return prepared.format === 'pdf'
         ? sharePdf(prepared.html, `pomi-report-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`, title)
         : 'dismissed';

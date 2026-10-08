@@ -98,4 +98,29 @@ describe('loadReportData + buildReport on the real migrations', () => {
     );
     expect(model.sections.every((section) => section.empty)).toBe(true);
   });
+
+  it('resolves exercise names from every stored module and, failing that, the library', async () => {
+    const at = new Date(2026, 9, 5, 6, 0).getTime();
+    const id = await repos.workouts.createSession({
+      programId: 'old',
+      routineId: 'r',
+      date: '2026-10-05',
+      startedAt: at,
+    });
+    // `rdl@db~s` belongs to no stored program (a replaced generated one): the library names it.
+    await repos.workouts.logSet({
+      sessionId: id,
+      stepId: 'rdl@db~s',
+      setIndex: 0,
+      reps: 5,
+      weightKg: 20,
+      rir: 2,
+      doneAt: at + 1,
+    });
+    await repos.workouts.finishSession(id, at + 3_600_000);
+    const data = await loadReportData(repos, NOW);
+    expect(data.exerciseNames['rdl@db~s']).toMatch(/Romanian|rumano/);
+    // Names of steps in modules that are not the trained program are still known.
+    expect(Object.keys(data.exerciseNames).length).toBeGreaterThan(1);
+  });
 });

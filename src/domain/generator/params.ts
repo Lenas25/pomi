@@ -107,15 +107,16 @@ export const ISOLATION_SET_MIN = 1.75;
 export const UNILATERAL_FACTOR = 1.6;
 
 /**
- * [DESIGN] hard sets and exercises per session, by level. E11 suggests ~12-16 hard sets for a
- * beginner full-body session; the weekly bands of the E12 table need up to 20 when every muscle
- * is trained in each of three sessions, so that is the ceiling.
+ * [DESIGN] hard sets and exercises per session, by level. E11 suggests 5-7 exercises or ~12-16
+ * hard sets for a beginner full-body session, so beginners are capped at 16 sets and 7 exercises
+ * and only the large muscles are tracked for them (`MINOR_MUSCLES` get indirect work). When the
+ * E12 weekly band does not fit under that cap, the proposal says so (`volumeBelowRange`).
  */
 export const SESSION_LIMITS: Record<
   Level,
   { sets: number; exercises: number; setsPerExercise: number }
 > = {
-  beginner: { sets: 20, exercises: 9, setsPerExercise: 3 },
+  beginner: { sets: 16, exercises: 7, setsPerExercise: 3 },
   intermediate: { sets: 22, exercises: 10, setsPerExercise: 4 },
   advanced: { sets: 26, exercises: 11, setsPerExercise: 4 },
 };
@@ -145,14 +146,18 @@ export const REST: Record<Goal, Record<Level, readonly [number, number]>> = {
   },
 };
 export const MIN_REST_SEC = 60;
-/** E4: home circuits rest 45-90 s, so with only the body or dumbbells the long rests are capped. */
+/**
+ * E4: home circuits rest 45-90 s. Applies ONLY to fat loss and health, whose table rest is already
+ * circuit-like; hypertrophy and strength keep their table rests at home (rest is about recovery
+ * between heavy sets, not about where the set is done).
+ */
 export const HOME_REST_CAP: readonly [number, number] = [90, 60];
 
 export function restFor(goal: Goal, level: Level, equipment: Equipment, compound: boolean): number {
   const [longRest, shortRest] = REST[goal][level];
   const value = compound ? longRest : shortRest;
-  const capped =
-    equipment === 'gym' ? value : Math.min(value, compound ? HOME_REST_CAP[0] : HOME_REST_CAP[1]);
+  const capHome = equipment !== 'gym' && (goal === 'fatLoss' || goal === 'health');
+  const capped = capHome ? Math.min(value, compound ? HOME_REST_CAP[0] : HOME_REST_CAP[1]) : value;
   return Math.max(MIN_REST_SEC, capped);
 }
 
@@ -236,8 +241,12 @@ export function repsFor(
   return base;
 }
 
+/** E10 [DESIGN]: a PAR-Q+ "yes" that is not a referral gets a gentle routine at 3-4 RIR. */
+export const RESTRICTED_RIR: readonly [number, number] = [3, 4];
+
 /** E3: target reps in reserve [min, max] (docs section 3 and 12). */
-export function rirTarget(goal: Goal, level: Level): readonly [number, number] {
+export function rirTarget(goal: Goal, level: Level, restricted = false): readonly [number, number] {
+  if (restricted) return RESTRICTED_RIR;
   if (goal === 'strength' && level === 'advanced') return [1, 2];
   if (level === 'advanced') return [0, 3];
   if (level === 'intermediate') return [1, 3];
@@ -250,6 +259,33 @@ export const WHO_STRENGTH_DAYS = 2;
 export const CARDIO_MIN_SESSION = 10;
 export const CARDIO_MAX_SESSION = 30;
 export const CARDIO_STEP = 5;
+
+/**
+ * [DESIGN] share of the session budget (after the warm-up) RESERVED for cardio BEFORE the lifting
+ * is planned, so the volume optimiser can never crowd it out. Health follows the WHO dose (E9,
+ * mostly aerobic); fat loss keeps more room for lifting (E8: RT 2-4 d/wk preserves lean mass).
+ */
+export const CARDIO_RESERVE_SHARE: Record<'health' | 'fatLoss', number> = {
+  health: 0.6,
+  fatLoss: 0.4,
+};
+
+/** E8/E12: optional cardio for hypertrophy and strength, 1-2 sessions of 20-30 min when time allows. */
+export const OPTIONAL_CARDIO_MIN = 20;
+export const OPTIONAL_CARDIO_MAX = 30;
+export const OPTIONAL_CARDIO_SESSIONS = 2;
+
+/**
+ * Minutes of cardio reserved in each session of a fat loss / health plan: the share of the budget
+ * (session minutes minus warm-up), rounded down to 5 min and kept inside the 10-30 min session
+ * range. 0 for the goals whose cardio is optional.
+ */
+export function cardioReserveMin(input: { goal: Goal; sessionMin: number }): number {
+  if (input.goal !== 'fatLoss' && input.goal !== 'health') return 0;
+  const budget = input.sessionMin - WARMUP_MIN;
+  const raw = Math.floor((budget * CARDIO_RESERVE_SHARE[input.goal]) / CARDIO_STEP) * CARDIO_STEP;
+  return Math.min(CARDIO_MAX_SESSION, Math.max(CARDIO_MIN_SESSION, raw));
+}
 
 /** E5: reactive deload only. Two sessions without improvement, then one lighter week at -10%. */
 export const STALL_SESSIONS = 2;

@@ -18,6 +18,7 @@ import {
   MIN_SLEEP_DAYS,
   SLEEP_SHORT_BY_MIN,
   STEPS_MIN_DATA_DAYS,
+  WAKE_ANCHOR_TOLERANCE_MIN,
   WAKE_RANGE_MIN,
   WATER_SHIFT_LIMIT_MIN,
   WATER_SHORT_DAYS,
@@ -110,8 +111,14 @@ export const wakeRegularityRule: Rule = (data, today) => {
   // What the person actually does (median on the 24 h circle, 5 min). The change sets the plan's
   // wake time to it, so accepting always changes something: when the plan already holds this time
   // there is nothing to fix and the rule stays quiet (no no-op question).
-  const time = minutesToClock(medianWake(wakes));
+  const median = medianWake(wakes);
+  const time = minutesToClock(median);
   if (data.anchors.wake === time) return null;
+  // Already close to what the person does: not worth asking (the plan anchor is within 15 min).
+  if (data.anchors.wake !== undefined) {
+    const gap = Math.abs(((median - clockToMinutes(data.anchors.wake) + 1440 + 720) % 1440) - 720);
+    if (gap <= WAKE_ANCHOR_TOLERANCE_MIN) return null;
+  }
   return {
     kind: 'wakeRegularity',
     variant: 'wakeRegularity',

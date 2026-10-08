@@ -89,6 +89,41 @@ export function ParqFlow({ onDone }: ParqFlowProps) {
     );
   }
 
+  // A "yes" to question 2 (chest pain) or 7 (only medically supervised activity): no routine is
+  // generated. The person can still review the answers; nothing here is medical advice.
+  if (outcome.referral) {
+    return (
+      <View style={{ gap: theme.space[4] }}>
+        <Text
+          accessibilityRole="header"
+          style={[theme.text('title-lg'), { color: theme.color.text }]}
+        >
+          {t('creator.parq.referral.title')}
+        </Text>
+        <Card variant="highlight">
+          <View style={{ gap: theme.space[2] }}>
+            <Text style={[theme.text('body'), { color: theme.color.text }]}>
+              {t('creator.parq.referral.body')}
+            </Text>
+            {outcome.chestPain ? (
+              <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
+                {t('creator.parq.notice.chestPain')}
+              </Text>
+            ) : null}
+          </View>
+        </Card>
+        <Button
+          label={t('creator.parq.previous')}
+          variant="ghost"
+          onPress={() => setIndex(PARQ_QUESTION_COUNT - 1)}
+        />
+        <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+          {t('creator.parq.disclaimer')}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: theme.space[4] }}>
       {outcome.anyYes ? (

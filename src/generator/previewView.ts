@@ -1,5 +1,6 @@
 // View model of the proposal preview: pure functions over a `GeneratedProgram`, so the screen only
 // lays things out. Texts are i18n keys + params.
+import { exerciseIdOfStep } from '../domain/generator/program';
 import type {
   GeneratedProgram,
   MuscleVolume,
@@ -9,6 +10,7 @@ import type {
 
 export type ExerciseLine = {
   sessionId: string;
+  /** The LIBRARY exercise (the step id may carry an equipment / rep family suffix). */
   exerciseId: string;
   sets: number;
   reps: string;
@@ -35,7 +37,14 @@ export function routinesOf(generated: GeneratedProgram): RoutineView[] {
       cardioMin: session?.cardioMin ?? 0,
       lines: routine.steps.flatMap((step) =>
         step.type === 'sets'
-          ? [{ sessionId: routine.id, exerciseId: step.id, sets: step.sets, reps: step.reps }]
+          ? [
+              {
+                sessionId: routine.id,
+                exerciseId: exerciseIdOfStep(step.id),
+                sets: step.sets,
+                reps: step.reps,
+              },
+            ]
           : [],
       ),
     };

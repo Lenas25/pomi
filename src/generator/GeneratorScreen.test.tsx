@@ -76,10 +76,10 @@ describe('PAR-Q+ screening in the wizard', () => {
 
   it('a "yes" shows the notice and needs an explicit acknowledgement; then only the gentle template', async () => {
     await renderScreen();
-    await answerAll('No', { 2: 'Sí', 6: 'Sí' });
+    await answerAll('No', { 1: 'Sí', 6: 'Sí' });
     expect(screen.getByText('Conviene consultar primero')).toBeTruthy();
-    expect(screen.getByText(/dolor en el pecho es una señal para parar/)).toBeTruthy();
     expect(screen.getByText(/Pomi no es una autorización médica/)).toBeTruthy();
+    expect(screen.getByText(/con máquinas y tu propio cuerpo/)).toBeTruthy();
     const next = screen.getByRole('button', { name: 'Continuar' });
     expect(next.props.accessibilityState.disabled).toBe(true);
     await fireEvent(
@@ -96,6 +96,21 @@ describe('PAR-Q+ screening in the wizard', () => {
     expect(screen.getByText(/Es una rutina suave para principiantes/)).toBeTruthy();
     expect(screen.getByText(/Mi rutina: Salud general/)).toBeTruthy();
   });
+
+  it.each([2, 7])(
+    'a "yes" to question %i blocks the routine and offers no way to continue',
+    async (question) => {
+      await renderScreen();
+      await answerAll('No', { [question]: 'Sí' });
+      expect(screen.getByText('Primero, habla con un profesional')).toBeTruthy();
+      expect(screen.getByText(/Pomi no crea una rutina ahora/)).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Continuar' })).toBeNull();
+      expect(screen.queryByRole('switch')).toBeNull();
+      // Changing the answer goes back to the questions.
+      await fireEvent.press(screen.getByRole('button', { name: 'Anterior' }));
+      expect(screen.getByText('Pregunta 7 de 7')).toBeTruthy();
+    },
+  );
 });
 
 describe('from answers to an accepted routine', () => {
@@ -157,7 +172,7 @@ describe('from answers to an accepted routine', () => {
     expect(alert).toHaveBeenCalledTimes(1);
     expect(alert.mock.calls[0]?.[1]).toContain('Tus días de gym de Ajustes no cambian');
     const trained = pickProgram(await mockRepos.templates.listModules());
-    expect(trained?.id).toMatch(/^generated-hypertrophy-/);
+    expect(trained?.id).toBe('generated');
     alert.mockRestore();
   });
 

@@ -9,10 +9,10 @@ import { Share } from 'react-native';
 import { deleteAfterGrace, removeStaleCacheFiles, safely } from '../backup/files';
 import { expoPhotoFs } from '../photos/expoPhotoFs';
 
-/** `pomi-report-<date>.pdf` files this app created earlier. */
-export function isReportExportName(name: string): boolean {
-  return /^pomi-report-.*\.pdf$/.test(name);
-}
+import { isReportExportName } from './exportName';
+import { fitPhotoBudget, type PhotoSelection } from './photoBudget';
+
+export { isReportExportName };
 
 export type ShareOutcome = 'shared' | 'dismissed' | 'unavailable';
 
@@ -22,19 +22,24 @@ export async function shareText(message: string, title: string): Promise<ShareOu
   return result.action === Share.dismissedAction ? 'dismissed' : 'shared';
 }
 
-/** Photo file names -> `data:image/jpeg;base64,...` for the files that still exist. */
-export async function readPhotoSources(names: readonly string[]): Promise<Record<string, string>> {
-  const sources: Record<string, string> = {};
+/**
+ * Photo file names -> `data:image/jpeg;base64,...` for the files that still exist, within the byte
+ * cap. `dropped` counts the photos left out (missing, unreadable or over the cap): the PDF says so.
+ */
+export async function readPhotoSources(names: readonly string[]): Promise<PhotoSelection> {
+  const candidates: { name: string; uri: string | null }[] = [];
   for (const name of names) {
+    let uri: string | null = null;
     try {
       if (expoPhotoFs.exists(name)) {
-        sources[name] = `data:image/jpeg;base64,${await expoPhotoFs.readBase64(name)}`;
+        uri = `data:image/jpeg;base64,${await expoPhotoFs.readBase64(name)}`;
       }
     } catch {
       // A photo that cannot be read is left out; the caption still lists it.
     }
+    candidates.push({ name, uri });
   }
-  return sources;
+  return fitPhotoBudget(candidates);
 }
 
 /**

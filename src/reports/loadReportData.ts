@@ -6,13 +6,50 @@ import { waterTargetFor } from '../domain/habits/waterTarget';
 import { stepsPlan } from '../domain/habits/stepsPlan';
 import { toMorningCheckin } from '../domain/habits/checkins';
 import { dayKeyFor } from '../domain/time';
-import { pickProgram } from '../gym/program';
+import { exerciseIdOfStep } from '../domain/generator/program';
+import { t } from '../i18n';
+import { loadExerciseLibrary } from '../templates/exercises';
 import { waterHabit } from '../suggestions/loadData';
 
+import { REPORT_LOOKBACK_DAYS } from './period';
 import type { ReportData } from './types';
 
-/** How far back data is read (the longest period is "all", capped here). */
-export const REPORT_LOOKBACK_DAYS = 400;
+export { REPORT_LOOKBACK_DAYS };
+
+/**
+ * Names of the exercises that may appear in a report. Sessions of ANY past program have sets, so
+ * every stored module counts (active or not), not just the program being trained. Ids the stored
+ * programs no longer have (e.g. a generated `rdl@db~s`) fall back to the library name of their
+ * base exercise in the current language.
+ */
+export function exerciseNamesFor(
+  modules: readonly {
+    template: {
+      programs?: readonly {
+        routines: readonly { steps: readonly { type: string; id: string; name?: string }[] }[];
+      }[];
+    };
+  }[],
+): Record<string, string> {
+  const names: Record<string, string> = {};
+  for (const module of modules) {
+    for (const program of module.template.programs ?? []) {
+      for (const routine of program.routines) {
+        for (const step of routine.steps) {
+          if (step.type === 'sets' && step.name !== undefined && names[step.id] === undefined) {
+            names[step.id] = step.name;
+          }
+        }
+      }
+    }
+  }
+  return names;
+}
+
+function libraryName(stepId: string): string | undefined {
+  const exercise = loadExerciseLibrary().find((item) => item.id === exerciseIdOfStep(stepId));
+  return exercise ? t(exercise.nameKey as never) : undefined;
+}
 
 export async function loadReportData(repos: Repositories, now: Date): Promise<ReportData> {
   const today = dayKeyFor(now);
@@ -39,10 +76,11 @@ export async function loadReportData(repos: Repositories, now: Date): Promise<Re
     repos.photos.all(),
   ]);
 
-  const exerciseNames: Record<string, string> = {};
-  for (const routine of pickProgram(modules)?.routines ?? []) {
-    for (const step of routine.steps) {
-      if (step.type === 'sets') exerciseNames[step.id] = step.name;
+  const exerciseNames = exerciseNamesFor(modules);
+  for (const { sets } of sessionRows) {
+    for (const set of sets) {
+      const name = exerciseNames[set.stepId] ?? libraryName(set.stepId);
+      if (name !== undefined) exerciseNames[set.stepId] = name;
     }
   }
 

@@ -34,6 +34,8 @@ export const exerciseSchema = z.strictObject({
   /** Reps are per side. */
   unilateral: z.boolean(),
   bodyweight: z.boolean(),
+  /** Done on a guided machine or a cable stack (the gentle routine of a PAR-Q+ "yes" only uses these). */
+  machine: z.boolean().optional(),
   /** Ids that can stand in for it (same pattern or group, shared equipment). */
   substitutions: z.array(z.string()).min(1),
   /** Joints this exercise loads enough to avoid when they hurt. */
@@ -90,16 +92,38 @@ export function loadsLimitation(exercise: Exercise, limitations: readonly Limita
   return exercise.contraindications.some((tag) => limitations.includes(tag));
 }
 
+type EligibilityInput = Pick<EffectiveInput, 'equipment' | 'level' | 'limitations'> & {
+  restricted?: boolean | undefined;
+};
+
+/**
+ * The gentle routine of a PAR-Q+ "yes" (E10 [DESIGN]): machines and body weight only, and no loaded
+ * hinge. A machine exercise needs the gym; any other exercise has to be doable with the body alone
+ * (it is then done unloaded, see `isLoaded`). A hinge is only allowed when it is a body-weight one.
+ */
+export function allowedWhenRestricted(exercise: Exercise): boolean {
+  const bodyweightCapable = exercise.bodyweight || exercise.equipment.includes('bodyweight');
+  if (exercise.pattern === 'hip_hinge') return bodyweightCapable && !exercise.machine;
+  return exercise.machine === true || bodyweightCapable;
+}
+
+/** Whether the exercise is done with external load for this person (weights, machine stack). */
+export function isLoaded(
+  exercise: Exercise,
+  input: Pick<EffectiveInput, 'equipment' | 'restricted'>,
+) {
+  if (exercise.bodyweight || input.equipment === 'bodyweight') return false;
+  return !(input.restricted && exercise.machine !== true);
+}
+
 /** The exercises the generator may use for this person: equipment, level and joints respected. */
-export function eligibleExercises(
-  library: ExerciseLibrary,
-  input: Pick<EffectiveInput, 'equipment' | 'level' | 'limitations'>,
-): Exercise[] {
+export function eligibleExercises(library: ExerciseLibrary, input: EligibilityInput): Exercise[] {
   return library.filter(
     (exercise) =>
       fitsEquipment(exercise, input.equipment) &&
       levelRank(exercise.minLevel) <= levelRank(input.level) &&
-      !loadsLimitation(exercise, input.limitations),
+      !loadsLimitation(exercise, input.limitations) &&
+      (!input.restricted || allowedWhenRestricted(exercise)),
   );
 }
 
@@ -110,6 +134,15 @@ const REQUIRED_PATTERNS: readonly Pattern[] = [
   'horizontal_push',
   'horizontal_pull',
   'vertical_pull',
+  'core_anti_extension',
+];
+
+/** The gentle routine has no loaded hinge, so it needs a leg-curl style pattern for the hamstrings. */
+const RESTRICTED_REQUIRED_PATTERNS: readonly Pattern[] = [
+  'hip_thrust',
+  'horizontal_push',
+  'horizontal_pull',
+  'knee_flexion',
   'core_anti_extension',
 ];
 
@@ -141,6 +174,26 @@ export function coverageProblems(library: ExerciseLibrary): string[] {
     for (const muscle of REQUIRED_MUSCLES) {
       if (!pool.some((exercise) => exercise.muscles.primary.includes(muscle))) {
         problems.push(`no beginner exercise with "${muscle}" as primary mover for ${equipment}`);
+      }
+    }
+  }
+  for (const equipment of EQUIPMENT) {
+    const pool = eligibleExercises(library, {
+      equipment,
+      level: 'beginner',
+      limitations: [],
+      restricted: true,
+    });
+    for (const pattern of RESTRICTED_REQUIRED_PATTERNS) {
+      if (!pool.some((exercise) => exercise.pattern === pattern)) {
+        problems.push(`no gentle-routine "${pattern}" exercise for ${equipment}`);
+      }
+    }
+    for (const muscle of REQUIRED_MUSCLES) {
+      if (!pool.some((exercise) => exercise.muscles.primary.includes(muscle))) {
+        problems.push(
+          `no gentle-routine exercise with "${muscle}" as primary mover for ${equipment}`,
+        );
       }
     }
   }

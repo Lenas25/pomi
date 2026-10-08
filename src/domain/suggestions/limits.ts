@@ -20,6 +20,8 @@ export const MIN_SLEEP_DAYS = 4;
 export const SLEEP_SHORT_BY_MIN = 30;
 /** Wake times that vary by more than this trigger "regularidad". */
 export const WAKE_RANGE_MIN = 60;
+/** No wake suggestion when the median is this close to the plan's wake time. */
+export const WAKE_ANCHOR_TOLERANCE_MIN = 15;
 
 export const STEPS_MIN_DATA_DAYS = 5;
 

@@ -16,6 +16,7 @@ import { useDatabaseReady } from '../src/db/useDatabaseReady';
 import { routeGuards } from '../src/domain/onboarding/redirect';
 import { useT } from '../src/i18n';
 import { sweepOrphanPhotosAtStart } from '../src/photos/startupSweep';
+import { sweepReportExportsAtStart } from '../src/reports/startupSweep';
 import { useNotificationSetup } from '../src/notifications/useNotificationSetup';
 import { useOnboardingStatusStore } from '../src/onboarding/statusStore';
 import { EmptyState } from '../src/ui/EmptyState';
@@ -102,6 +103,10 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) SplashScreen.hide();
   }, [ready]);
+
+  useEffect(() => {
+    sweepReportExportsAtStart();
+  }, []);
 
   useEffect(() => {
     if (dbStatus === 'ready') sweepOrphanPhotosAtStart();

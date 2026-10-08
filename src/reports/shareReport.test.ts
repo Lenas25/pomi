@@ -106,7 +106,8 @@ describe('helpers', () => {
 
   it('reads photos as data URIs and leaves out the missing or unreadable ones', async () => {
     expect(await readPhotoSources(['a.jpg', 'missing.jpg', 'broken.jpg'])).toEqual({
-      'a.jpg': 'data:image/jpeg;base64,QQ==',
+      sources: { 'a.jpg': 'data:image/jpeg;base64,QQ==' },
+      dropped: 2,
     });
   });
 });

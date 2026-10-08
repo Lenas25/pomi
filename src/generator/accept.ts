@@ -5,7 +5,8 @@
 import type { Repositories } from '../db/repositories';
 import type { Db } from '../db/types';
 import { toModuleJson } from '../domain/generator/edit';
-import type { GeneratedProgram } from '../domain/generator/types';
+import { exerciseIdOfStep } from '../domain/generator/program';
+import type { GeneratedProgram, TextResolver } from '../domain/generator/types';
 import { pickProgram } from '../gym/program';
 import { importTemplate, toModuleTemplates } from '../templates/importer';
 import { applyProgramImport, type ProgramPreviewItem } from '../templates/programImport';
@@ -18,13 +19,22 @@ export type AcceptContext = {
 };
 
 export type HistoryImpact = {
-  /** Exercises of the current program that keep their history in the new one. */
+  /** Exercises of the current program that keep their history in the new one (same step id). */
   kept: { id: string; name: string }[];
   /** Exercises with history that the new program does not have. */
   lost: { id: string; name: string }[];
+  /**
+   * The same exercise, but with other equipment or another rep family (a different step id), so
+   * its history starts over: weights at 8-12 reps are not comparable with a 5 rep strength series.
+   */
+  restarted: { id: string; name: string }[];
 };
 
-/** Pure: which logged exercises of the program being trained survive (same step id). */
+/**
+ * Pure: which logged exercises of the program being trained survive. The history lives under the
+ * step id, and the generator changes the id when the equipment option or the rep family differs
+ * (`stepIdFor`), so "kept" means the same exercise, equipment and rep family.
+ */
 export function historyImpact(
   context: AcceptContext,
   newStepIds: ReadonlySet<string>,
@@ -36,18 +46,28 @@ export function historyImpact(
       if (step.type === 'sets' && context.loggedStepIds.has(step.id)) seen.set(step.id, step.name);
     }
   }
+  const newBases = new Set([...newStepIds].map(exerciseIdOfStep));
   const kept: HistoryImpact['kept'] = [];
   const lost: HistoryImpact['lost'] = [];
-  for (const [id, name] of seen) (newStepIds.has(id) ? kept : lost).push({ id, name });
-  return { kept, lost };
+  const restarted: HistoryImpact['restarted'] = [];
+  for (const [id, name] of seen) {
+    if (newStepIds.has(id)) kept.push({ id, name });
+    else if (newBases.has(exerciseIdOfStep(id))) restarted.push({ id, name });
+    else lost.push({ id, name });
+  }
+  return { kept, lost, restarted };
 }
 
 export type PreparedAccept =
   { ok: true; items: ProgramPreviewItem[]; impact: HistoryImpact } | { ok: false };
 
 /** Validates the proposal as a template module and works out what accepting it does. */
-export function prepareAccept(generated: GeneratedProgram, context: AcceptContext): PreparedAccept {
-  const imported = importTemplate(toModuleJson(generated));
+export function prepareAccept(
+  generated: GeneratedProgram,
+  context: AcceptContext,
+  t: TextResolver,
+): PreparedAccept {
+  const imported = importTemplate(toModuleJson(generated, t));
   if (!imported.ok) return { ok: false };
   const modules = toModuleTemplates(imported.template);
   const items: ProgramPreviewItem[] = modules.map((module) => ({

@@ -74,7 +74,9 @@ export function GeneratorScreen() {
         setError(
           result.reason === 'noExercises'
             ? t('creator.errors.noExercises')
-            : t('creator.errors.screening'),
+            : result.reason === 'referralRequired'
+              ? t('creator.errors.referral')
+              : t('creator.errors.screening'),
         );
         return;
       }
@@ -99,7 +101,7 @@ export function GeneratorScreen() {
       setFailed(false);
       try {
         const repos = getRepositories();
-        const prepared = prepareAccept(generated, await loadAcceptContext(repos));
+        const prepared = prepareAccept(generated, await loadAcceptContext(repos), resolver);
         if (!prepared.ok) {
           setFailed(true);
           return;
@@ -107,6 +109,11 @@ export function GeneratorScreen() {
         const lines = [
           prepared.impact.kept.length > 0
             ? t('creator.accept.kept', { count: prepared.impact.kept.length })
+            : null,
+          prepared.impact.restarted.length > 0
+            ? t('creator.accept.restarted', {
+                names: prepared.impact.restarted.map((item) => item.name).join(', '),
+              })
             : null,
           prepared.impact.lost.length > 0
             ? t('creator.accept.lost', {
@@ -137,7 +144,7 @@ export function GeneratorScreen() {
         setBusy(false);
       }
     },
-    [busy, t],
+    [busy, resolver, t],
   );
 
   return (

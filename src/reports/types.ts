@@ -36,8 +36,11 @@ export type ReportPeriodKind = (typeof REPORT_PERIODS)[number];
 export type ReportFormat = 'text' | 'pdf';
 
 export const MAX_NOTE_LENGTH = 500;
-/** Photos in one report (newest first): the PDF carries them inline, so the size is bounded. */
-export const MAX_REPORT_PHOTOS = 6;
+/**
+ * Photos in one report (newest first). The PDF carries them inline and no resizing library is
+ * installed, so only the two most recent go in (plus a byte cap, see `photoBudget.ts`).
+ */
+export const MAX_REPORT_PHOTOS = 2;
 
 export type ReportSelection = {
   template: ReportTemplateId;

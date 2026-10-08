@@ -98,7 +98,8 @@
         "back-squat",
         "stepup"
       ],
-      "incrementKg": 5
+      "incrementKg": 5,
+      "machine": true
     },
     {
       "id": "box-squat",
@@ -258,7 +259,8 @@
         "glute-bridge",
         "single-leg-bridge"
       ],
-      "incrementKg": 5
+      "incrementKg": 5,
+      "machine": true
     },
     {
       "id": "ht-mid",
@@ -464,7 +466,9 @@
       "compound": true,
       "unilateral": true,
       "bodyweight": false,
-      "contraindications": [],
+      "contraindications": [
+        "lower_back"
+      ],
       "substitutions": [
         "cable-pull-through",
         "rdl-barbell",
@@ -531,7 +535,8 @@
         "rdl-barbell",
         "deadlift"
       ],
-      "incrementKg": 2.5
+      "incrementKg": 2.5,
+      "machine": true
     },
     {
       "id": "leg-curl",
@@ -555,7 +560,8 @@
       "substitutions": [
         "sliding-leg-curl"
       ],
-      "incrementKg": 2.5
+      "incrementKg": 2.5,
+      "machine": true
     },
     {
       "id": "sliding-leg-curl",
@@ -611,7 +617,8 @@
         "box-squat",
         "stepup"
       ],
-      "incrementKg": 2.5
+      "incrementKg": 2.5,
+      "machine": true
     },
     {
       "id": "chest-press-machine",
@@ -641,7 +648,8 @@
         "incline-push-up",
         "fist-push-up"
       ],
-      "incrementKg": 5
+      "incrementKg": 5,
+      "machine": true
     },
     {
       "id": "bench-press",
@@ -836,7 +844,8 @@
         "fist-push-up",
         "push-up"
       ],
-      "incrementKg": 2.5
+      "incrementKg": 2.5,
+      "machine": true
     },
     {
       "id": "shoulder-press-machine",
@@ -865,7 +874,8 @@
         "db-shoulder-press",
         "ohp-barbell"
       ],
-      "incrementKg": 5
+      "incrementKg": 5,
+      "machine": true
     },
     {
       "id": "db-shoulder-press",
@@ -1053,7 +1063,8 @@
         "dbrow",
         "facepull"
       ],
-      "incrementKg": 2.5
+      "incrementKg": 2.5,
+      "machine": true
     },
     {
       "id": "dbrow",
@@ -1178,7 +1189,8 @@
         "row",
         "chest-supported-row"
       ],
-      "incrementKg": 1
+      "incrementKg": 1,
+      "machine": true
     },
     {
       "id": "rear-delt-fly",
@@ -1265,7 +1277,8 @@
         "pull-up",
         "db-pullover"
       ],
-      "incrementKg": 2.5
+      "incrementKg": 2.5,
+      "machine": true
     },
     {
       "id": "pull-up",
@@ -1406,7 +1419,9 @@
       "compound": false,
       "unilateral": false,
       "bodyweight": true,
-      "contraindications": [],
+      "contraindications": [
+        "shoulder"
+      ],
       "substitutions": [
         "deadbug",
         "bird-dog",
@@ -1443,7 +1458,8 @@
         "deadbug",
         "plank"
       ],
-      "incrementKg": 2.5
+      "incrementKg": 2.5,
+      "machine": true
     },
     {
       "id": "bird-dog",
@@ -1534,7 +1550,8 @@
         "db-calf-raise",
         "bodyweight-calf-raise"
       ],
-      "incrementKg": 5
+      "incrementKg": 5,
+      "machine": true
     },
     {
       "id": "db-calf-raise",
@@ -1612,7 +1629,8 @@
       "substitutions": [
         "side-lying-abduction"
       ],
-      "incrementKg": 5
+      "incrementKg": 5,
+      "machine": true
     },
     {
       "id": "side-lying-abduction",
@@ -1661,7 +1679,8 @@
       "substitutions": [
         "donkey-kick"
       ],
-      "incrementKg": 1
+      "incrementKg": 1,
+      "machine": true
     },
     {
       "id": "donkey-kick",
@@ -1763,7 +1782,8 @@
         "overhead-triceps-extension",
         "bench-dip"
       ],
-      "incrementKg": 1
+      "incrementKg": 1,
+      "machine": true
     },
     {
       "id": "overhead-triceps-extension",

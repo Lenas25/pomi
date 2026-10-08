@@ -11,6 +11,8 @@ export type PrepareContext = {
   language: Language;
   /** Data URIs of the photos for the PDF, by file name. */
   photoSources?: Readonly<Record<string, string>>;
+  /** Photos asked for but left out of the PDF (unreadable or over the size cap). */
+  photosDropped?: number;
 };
 
 export type PreparedReport = { format: 'text'; message: string } | { format: 'pdf'; html: string };
@@ -32,6 +34,7 @@ export function prepareReport(
         t: context.t,
         language: context.language,
         ...(context.photoSources ? { photoSources: context.photoSources } : {}),
+        ...(context.photosDropped ? { photosDropped: context.photosDropped } : {}),
       }),
     };
   }

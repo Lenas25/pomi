@@ -1045,9 +1045,9 @@ export const en: Messages = {
       reason: 'This week you slept {{avg}} on average and your goal is {{target}}.',
     },
     wakeRegularity: {
-      text: 'Shall we fix {{time}} as your wake-up time every day?',
+      text: 'Shall we adjust your plan to your real wake-up time?',
       reason:
-        'Your wake-up time varied by {{range}} this week. Waking at the same time helps you feel sleepy earlier.',
+        'Your wake-up time varied by {{range}} this week and the most usual was {{time}}. Waking at the same time helps you feel sleepy earlier.',
     },
     stepsRaise: {
       text: 'Shall we raise your goal to {{newGoal}} steps?',
@@ -1199,6 +1199,7 @@ export const en: Messages = {
     photos: {
       total: 'Photos in the period: {{total}}',
       shown: 'The {{shown}} most recent are included',
+      dropped: '{{count}} photo(s) were left out to keep the PDF light.',
       textOnly: 'Photos do not travel in text; choose PDF to include them.',
       item: '{{date}}: {{pose}}',
       alt: '{{pose}}, {{date}}',
@@ -1552,8 +1553,10 @@ export const en: Messages = {
     approach: { ramp: '1 × 8 at 50% · 1 × 5 at 70% · 1 × 3 at 85%' },
     cardio: {
       name: 'Easy cardio {{min}} min',
+      optionalName: 'Optional easy cardio {{min}} min',
       easy: 'Comfortable pace: you can talk without gasping',
     },
+    module: { name: 'Gym' },
     program: { name: 'My routine: {{goal}}, {{days}} days' },
   },
   creator: {
@@ -1590,8 +1593,13 @@ export const en: Messages = {
         title: 'Better to check first',
         body: 'You answered "yes" to something important. Before becoming more active, talk to your doctor or a qualified exercise professional. Pomi is not medical clearance and does not give medical advice.',
         chestPain: 'Chest pain is a sign to stop and see your doctor before training.',
-        restricted: 'If you decide to continue, we will only propose a gentle beginner routine.',
+        restricted:
+          'If you decide to continue, we will only propose a gentle beginner routine with machines and your own body weight.',
         acknowledge: 'I understand and I want a gentle routine',
+      },
+      referral: {
+        title: 'First, talk to a professional',
+        body: "Based on your answers, it is best to talk to your doctor or a qualified exercise professional before training. That is why Pomi does not create a routine right now. When you get the green light we will be here; in the meantime you can import your trainer's routine from Settings. Pomi is not medical clearance and does not give medical advice.",
       },
       disclaimer:
         'If during a session you feel chest pain, dizziness with fainting or severe shortness of breath, stop and seek care.',
@@ -1599,7 +1607,8 @@ export const en: Messages = {
     inputs: {
       title: 'Your routine',
       intro: 'Tell us the basics. We start from what you answered when you began.',
-      restricted: 'Because of your answers, the proposal will be a gentle beginner routine.',
+      restricted:
+        'Because of your answers, the proposal will be a gentle beginner routine with machines and your own body weight.',
       joints: 'You marked a bone, joint or soft tissue problem: choose the area below.',
       goal: {
         label: 'Goal',
@@ -1647,6 +1656,7 @@ export const en: Messages = {
       noExercises:
         'We could not find exercises for that combination. Try other equipment or fewer marked areas.',
       screening: 'Answer the health questionnaire first.',
+      referral: 'Because of your answers, it is best to talk to a health professional first.',
     },
     muscle: {
       gluteo: 'Glutes',
@@ -1701,7 +1711,7 @@ export const en: Messages = {
         cardioBelowWho:
           'The planned cardio adds up to {{minutes}} min; the WHO recommends {{target}} min a week. Walking on your free days helps.',
         restrictedTemplate:
-          'It is a gentle beginner routine, because of your questionnaire answers.',
+          'It is a gentle beginner routine with machines and body weight, because of your questionnaire answers.',
         noSafeExercise:
           'There is no safe exercise with your limitations to train {{muscle}}; talk to a professional.',
       },
@@ -1728,6 +1738,7 @@ export const en: Messages = {
         time: 'Time',
         limitations: 'Your limitations',
         cardio: 'Cardio',
+        cardioOptional: 'Optional cardio',
         screening: 'Health questionnaire',
       },
       body: {
@@ -1749,9 +1760,11 @@ export const en: Messages = {
         limitations:
           'We avoid exercises that load the areas you marked and put equivalent ones in.',
         cardio:
-          'Easy cardio at the end of sessions; the WHO recommends {{target}} min a week of moderate activity.',
+          'We reserve about {{share}}% of each session for easy cardio before spreading the sets; the WHO recommends {{target}} min a week of moderate activity.',
+        cardioOptional:
+          'If you have time to spare, 1 or 2 sessions end with {{min}} to {{max}} min of easy cardio, always after lifting. It is optional.',
         screening:
-          'You answered "yes" in the questionnaire, so we only offer a gentle beginner routine.',
+          'You answered "yes" in the questionnaire, so we only offer a gentle beginner routine: machines and body weight, no loaded hinge, no ramp-up sets and 3 to 4 reps in reserve.',
       },
       split: {
         full: 'Full-body sessions on non-consecutive days.',
@@ -1778,6 +1791,8 @@ export const en: Messages = {
     accept: {
       title: 'Use this routine',
       kept: 'We keep your history for {{count}} exercises.',
+      restarted:
+        'Same exercise but with other equipment or rep range, so its history starts over: {{names}}.',
       lost: 'The history of these will not show: {{names}}.',
       note: 'Your gym days in Settings do not change; the routines rotate between them.',
       confirm: 'Use routine',

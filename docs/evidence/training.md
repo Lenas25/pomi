@@ -17,6 +17,7 @@ Rules marked [DESIGN] are engineering choices that interpolate between sources; 
 ## 1. Weekly volume per muscle
 
 **Rule for the generator**
+- NOTE: the per-goal bands below are the first draft; the section 12 table is AUTHORITATIVE where they differ (e.g. fat loss beginner 4-6 / intermediate 6-10, health 4-8, strength by level), and the generator follows it.
 - Count "hard sets" per muscle per week. Direct set = 1.0; indirect (secondary mover) set = 0.5 (Pelland's "fractional" method).
 - Hypertrophy target (direct-equivalent sets/muscle/week): beginner 8-10, intermediate 10-14, advanced 12-18 (cap 20). Prioritized muscle (e.g., glutes for a glute goal): +2-4 sets above that band. [DESIGN: bands interpolate the dose-response; ACSM floor is >=10]
 - General strength: 6-10 sets per main lift pattern per week (diminishing returns for strength are more pronounced than for hypertrophy).
@@ -201,13 +202,13 @@ Rules marked [DESIGN] are engineering choices that interpolate between sources; 
 
 ## 10. Safety and pre-participation screening
 
-**Rule**: Show a short PAR-Q+-based screen before generating a plan. If all seven General Health Questions = NO: proceed. If any YES: do not generate silently; show "talk to a doctor or qualified exercise professional first" with an option to continue only with a low-intensity beginner template and an explicit acknowledgement. Never present the app as medical clearance.
+**Rule**: Show a short PAR-Q+-based screen before generating a plan. If all seven General Health Questions = NO: proceed. If any YES: do not generate silently; show "talk to a doctor or qualified exercise professional first" with an option to continue only with a low-intensity beginner template and an explicit acknowledgement. Never present the app as medical clearance. [DESIGN, owner decision] A YES to question 2 (chest pain) or 7 (only medically supervised activity) BLOCKS generation and shows a referral message; any other YES allows only the gentle routine (machines + body weight, 3-4 RIR, no loaded hinge, no ramp-up sets).
 
 **Sources**
 1. PAR-Q+ (PAR-Q+ Collaboration, 2025 form, copyright 2025; version dated 2024-11-01), official 7 General Health Questions and follow-up logic. VERIFIED (text read from the form PDF hosted at southlake.ca; official site is eparmedx.com). Base paper: Warburton DER et al. Evidence-based risk assessment and recommendations for physical activity clearance: Consensus Document 2011. Appl Physiol Nutr Metab 36(S1):S266-S298. DOI 10.1139/h11-062. VERIFIED.
 2. Riebe D et al. Updating ACSM's recommendations for exercise preparticipation health screening. Med Sci Sports Exerc 2015;47(11):2473-9. DOI 10.1249/MSS.0000000000000664. VERIFIED. Model uses: (1) current physical activity level, (2) signs/symptoms or known cardiovascular, metabolic, or renal disease, (3) desired intensity; risk-factor profiling dropped. Not used as the primary screen because it needs clinician-style interpretation, but its logic is compatible: refer when signs/symptoms or known CV/metabolic/renal disease and not currently active.
 
-### Screening questions (PAR-Q+ General Health Questions, verbatim from the form)
+### Screening questions (PAR-Q+ General Health Questions; wording of the form, parenthetical hints condensed to "NO if ..." here and phrased "Answer NO if ..." in the app)
 | # | Question | Trigger |
 |---|---|---|
 | 1 | Has your doctor ever said that you have a heart condition OR high blood pressure? | YES -> follow-up / refer |

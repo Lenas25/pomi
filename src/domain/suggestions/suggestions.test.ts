@@ -121,6 +121,15 @@ describe('wakeRegularityRule', () => {
     expect(fired?.change).toEqual({ type: 'wakeTime', to: '00:00' });
   });
 
+  it('stays quiet when the median is within 15 minutes of the plan wake time', () => {
+    expect(
+      wakeRegularityRule(data({ sleep: wakes(61), anchors: planWake('06:15') }), TODAY),
+    ).toBeNull();
+    expect(
+      wakeRegularityRule(data({ sleep: wakes(61), anchors: planWake('06:20') }), TODAY)?.change,
+    ).toEqual({ type: 'wakeTime', to: '06:00' });
+  });
+
   it('needs 4 days', () => {
     expect(wakeRegularityRule(data({ sleep: wakes(120).slice(0, 3) }), TODAY)).toBeNull();
   });

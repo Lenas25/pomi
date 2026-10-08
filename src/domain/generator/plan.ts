@@ -29,6 +29,7 @@ import {
   WARMUP_MIN,
   WEEKLY_SETS_CEILING,
   WEEKLY_SETS_FLOOR,
+  cardioReserveMin,
   restFor,
 } from './params';
 import type { EffectiveInput, Muscle, Pattern, Plan, PlanSession, SessionKind } from './types';
@@ -114,6 +115,9 @@ const OPTIMIZER_TIME_SHARE = 0.85;
 
 const CORE_PATTERNS: readonly Pattern[] = ['core_anti_extension', 'core_anti_rotation'];
 
+/** Isolation patterns of ONE small muscle: a second exercise of the same pattern is redundant. */
+export const SINGLE_PER_SESSION: readonly Pattern[] = ['calves', 'glute_med'];
+
 export type DaysResolution = { used: number; requested: number };
 
 /** Clamps the requested days to 2-6 and to what the goal and level support (E12 days column). */
@@ -141,6 +145,7 @@ export function emptySessions(days: number): PlanSession[] {
       letter: String.fromCharCode(65 + count),
       entries: [],
       cardioMin: 0,
+      cardioOptional: false,
     };
   });
 }
@@ -166,7 +171,9 @@ export function trackedBands(input: EffectiveInput): Map<Muscle, Band> {
     });
   };
   for (const muscle of MAJOR_MUSCLES) put(muscle, VOLUME[input.goal][input.level]);
-  if (input.goal === 'hypertrophy') {
+  // Beginners track the large muscles only: the small ones get indirect work from the big lifts
+  // (E1 fractional counting) and the 16-set session cap leaves no room for dedicated isolation.
+  if (input.goal === 'hypertrophy' && input.level !== 'beginner') {
     for (const muscle of MINOR_MUSCLES) put(muscle, MINOR_BAND[input.level]);
   }
   return bands;
@@ -193,6 +200,10 @@ export function sessionMinutes(
   }, 0);
   return WARMUP_MIN + lifting + session.cardioMin;
 }
+
+/** Minutes of one session the lifting may use: the budget minus the warm-up and the reserved cardio. */
+export const liftingBudget = (input: EffectiveInput): number =>
+  input.sessionMin - WARMUP_MIN - cardioReserveMin(input);
 
 // --- Deterministic tie-break --------------------------------------------------------------------
 
@@ -355,7 +366,7 @@ function canGrow(
 ): boolean {
   const limits = SESSION_LIMITS[state.input.level];
   const load = loadOf(state, session);
-  const budget = (state.input.sessionMin - WARMUP_MIN) * share;
+  const budget = liftingBudget(state.input) * share;
   if (load.minutes + added * minutesPerSet(exercise, state.input) > budget + 1e-9) return false;
   if (load.sets + added > limits.sets) return false;
   if (isNew && session.entries.length + 1 > limits.exercises) return false;
@@ -368,12 +379,30 @@ function canGrow(
   return true;
 }
 
-/** Squared distance of the week from its targets (units): what the optimiser reduces. */
-function error(state: State, week: ReadonlyMap<Muscle, number>): number {
+/** Weight of the per-session balance term against the weekly distance (both in units squared). */
+const BALANCE_WEIGHT = 0.25;
+
+/**
+ * What the optimiser reduces: the squared distance of the week from its targets (units), plus a
+ * small per-session BALANCE term, the squared deviation of each tracked muscle's units from their
+ * mean over the sessions that train it. Without it a muscle's volume piles up in one session.
+ */
+function error(state: State): number {
+  const week = weekUnits(state.sessions, state.byId);
   let total = 0;
   for (const [muscle, band] of state.bands) {
     const gap = band.target * 2 - (week.get(muscle) ?? 0);
     total += gap * gap;
+  }
+  const perSession = state.sessions.map((session) => loadOf(state, session).units);
+  for (const muscle of state.bands.keys()) {
+    const trained = perSession
+      .map((units, index) => ({ units, kind: state.sessions[index]?.kind }))
+      .filter((item) => item.kind !== undefined && FOCUS[item.kind].includes(muscle))
+      .map((item) => item.units.get(muscle) ?? 0);
+    if (trained.length < 2) continue;
+    const mean = trained.reduce((sum, value) => sum + value, 0) / trained.length;
+    total += BALANCE_WEIGHT * trained.reduce((sum, value) => sum + (value - mean) ** 2, 0);
   }
   return total;
 }
@@ -392,7 +421,7 @@ function optimize(state: State): void {
   const limits = SESSION_LIMITS[state.input.level];
   for (let step = 0; step < 400; step += 1) {
     const week = weekUnits(state.sessions, state.byId);
-    const base = error(state, week);
+    const base = error(state);
     const found: { best: Move | null } = { best: null };
     const consider = (move: Move) => {
       const current = found.best;
@@ -411,7 +440,7 @@ function optimize(state: State): void {
         if (!exercise || entry.sets >= limits.setsPerExercise) return;
         if (!canGrow(state, session, exercise, 1, false, week, state.share)) return;
         entry.sets += 1;
-        const gain = base - error(state, weekUnits(state.sessions, state.byId));
+        const gain = base - error(state);
         entry.sets -= 1;
         if (gain > 1e-9) {
           consider({
@@ -438,7 +467,7 @@ function optimize(state: State): void {
               if (!exercise || target === source || target.sets >= limits.setsPerExercise) return;
               if (!canGrow(state, to, exercise, 1, false, afterTake, state.share)) return;
               target.sets += 1;
-              const gain = base - error(state, weekUnits(state.sessions, state.byId));
+              const gain = base - error(state);
               target.sets -= 1;
               if (gain > 1e-9) {
                 consider({
@@ -504,9 +533,11 @@ function addExtra(state: State): boolean {
   state.sessions.forEach((session, sessionIndex) => {
     const focus = new Set(FOCUS[session.kind]);
     const used = new Set(session.entries.map((entry) => state.byId.get(entry.exerciseId)?.pattern));
-    const spare = state.input.sessionMin - WARMUP_MIN - loadOf(state, session).minutes;
+    const spare = liftingBudget(state.input) - loadOf(state, session).minutes;
     for (const exercise of state.pool) {
       if (session.entries.some((entry) => entry.exerciseId === exercise.id)) continue;
+      // Never two exercises of the single-muscle isolation patterns (calves, glute medius).
+      if (SINGLE_PER_SESSION.includes(exercise.pattern) && used.has(exercise.pattern)) continue;
       // One exercise per pattern, unless the one there already holds as many sets as allowed.
       if (
         used.has(exercise.pattern) &&

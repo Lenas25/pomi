@@ -1,3 +1,4 @@
+import { fitPhotoBudget } from './photoBudget';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -128,10 +129,11 @@ describe('periodFor', () => {
     expect(periodFor('90d', NOW).from).toBe('2026-07-09');
   });
 
-  it('"all" starts on the first day of use, else a year back', () => {
+  it('"all" starts on the first day of use, clamped to the data that is loaded (400 days)', () => {
     expect(periodFor('all', NOW, '2026-08-01').from).toBe('2026-08-01');
-    expect(periodFor('all', NOW).from).toBe('2025-10-06');
-    expect(periodFor('all', NOW, '2027-01-01').from).toBe('2025-10-06');
+    expect(periodFor('all', NOW).from).toBe('2025-09-01');
+    expect(periodFor('all', NOW, '2027-01-01').from).toBe('2025-09-01');
+    expect(periodFor('all', NOW, '2020-01-01').from).toBe('2025-09-01');
   });
 });
 
@@ -349,6 +351,24 @@ describe('text and HTML renderers', () => {
     expect(html).toContain('<img src="data:image/jpeg;base64,AAAA" alt="perfil, 2026-10-06"');
     expect(html.match(/<img /g)).toHaveLength(1); // only the one with a source
     expect(html).not.toContain(name);
+  });
+
+  it('keeps photos inside the byte cap and says so in the PDF when some were left out', () => {
+    expect(
+      fitPhotoBudget(
+        [
+          { name: 'a', uri: 'x'.repeat(60) },
+          { name: 'b', uri: 'x'.repeat(60) },
+          { name: 'c', uri: null },
+        ],
+        100,
+      ),
+    ).toEqual({ sources: { a: 'x'.repeat(60) }, dropped: 2 });
+    expect(MAX_REPORT_PHOTOS).toBe(2);
+    const model = buildReport(data, selection({ sections: ['photos'], period: '30d' }), NOW);
+    const withNote = renderHtml(model, { t: tEs, language: 'es', photosDropped: 1 });
+    expect(withNote).toContain('Se dejaron fuera 1 foto(s)');
+    expect(renderHtml(model, { t: tEs, language: 'es' })).not.toContain('Se dejaron fuera');
   });
 
   it('the HTML is a printable, accessible document with real tables', () => {

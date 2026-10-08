@@ -1050,9 +1050,9 @@ export const es = {
       reason: 'Esta semana dormiste en promedio {{avg}} y tu meta es {{target}}.',
     },
     wakeRegularity: {
-      text: '¿Fijamos las {{time}} para despertar todos los días?',
+      text: '¿Ajustamos tu plan a tu hora real?',
       reason:
-        'Tu hora de despertar varió {{range}} esta semana. Despertar a la misma hora ayuda a que te dé sueño temprano.',
+        'Tu hora de despertar varió {{range}} esta semana y lo más habitual fue las {{time}}. Despertar a la misma hora ayuda a que te dé sueño temprano.',
     },
     stepsRaise: {
       text: '¿Subimos tu meta a {{newGoal}} pasos?',
@@ -1203,6 +1203,7 @@ export const es = {
     photos: {
       total: 'Fotos del período: {{total}}',
       shown: 'Se incluyen las {{shown}} más recientes',
+      dropped: 'Se dejaron fuera {{count}} foto(s) para que el PDF no pese demasiado.',
       textOnly: 'Las fotos no viajan en el texto; elige PDF para incluirlas.',
       item: '{{date}}: {{pose}}',
       alt: '{{pose}}, {{date}}',
@@ -1555,8 +1556,10 @@ export const es = {
     approach: { ramp: '1 × 8 al 50% · 1 × 5 al 70% · 1 × 3 al 85%' },
     cardio: {
       name: 'Cardio suave {{min}} min',
+      optionalName: 'Cardio suave opcional {{min}} min',
       easy: 'Ritmo cómodo: puedes hablar sin ahogarte',
     },
+    module: { name: 'Gimnasio' },
     program: { name: 'Mi rutina: {{goal}}, {{days}} días' },
   },
   creator: {
@@ -1595,8 +1598,12 @@ export const es = {
         chestPain:
           'El dolor en el pecho es una señal para parar y consultar a tu médico antes de entrenar.',
         restricted:
-          'Si decides continuar, solo te propondremos una rutina suave para principiantes.',
+          'Si decides continuar, solo te propondremos una rutina suave para principiantes, con máquinas y tu propio cuerpo.',
         acknowledge: 'Lo entiendo y quiero una rutina suave',
+      },
+      referral: {
+        title: 'Primero, habla con un profesional',
+        body: 'Por lo que respondiste, antes de entrenar conviene que hables con tu médico o con un profesional del ejercicio cualificado. Por eso Pomi no crea una rutina ahora. Cuando te den luz verde, aquí estaremos; mientras tanto puedes importar la rutina de tu entrenador desde Ajustes. Pomi no es una autorización médica ni da consejo médico.',
       },
       disclaimer:
         'Si durante una sesión sientes dolor en el pecho, mareo con desmayo o falta de aire intensa, para y busca atención.',
@@ -1604,7 +1611,8 @@ export const es = {
     inputs: {
       title: 'Tu rutina',
       intro: 'Cuéntanos lo básico. Partimos de lo que respondiste al empezar.',
-      restricted: 'Por tus respuestas, la propuesta será una rutina suave para principiantes.',
+      restricted:
+        'Por tus respuestas, la propuesta será una rutina suave para principiantes, con máquinas y tu propio cuerpo.',
       joints: 'Marcaste un problema de hueso, articulación o tejido blando: elige la zona abajo.',
       goal: {
         label: 'Objetivo',
@@ -1652,6 +1660,7 @@ export const es = {
       noExercises:
         'No encontramos ejercicios para esa combinación. Prueba con otro equipo o con menos zonas marcadas.',
       screening: 'Primero responde el cuestionario de salud.',
+      referral: 'Por tus respuestas, primero conviene hablar con un profesional de la salud.',
     },
     muscle: {
       gluteo: 'Glúteos',
@@ -1705,7 +1714,7 @@ export const es = {
         cardioBelowWho:
           'El cardio planeado suma {{minutes}} min; la OMS recomienda {{target}} min a la semana. Caminar en tus días libres ayuda.',
         restrictedTemplate:
-          'Es una rutina suave para principiantes, por tus respuestas del cuestionario.',
+          'Es una rutina suave para principiantes, con máquinas y peso corporal, por tus respuestas del cuestionario.',
         noSafeExercise:
           'No hay un ejercicio seguro con tus limitaciones para trabajar {{muscle}}; consulta a un profesional.',
       },
@@ -1732,6 +1741,7 @@ export const es = {
         time: 'Tiempo',
         limitations: 'Tus limitaciones',
         cardio: 'Cardio',
+        cardioOptional: 'Cardio opcional',
         screening: 'Cuestionario de salud',
       },
       body: {
@@ -1753,9 +1763,11 @@ export const es = {
         limitations:
           'Evitamos los ejercicios que cargan las zonas que marcaste y ponemos otros equivalentes.',
         cardio:
-          'Cardio suave al final de las sesiones; la OMS recomienda {{target}} min semanales de actividad moderada.',
+          'Reservamos cerca del {{share}}% de cada sesión para cardio suave antes de repartir las series; la OMS recomienda {{target}} min semanales de actividad moderada.',
+        cardioOptional:
+          'Si te sobra tiempo, 1 o 2 sesiones terminan con {{min}} a {{max}} min de cardio suave, siempre después de levantar pesas. Es opcional.',
         screening:
-          'Respondiste «sí» en el cuestionario, así que solo ofrecemos una rutina suave para principiantes.',
+          'Respondiste «sí» en el cuestionario, así que solo ofrecemos una rutina suave para principiantes: máquinas y peso corporal, sin peso muerto con carga, sin series de aproximación y con 3 a 4 repeticiones en reserva.',
       },
       split: {
         full: 'Sesiones de cuerpo completo en días no consecutivos.',
@@ -1782,6 +1794,8 @@ export const es = {
     accept: {
       title: 'Usar esta rutina',
       kept: 'Conservamos tu historial de {{count}} ejercicios.',
+      restarted:
+        'Es el mismo ejercicio pero con otro equipo o rango de repeticiones, así que su historial empieza de nuevo: {{names}}.',
       lost: 'No aparecerá el historial de: {{names}}.',
       note: 'Tus días de gym de Ajustes no cambian; las rutinas rotan entre ellos.',
       confirm: 'Usar rutina',

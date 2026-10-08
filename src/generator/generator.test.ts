@@ -136,7 +136,7 @@ describe('accepting a proposal', () => {
     const ids = new Set(
       generated.program.routines.flatMap((routine) => routine.steps.map((step) => step.id)),
     );
-    const prepared = prepareAccept(generated, await loadAcceptContext(repos));
+    const prepared = prepareAccept(generated, await loadAcceptContext(repos), text(es));
     if (!prepared.ok) throw new Error('should be valid');
     const keptIds = prepared.impact.kept.map((item) => item.id).sort();
     const lostIds = prepared.impact.lost.map((item) => item.id).sort();
@@ -149,13 +149,13 @@ describe('accepting a proposal', () => {
 
   it('historyImpact only looks at exercises that have logged sets', async () => {
     const context = await loadAcceptContext(repos);
-    expect(historyImpact(context, new Set())).toEqual({ kept: [], lost: [] });
+    expect(historyImpact(context, new Set())).toEqual({ kept: [], lost: [], restarted: [] });
   });
 
   it('stores the proposal as the active program through the program import path', async () => {
     await logSet('rdl', '2026-10-01');
     const generated = generate();
-    const prepared = prepareAccept(generated, await loadAcceptContext(repos));
+    const prepared = prepareAccept(generated, await loadAcceptContext(repos), text(es));
     if (!prepared.ok) throw new Error('should be valid');
     const result = await acceptGenerated(db, repos, prepared.items);
     expect(result.saved).toEqual(['gym-generated']);
@@ -176,6 +176,7 @@ describe('accepting a proposal', () => {
       const prepared = prepareAccept(
         generate({ daysPerWeek: days }),
         await loadAcceptContext(repos),
+        text(es),
       );
       if (!prepared.ok) throw new Error('should be valid');
       await acceptGenerated(db, repos, prepared.items);

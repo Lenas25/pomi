@@ -5,8 +5,8 @@ import { dayKeyFor } from '../domain/time';
 import type { ReportPeriod, ReportPeriodKind } from './types';
 
 const DAYS: Record<Exclude<ReportPeriodKind, 'all'>, number> = { '7d': 7, '30d': 30, '90d': 90 };
-/** "All" never reaches further back than this when the start of use is unknown. */
-const ALL_FALLBACK_DAYS = 365;
+/** How far back report data is loaded; "all" is clamped to it so a report never claims more than it read. */
+export const REPORT_LOOKBACK_DAYS = 400;
 
 /**
  * Inclusive range of LOGICAL days ending today (`dayKeyFor`: the day rolls over at 04:00, so a
@@ -20,8 +20,9 @@ export function periodFor(
   const to = dayKeyFor(now);
   const today = parseISO(to);
   if (kind === 'all') {
-    const fallback = format(subDays(today, ALL_FALLBACK_DAYS), 'yyyy-MM-dd');
-    return { kind, from: startedOn !== undefined && startedOn <= to ? startedOn : fallback, to };
+    const oldest = format(subDays(today, REPORT_LOOKBACK_DAYS), 'yyyy-MM-dd');
+    const start = startedOn !== undefined && startedOn <= to ? startedOn : oldest;
+    return { kind, from: start < oldest ? oldest : start, to };
   }
   return { kind, from: format(subDays(today, DAYS[kind] - 1), 'yyyy-MM-dd'), to };
 }

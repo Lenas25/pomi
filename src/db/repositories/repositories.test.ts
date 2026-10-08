@@ -1,3 +1,4 @@
+import { withTransaction } from '../transaction';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { sql } from 'drizzle-orm';
 
@@ -421,6 +422,30 @@ describe('plan change stamps', () => {
     expect(await repos.settings.get('gymDaysChangedOn')).toBe('2026-10-05');
     await repos.settings.set('gymDays', [{ days: [1, 4], anchor: 'gymMorning' }]);
     expect(await repos.settings.get('gymDaysChangedOn')).toBe('2026-10-09');
+  });
+
+  it('compares gym days normalized: the same days in another order are not a change', async () => {
+    clock = new Date(2026, 9, 5, 10).getTime();
+    await repos.settings.set('gymDays', [{ days: [1, 3], anchor: 'gymMorning' }]);
+    clock = new Date(2026, 9, 9, 10).getTime();
+    await repos.settings.set('gymDays', [{ days: [3, 1], anchor: 'gymMorning' }]);
+    expect(await repos.settings.get('gymDaysChangedOn')).toBe('2026-10-05');
+  });
+
+  it('writes the value and the stamp together, also inside the caller transaction', async () => {
+    clock = new Date(2026, 9, 5, 10).getTime();
+    await expect(
+      withTransaction(rawDb, async () => {
+        await repos.settings.set('gymDays', [{ days: [2], anchor: 'gymMorning' }]);
+        throw new Error('boom');
+      }),
+    ).rejects.toThrow('boom');
+    expect(await repos.settings.get('gymDays')).toBeUndefined();
+    expect(await repos.settings.get('gymDaysChangedOn')).toBeUndefined();
+    await withTransaction(rawDb, async () => {
+      await repos.settings.set('gymDays', [{ days: [2], anchor: 'gymMorning' }]);
+    });
+    expect(await repos.settings.get('gymDaysChangedOn')).toBe('2026-10-05');
   });
 
   it('stamps goalsChangedOn when the steps goal changes, not for the water goals', async () => {

@@ -3,10 +3,15 @@
 // and evidence recomputed), so the preview shows the real consequence of the edit.
 import { finalize } from './generate';
 import { eligibleExercises, type Exercise, type ExerciseLibrary } from './library';
-import { FOCUS } from './plan';
+import { FOCUS, SINGLE_PER_SESSION, sessionMinutes } from './plan';
+import { GENERATED_PROGRAM_ID } from './program';
 import type { GeneratedProgram, Plan, TextResolver } from './types';
 
-/** The substitutions of an exercise that are allowed here and fit the session (no duplicates). */
+/**
+ * The substitutions of an exercise that are allowed here, fit the session (no duplicates, no second
+ * calves / glute medius exercise) and keep it inside the time budget: swapping a 2-minute set for a
+ * slower exercise must not push the session over the minutes the person asked for.
+ */
 export function swapOptions(
   generated: GeneratedProgram,
   library: ExerciseLibrary,
@@ -21,9 +26,26 @@ export function swapOptions(
   );
   const focus = new Set(FOCUS[session.kind]);
   const taken = new Set(session.entries.map((entry) => entry.exerciseId));
+  const byId = new Map(library.map((exercise) => [exercise.id, exercise]));
+  const others = session.entries.filter((entry) => entry.exerciseId !== exerciseId);
+  const otherPatterns = new Set(others.map((entry) => byId.get(entry.exerciseId)?.pattern));
+  // Reserved (mandatory) cardio keeps its minutes; optional cardio is recomputed after the edit.
+  const reservedCardio = session.cardioOptional ? 0 : session.cardioMin;
   return current.substitutions.flatMap((id) => {
     const option = allowed.get(id);
-    return option && !taken.has(id) && option.muscles.primary.every((muscle) => focus.has(muscle))
+    if (!option || taken.has(id)) return [];
+    if (!option.muscles.primary.every((muscle) => focus.has(muscle))) return [];
+    if (SINGLE_PER_SESSION.includes(option.pattern) && otherPatterns.has(option.pattern)) {
+      return [];
+    }
+    const swapped = {
+      ...session,
+      cardioMin: reservedCardio,
+      entries: session.entries.map((entry) =>
+        entry.exerciseId === exerciseId ? { ...entry, exerciseId: id } : entry,
+      ),
+    };
+    return sessionMinutes(swapped, byId, generated.input) <= generated.input.sessionMin + 1e-9
       ? [option]
       : [];
   });
@@ -82,17 +104,21 @@ export function removeExercise(
 }
 
 export const GENERATED_MODULE_ID = 'gym-generated';
+export { GENERATED_PROGRAM_ID };
 
 /**
  * The generated program as a module in the template file format, ready for the importer. The
  * evidence refs ride in `_evidence` (a comment key the importer strips): metadata, never UI.
  */
-export function toModuleJson(generated: GeneratedProgram): Record<string, unknown> {
+export function toModuleJson(
+  generated: GeneratedProgram,
+  t: TextResolver,
+): Record<string, unknown> {
   return {
     schemaVersion: 2,
     kind: 'module',
     id: GENERATED_MODULE_ID,
-    name: 'Gym',
+    name: t('generator.module.name'),
     icon: 'Barbell',
     programs: [generated.program],
     _evidence: generated.evidence.map((ref) => ref.id),
