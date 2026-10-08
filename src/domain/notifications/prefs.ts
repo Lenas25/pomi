@@ -86,14 +86,12 @@ function repeatSchedule(base: Schedule | undefined, prefs: RepeatPrefs): Schedul
   };
 }
 
-/**
- * The modules as the NOTIFICATION planner should see them: water / pause schedules replaced by
- * the person's window, disabled categories removed, the screens-off reminder moved. Hoy keeps
- * using the template modules.
- */
-export function applyCategoryPrefs(
+type PrefsPass = { times: boolean; remove: boolean };
+
+function transformModules(
   modules: readonly ModuleBody[],
   prefs: CategoryPrefs | undefined,
+  pass: PrefsPass,
 ): ModuleBody[] {
   if (prefs === undefined) return [...modules];
   return modules.map((module) => {
@@ -104,18 +102,19 @@ export function applyCategoryPrefs(
           ? prefs.activePause
           : undefined;
       if (repeat === undefined) return [habit];
-      if (repeat.enabled === false) return [];
+      if (pass.remove && repeat.enabled === false) return [];
+      if (!pass.times) return [habit];
       const schedule = repeatSchedule(habit.schedules?.[0], repeat);
       if (schedule === null || schedule === habit.schedules?.[0]) return [habit];
       return [{ ...habit, schedules: [schedule] }];
     });
     const reminders = (module.reminders ?? []).flatMap((reminder) => {
       const role = reminderRole(reminder.schedule);
-      if (role === 'bedtime' && prefs.bedtime?.enabled === false) return [];
+      if (pass.remove && role === 'bedtime' && prefs.bedtime?.enabled === false) return [];
       if (role === 'screensOff') {
-        if (prefs.screensOff?.enabled === false) return [];
+        if (pass.remove && prefs.screensOff?.enabled === false) return [];
         const before = prefs.screensOff?.minutesBefore;
-        if (before !== undefined) {
+        if (pass.times && before !== undefined) {
           return [{ ...reminder, schedule: { ...reminder.schedule, offsetMin: -before } }];
         }
       }
@@ -127,6 +126,46 @@ export function applyCategoryPrefs(
       ...(module.reminders ? { reminders } : {}),
     };
   });
+}
+
+/**
+ * The person's TIMES applied to the modules: water / pause windows and the screens-off offset.
+ * Shared by Hoy and the notification planner (both go through `buildAgenda`), so the timeline and
+ * the notifications can never disagree. Nothing is removed: a category whose notifications are off
+ * still belongs to the day.
+ */
+export function applyCategoryTimes(
+  modules: readonly ModuleBody[],
+  prefs: CategoryPrefs | undefined,
+): ModuleBody[] {
+  return transformModules(modules, prefs, { times: true, remove: false });
+}
+
+/** Removes the categories whose notifications are switched off (the planner only). */
+export function removeDisabledCategories(
+  modules: readonly ModuleBody[],
+  prefs: CategoryPrefs | undefined,
+): ModuleBody[] {
+  return transformModules(modules, prefs, { times: false, remove: true });
+}
+
+/** Times applied AND disabled categories removed: the modules as the notifications see them. */
+export function applyCategoryPrefs(
+  modules: readonly ModuleBody[],
+  prefs: CategoryPrefs | undefined,
+): ModuleBody[] {
+  return transformModules(modules, prefs, { times: true, remove: true });
+}
+
+/** Check-in offsets from anchors (minutes; the night one is negative = before bed). */
+export function checkinOffsets(prefs: CategoryPrefs | undefined): {
+  morning: number;
+  night: number;
+} {
+  return {
+    morning: prefs?.morningCheckin?.offsetAfterWakeMin ?? DEFAULT_MORNING_OFFSET_MIN,
+    night: -(prefs?.nightCheckin?.offsetBeforeBedMin ?? DEFAULT_NIGHT_OFFSET_MIN),
+  };
 }
 
 /**

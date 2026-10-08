@@ -11,6 +11,7 @@ import { exerciseIdOfStep, stepIdFor } from '../generator/program';
 import type { Equipment, Limitation, TextResolver } from '../generator/types';
 
 import type { Routine, Step } from './types';
+import { sourceText } from '../../templates/localized';
 
 export type LibraryFilter = {
   equipment: Equipment;
@@ -136,7 +137,7 @@ const repsUnit = (reps: string): string => reps.replace(/[\d–\-\s.,]/g, '').to
  */
 export function carryOver(previous: Step, next: Step): Step {
   if (previous.type !== 'sets' || next.type !== 'sets') return next;
-  const sameUnit = repsUnit(previous.reps) === repsUnit(next.reps);
+  const sameUnit = repsUnit(sourceText(previous.reps)) === repsUnit(sourceText(next.reps));
   return {
     ...next,
     sets: previous.sets,

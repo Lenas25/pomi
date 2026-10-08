@@ -5,6 +5,7 @@ import type { WorkoutsRepository } from '../db/repositories/workouts';
 import type { StartTimerInput, TimerStoreState } from '../timers/timerStore';
 
 import type { SetsStep, StoredSet } from './sessionViewModel';
+import { templateText } from '../i18n/templateText';
 
 export function restOwner(stepId: string, setIndex: number): string {
   return `rest:${stepId}:${setIndex}`;
@@ -24,10 +25,10 @@ export function nextLabelFor(
   const step = exercises[exerciseIndex];
   if (!step) return null;
   if (setIndex + 1 < step.sets) {
-    return t('timers.nextSet', { n: setIndex + 2, name: step.name });
+    return t('timers.nextSet', { n: setIndex + 2, name: templateText(step.name) });
   }
   const next = exercises[exerciseIndex + 1];
-  return next ? t('timers.nextExercise', { name: next.name }) : null;
+  return next ? t('timers.nextExercise', { name: templateText(next.name) }) : null;
 }
 
 export type SetActionsDeps = {

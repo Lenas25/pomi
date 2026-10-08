@@ -4,6 +4,7 @@ import metricasJson from '../../templates/metricas.json';
 import settingsJson from '../../templates/settings.json';
 
 import { importTemplate, toModuleTemplates } from './importer';
+import { collectTextFields, type LocalizedMap } from './localized';
 import type { ModuleTemplate, SettingsTemplate } from './schema';
 
 export type DefaultTemplates = {
@@ -30,4 +31,25 @@ export function loadDefaultTemplates(): DefaultTemplates {
 
   if (settings === null) throw new Error('Bundled settings template is missing');
   return { modules, settings };
+}
+
+let translations: ReadonlyMap<string, string> | null = null;
+
+/**
+ * Spanish -> English of every text in the bundled templates. Modules stored before the bundled
+ * templates carried English (plain Spanish strings) get it at read time, see `addKnownTranslations`.
+ */
+export function bundledTranslations(): ReadonlyMap<string, string> {
+  if (translations === null) {
+    const map = new Map<string, string>();
+    for (const field of collectTextFields(loadDefaultTemplates().modules)) {
+      const value = field.value;
+      if (typeof value === 'object' && value !== null && 'es' in value) {
+        const { es, en } = value as LocalizedMap;
+        if (en !== undefined && en !== '') map.set(es, en);
+      }
+    }
+    translations = map;
+  }
+  return translations;
 }

@@ -8,6 +8,7 @@ import { formatClock } from '../timers/timerModel';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useTheme } from '../ui/theme';
+import { useTemplateText } from '../i18n/templateText';
 
 export type NonSetsStep = Exclude<Step, { type: 'sets' }>;
 
@@ -24,6 +25,7 @@ type StepRowProps = {
 export function StepRow({ step, done, running, onToggleDone, onStartTimer }: StepRowProps) {
   const theme = useTheme();
   const t = useT();
+  const text = useTemplateText();
   const duration =
     step.type === 'wait' ? step.waitSec : step.type === 'timed' ? step.totalSec : null;
 
@@ -35,7 +37,7 @@ export function StepRow({ step, done, running, onToggleDone, onStartTimer }: Ste
           accessibilityLabel={t(
             done ? 'gym.session.stepUndoneLabel' : 'gym.session.stepDoneLabel',
             {
-              name: step.name,
+              name: text(step.name),
             },
           )}
           accessibilityState={{ checked: done }}
@@ -63,7 +65,7 @@ export function StepRow({ step, done, running, onToggleDone, onStartTimer }: Ste
             },
           ]}
         >
-          {step.name}
+          {text(step.name)}
         </Text>
       </View>
       {step.type === 'timed' && step.segments.length > 1 ? (
@@ -73,7 +75,7 @@ export function StepRow({ step, done, running, onToggleDone, onStartTimer }: Ste
               key={segment.atSec}
               style={[theme.text('caption'), { color: theme.color.textMuted }]}
             >
-              {`${formatClock(segment.atSec)} · ${segment.label}`}
+              {`${formatClock(segment.atSec)} · ${text(segment.label)}`}
             </Text>
           ))}
         </View>

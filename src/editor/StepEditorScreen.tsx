@@ -19,6 +19,7 @@ import { useTheme } from '../ui/theme';
 
 import { useEditorStore } from './editorStore';
 import { errorText } from './text';
+import { currentLanguage } from '../i18n/templateText';
 
 const library = loadExerciseLibrary();
 
@@ -32,7 +33,9 @@ export function StepEditorScreen() {
 
   const routine = state?.program.routines.find((candidate) => candidate.id === routineId);
   const step = routine?.steps.find((candidate) => candidate.id === stepId);
-  const [form, setForm] = useState<StepForm | null>(step ? formFromStep(step) : null);
+  const [form, setForm] = useState<StepForm | null>(
+    step ? formFromStep(step, currentLanguage()) : null,
+  );
   const [errors, setErrors] = useState<EditorErrorCode[]>([]);
 
   if (!routine || !step || !form) {
@@ -55,7 +58,7 @@ export function StepEditorScreen() {
   };
 
   const save = () => {
-    const result = applyForm(step, form);
+    const result = applyForm(step, form, currentLanguage());
     if (!result.ok) {
       setErrors(result.errors);
       return;

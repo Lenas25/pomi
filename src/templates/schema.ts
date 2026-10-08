@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { localizedTextSchema } from './localized';
+
 /**
  * Template schema (schemaVersion 2). Extends PLAN §6.2.
  *
@@ -21,7 +23,9 @@ export const CUSTOM_CODES = {
 } as const;
 
 const idSchema = z.string().min(1);
-const nameSchema = z.string().min(1);
+/** User-facing names accept a plain string or `{ es, en? }` (see `localized.ts`). */
+const nameSchema = localizedTextSchema(1);
+const freeTextSchema = localizedTextSchema(0);
 export const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, CUSTOM_CODES.time);
 const weekdaySchema = z.number().int().min(0).max(6);
 const positiveInt = z.number().int().positive();
@@ -69,7 +73,7 @@ export const scheduleSchema = z
 const stepBase = {
   id: idSchema,
   name: nameSchema,
-  how: z.string().optional(),
+  how: freeTextSchema.optional(),
   muscles: z.array(z.string().min(1)).optional(),
   when: whenSchema.optional(),
 };
@@ -80,7 +84,7 @@ export const waitStepSchema = z.strictObject({
   type: z.literal('wait'),
   ...stepBase,
   waitSec: positiveInt,
-  waitReason: z.string().optional(),
+  waitReason: freeTextSchema.optional(),
 });
 
 export const setsStepSchema = z.strictObject({
@@ -88,10 +92,10 @@ export const setsStepSchema = z.strictObject({
   ...stepBase,
   sets: positiveInt,
   /** Free text such as "8–10" or "10–12 por pierna"; parsed by the domain layer. */
-  reps: z.string().min(1),
+  reps: localizedTextSchema(1),
   restSec: nonNegativeInt,
-  weightHint: z.string().optional(),
-  approach: z.string().optional(),
+  weightHint: freeTextSchema.optional(),
+  approach: freeTextSchema.optional(),
   bodyweight: z.boolean().optional(),
   holdSec: positiveInt.optional(),
   incrementKg: z.number().positive().optional(),
@@ -101,14 +105,14 @@ export const timedStepSchema = z.strictObject({
   type: z.literal('timed'),
   ...stepBase,
   totalSec: positiveInt,
-  segments: z.array(z.strictObject({ atSec: nonNegativeInt, label: z.string().min(1) })),
+  segments: z.array(z.strictObject({ atSec: nonNegativeInt, label: localizedTextSchema(1) })),
 });
 
 export const counterStepSchema = z.strictObject({
   type: z.literal('counter'),
   ...stepBase,
   target: positiveInt,
-  unit: z.string().optional(),
+  unit: freeTextSchema.optional(),
 });
 
 export const stepSchema = z.discriminatedUnion('type', [
@@ -186,13 +190,13 @@ export const habitTargetSchema = z.union([
 const habitBase = {
   id: idSchema,
   name: nameSchema,
-  how: z.string().optional(),
+  how: freeTextSchema.optional(),
   schedules: z.array(scheduleSchema).optional(),
   notification: z
     .object({
-      title: z.string().min(1),
-      body: z.string().min(1),
-      action: z.string().optional(),
+      title: localizedTextSchema(1),
+      body: localizedTextSchema(1),
+      action: freeTextSchema.optional(),
     })
     .optional(),
   /** Profile conditions, e.g. `{ "profile.workType": "sentada" }`. */
@@ -204,7 +208,7 @@ export const habitSchema = z.discriminatedUnion('type', [
   z.strictObject({
     type: z.literal('counter'),
     ...habitBase,
-    unit: z.string().optional(),
+    unit: freeTextSchema.optional(),
     glassMl: positiveInt.optional(),
     source: z.enum(['manual', 'health_connect', 'health_connect_or_manual']).optional(),
     target: habitTargetSchema.optional(),
@@ -213,24 +217,24 @@ export const habitSchema = z.discriminatedUnion('type', [
 
 export const reminderSchema = z.strictObject({
   id: idSchema,
-  text: z.string().min(1),
+  text: localizedTextSchema(1),
   schedule: scheduleSchema,
 });
 
 export const metricSchema = z.strictObject({
   id: idSchema,
   name: nameSchema,
-  unit: z.string().min(1),
+  unit: localizedTextSchema(1),
   frequency: z.enum(['daily', 'weekly', 'monthly']),
 });
 
 export const photosSchema = z.strictObject({
   frequency: z.enum(['weekly', 'monthly']),
-  poses: z.array(z.string().min(1)).min(1),
-  guide: z.string().optional(),
+  poses: z.array(localizedTextSchema(1)).min(1),
+  guide: freeTextSchema.optional(),
 });
 
-const questionBase = { id: idSchema, label: z.string().min(1), optional: z.boolean().optional() };
+const questionBase = { id: idSchema, label: localizedTextSchema(1), optional: z.boolean().optional() };
 
 export const checkinQuestionSchema = z.discriminatedUnion('type', [
   z.strictObject({
@@ -255,7 +259,7 @@ export const checkinsSchema = z.strictObject({
 });
 
 export const notesSchema = z.strictObject({
-  prompt: z.string().min(1),
+  prompt: localizedTextSchema(1),
   optional: z.boolean().optional(),
 });
 

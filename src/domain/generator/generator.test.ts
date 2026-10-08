@@ -33,6 +33,7 @@ import {
   type Limitation,
   type TextResolver,
 } from './types';
+import { sourceText } from '../../templates/localized';
 
 const lookup = (messages: object, key: string): unknown =>
   key
@@ -612,7 +613,7 @@ describe('the program in the template format', () => {
       for (const routine of result.program.routines) {
         for (const step of routine.steps) {
           if (step.type !== 'sets') continue;
-          const parsed = parseReps(step.reps);
+          const parsed = parseReps(sourceText(step.reps));
           expect(parsed).not.toBeNull();
           if (byId.get(exerciseIdOfStep(step.id))?.unilateral) expect(parsed?.perSide).toBe(true);
         }
@@ -892,7 +893,7 @@ describe('review decisions (generator)', () => {
     const names = roomy.program.routines.flatMap((routine) =>
       routine.steps.filter((step) => step.id === 'cardio').map((step) => step.name),
     );
-    expect(names.every((name) => name.includes('opcional'))).toBe(true);
+    expect(names.every((name) => sourceText(name).includes('opcional'))).toBe(true);
     // The cardio always comes after the lifting and never breaks the time budget.
     for (const routine of roomy.program.routines) {
       const last = routine.steps[routine.steps.length - 1];

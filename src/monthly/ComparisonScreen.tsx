@@ -198,7 +198,13 @@ export function ComparisonScreen() {
                         <View key={photo.id} style={{ flex: 1, gap: theme.space[1] }}>
                           <StoredPhoto
                             name={photo.uri}
-                            label={t('comparison.poseLabel', { pose: poseName(pair.pose), when })}
+                            label={t('comparison.poseLabel', {
+                              pose:
+                                (load.status === 'ready'
+                                  ? load.data.poseNames[pair.pose]
+                                  : undefined) ?? poseName(pair.pose),
+                              when,
+                            })}
                           />
                           {note(when)}
                         </View>
@@ -207,8 +213,18 @@ export function ComparisonScreen() {
                   ) : (
                     line(
                       pair.now
-                        ? t('comparison.onlyNow', { pose: poseName(pair.pose) })
-                        : t('comparison.onlyThen', { pose: poseName(pair.pose) }),
+                        ? t('comparison.onlyNow', {
+                            pose:
+                              (load.status === 'ready'
+                                ? load.data.poseNames[pair.pose]
+                                : undefined) ?? poseName(pair.pose),
+                          })
+                        : t('comparison.onlyThen', {
+                            pose:
+                              (load.status === 'ready'
+                                ? load.data.poseNames[pair.pose]
+                                : undefined) ?? poseName(pair.pose),
+                          }),
                       `${pair.pose}-single`,
                     )
                   )}

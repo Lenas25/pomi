@@ -6,7 +6,7 @@ import { ArrowDown, ArrowUp, Trash } from 'phosphor-react-native';
 import { shareJsonFile } from '../backup/files';
 import { getDatabase, getRepositories } from '../db';
 import { routineRemovalLosses, validateProgram } from '../domain/editor';
-import { useT, type Translate } from '../i18n';
+import { useLocaleStore, useT, type Translate } from '../i18n';
 import { describeImportError } from '../templates/describeError';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -27,6 +27,8 @@ import { selectDirty, useEditorStore } from './editorStore';
 import { IconAction } from './IconAction';
 import { errorText } from './text';
 import { useEditorSource } from './useEditorSource';
+import { useTemplateText } from '../i18n/templateText';
+import { editableText, withLocalizedText } from '../templates/localized';
 
 type Notice = { tone: 'success' | 'error'; text: string };
 
@@ -41,6 +43,8 @@ function confirmDiscard(t: Translate, onConfirm: () => void): void {
 /** Gym > Editar programa: routines (reorder, rename in the routine, add, remove), save and export. */
 export function ProgramEditorScreen() {
   const t = useT();
+  const text = useTemplateText();
+  const language = useLocaleStore((state) => state.language);
   const theme = useTheme();
   const { status, reload } = useEditorSource();
   const source = useEditorStore((store) => store.source);
@@ -90,11 +94,13 @@ export function ProgramEditorScreen() {
       const routine = state.program.routines.find((r) => r.id === issue.routineId);
       const step = routine?.steps.find((s) => s.id === issue.stepId);
       return t('editor.problem', {
-        where: [routine?.name, step?.name].filter(Boolean).join(' › ') || t('editor.program'),
+        where:
+          [text(routine?.name), text(step?.name)].filter(Boolean).join(' › ') ||
+          t('editor.program'),
         message: errorText(issue.code, t),
       });
     });
-  }, [state, t]);
+  }, [state, t, text]);
 
   if (status === 'loading') return <Screen>{null}</Screen>;
   if (status === 'error') {
@@ -125,7 +131,7 @@ export function ProgramEditorScreen() {
     const body =
       t('editor.removeRoutine.body', { name }) +
       (losses.length > 0
-        ? ` ${t('editor.removeRoutine.withHistory', { names: losses.map((l) => l.name).join(', ') })}`
+        ? ` ${t('editor.removeRoutine.withHistory', { names: losses.map((l) => text(l.name)).join(', ') })}`
         : '');
     Alert.alert(t('editor.removeRoutine.title'), body, [
       { text: t('editor.removeRoutine.cancel'), style: 'cancel' },
@@ -247,8 +253,13 @@ export function ProgramEditorScreen() {
         </Text>
         <TextField
           label={t('editor.programName')}
-          value={program.name}
-          onChangeText={(name) => dispatch({ type: 'renameProgram', name })}
+          value={editableText(program.name, language)}
+          onChangeText={(name) =>
+            dispatch({
+              type: 'renameProgram',
+              name: withLocalizedText(program.name, language, name),
+            })
+          }
         />
 
         <Text
@@ -261,7 +272,7 @@ export function ProgramEditorScreen() {
           <Card key={routine.id}>
             <View style={{ gap: theme.space[2] }}>
               <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-                {routine.name}
+                {text(routine.name)}
               </Text>
               <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
                 {t('editor.stepsCount', { count: routine.steps.length })}
@@ -269,7 +280,7 @@ export function ProgramEditorScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[1] }}>
                 <IconAction
                   icon={ArrowUp}
-                  label={t('editor.moveUp', { name: routine.name })}
+                  label={t('editor.moveUp', { name: text(routine.name) })}
                   disabled={index === 0}
                   onPress={() =>
                     dispatch({ type: 'moveRoutine', routineId: routine.id, direction: -1 })
@@ -277,7 +288,7 @@ export function ProgramEditorScreen() {
                 />
                 <IconAction
                   icon={ArrowDown}
-                  label={t('editor.moveDown', { name: routine.name })}
+                  label={t('editor.moveDown', { name: text(routine.name) })}
                   disabled={index === program.routines.length - 1}
                   onPress={() =>
                     dispatch({ type: 'moveRoutine', routineId: routine.id, direction: 1 })
@@ -286,9 +297,9 @@ export function ProgramEditorScreen() {
                 <IconAction
                   icon={Trash}
                   danger
-                  label={t('editor.remove', { name: routine.name })}
+                  label={t('editor.remove', { name: text(routine.name) })}
                   disabled={program.routines.length <= 1}
-                  onPress={() => confirmRemove(routine.id, routine.name)}
+                  onPress={() => confirmRemove(routine.id, text(routine.name))}
                 />
                 <View style={{ flex: 1 }} />
                 <Button

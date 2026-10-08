@@ -14,6 +14,8 @@ import { pickProgram } from '../gym/program';
 import { loadVolumeData, type VolumeData } from '../volume/loadVolume';
 import type { GymWeekPlans } from '../domain/gym/gymPlan';
 import type { GymDays, GymPlan } from '../templates/schema';
+import { currentLanguage, templateText } from '../i18n/templateText';
+import { poseEntries } from '../templates/localized';
 
 /** How far back the strength history reaches (26 weeks). */
 export const STRENGTH_LOOKBACK_DAYS = 182;
@@ -46,6 +48,8 @@ export type ProgressData = {
   photos: PhotoRow[];
   /** Poses of the monthly review, from the metrics template (e.g. frente, perfil, espalda). */
   poses: string[];
+  /** Pose id -> label in the active language. */
+  poseNames: Record<string, string>;
   /** The template's short guide for taking the photos. */
   photoGuide?: string | undefined;
   /** A monthly review already exists for the current month. */
@@ -84,7 +88,7 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
   const exerciseNames: Record<string, string> = {};
   for (const routine of pickProgram(modules)?.routines ?? []) {
     for (const step of routine.steps) {
-      if (step.type === 'sets') exerciseNames[step.id] = step.name;
+      if (step.type === 'sets') exerciseNames[step.id] = templateText(step.name);
     }
   }
 
@@ -98,8 +102,8 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
   const metrics = await Promise.all(
     definitions.map(async (definition): Promise<ProgressMetric> => ({
       id: definition.id,
-      name: definition.name,
-      unit: definition.unit,
+      name: templateText(definition.name),
+      unit: templateText(definition.unit),
       frequency: definition.frequency,
       entries: (await repos.metrics.inRange(definition.id, metricsFrom, today)).map((row) => ({
         date: row.date,
@@ -142,8 +146,11 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
     exerciseNames,
     metrics,
     photos,
-    poses: photoSpec?.poses ?? [],
-    photoGuide: photoSpec?.guide,
+    ...(() => {
+      const { ids, names } = poseEntries(photoSpec?.poses ?? [], currentLanguage());
+      return { poses: ids, poseNames: names };
+    })(),
+    photoGuide: templateText(photoSpec?.guide),
     monthlyDone: monthly.length > 0,
     companion,
     insights,

@@ -68,6 +68,25 @@ Copy `templates/gym.json` (a complete program) and edit it. The file looks like 
 }
 ```
 
+### Localizing the texts
+
+Every text a person reads (names, `how`, `reps`, `weightHint`, `approach`, segment labels, units, notification `title` / `body` / `action`, reminder `text`, check-in `label`, notes `prompt`, photo `poses` and `guide`) can be a plain string or a map with the Spanish text and an English translation:
+
+```jsonc
+{
+  "type": "sets",
+  "id": "squat",
+  "name": { "es": "Sentadilla goblet", "en": "Goblet squat" },
+  "reps": { "es": "8–10 por pierna", "en": "8–10 per leg" },
+}
+```
+
+- `es` is required in a map, `en` is optional. The app shows the person's language, then Spanish, then the only text. A plain string is shown as written in both languages (fine for a program in one language).
+- Keep the numbers identical: `reps` is parsed (from the Spanish text), and both versions must parse to the same range ("por pierna" / "per leg", "por lado" / "per side", "30–45 s").
+- Photo `poses` keep the Spanish text as the stored photo id; the English is only the label.
+- Notifications must fit BRAND §9 in every language: title up to 30 characters, body up to 80, at most one emoji.
+- The bundled templates (`templates/*.json`) must carry `en` for every text field; a test enforces it.
+
 Step types are `check`, `wait`, `sets`, `timed` and `counter`. Unknown fields are errors, except keys starting with `_` (use them for comments, e.g. `"_note": "..."`). The full schema is `src/templates/schema.ts` (zod) and the importer rules are summarized in `CLAUDE.md` > "Templates and data".
 
 ### 2. Validate it

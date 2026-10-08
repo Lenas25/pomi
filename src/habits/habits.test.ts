@@ -70,7 +70,8 @@ describe('habits view', () => {
     expect(walk?.consistency.done).toBe(2);
     expect(view.food).toMatchObject({
       note: 'Ensalada',
-      prompt: '¿Qué comiste hoy y cómo te sentiste?',
+      // Template text follows the active language (English in the test environment).
+      prompt: 'What did you eat today and how did you feel?',
     });
     expect(view.food?.consistency.done).toBe(1);
   });

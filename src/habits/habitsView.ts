@@ -7,6 +7,7 @@ import { evaluateOnlyIf } from '../domain/agenda/conditions';
 import type { GymWeekPlans } from '../domain/gym/gymPlan';
 import type { CheckinPrefs, GymDays, GymPlan, ModuleTemplate } from '../templates/schema';
 import type { StepsSourceId } from '../health/types';
+import { templateText } from '../i18n/templateText';
 
 /** Rows loaded for the last `HISTORY_DAYS` days. */
 export const HISTORY_DAYS = 14;
@@ -107,7 +108,7 @@ export function buildHabitsView(data: HabitsData, today: string): HabitsView {
         const done = doneDates(logsFor(habit.id), (date) => targetFor(date)?.glasses ?? null);
         water = {
           habitId: habit.id,
-          name: habit.name,
+          name: templateText(habit.name),
           glassMl: target?.glassMl ?? glassMl ?? 250,
           value: valueToday(habit.id),
           target,
@@ -126,7 +127,7 @@ export function buildHabitsView(data: HabitsData, today: string): HabitsView {
         const goal = plan.goal;
         steps = {
           habitId: habit.id,
-          name: habit.name,
+          name: templateText(habit.name),
           steps: todayRow?.steps ?? 0,
           source: todayRow?.source ?? null,
           plan,
@@ -148,8 +149,8 @@ export function buildHabitsView(data: HabitsData, today: string): HabitsView {
     if (habit.type === 'check') {
       checks.push({
         habitId: habit.id,
-        name: habit.name,
-        how: habit.how,
+        name: templateText(habit.name),
+        how: templateText(habit.how),
         done: valueToday(habit.id) >= 1,
         consistency: consistency(
           today,
@@ -163,7 +164,7 @@ export function buildHabitsView(data: HabitsData, today: string): HabitsView {
     .notes;
   const food: FoodView | null = notes
     ? {
-        prompt: notes.prompt,
+        prompt: templateText(notes.prompt),
         note: data.foodNotes.find((note) => note.date === today)?.text ?? '',
         consistency: consistency(
           today,

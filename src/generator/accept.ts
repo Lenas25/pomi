@@ -9,6 +9,7 @@ import { exerciseIdOfStep } from '../domain/generator/program';
 import type { GeneratedProgram, TextResolver } from '../domain/generator/types';
 import { pickProgram } from '../gym/program';
 import { importTemplate, toModuleTemplates } from '../templates/importer';
+import { mergeLocales, type LocalizedText } from '../templates/localized';
 import { applyProgramImport, type ProgramPreviewItem } from '../templates/programImport';
 import type { ModuleTemplate } from '../templates/schema';
 
@@ -20,14 +21,14 @@ export type AcceptContext = {
 
 export type HistoryImpact = {
   /** Exercises of the current program that keep their history in the new one (same step id). */
-  kept: { id: string; name: string }[];
+  kept: { id: string; name: LocalizedText }[];
   /** Exercises with history that the new program does not have. */
-  lost: { id: string; name: string }[];
+  lost: { id: string; name: LocalizedText }[];
   /**
    * The same exercise, but with other equipment or another rep family (a different step id), so
    * its history starts over: weights at 8-12 reps are not comparable with a 5 rep strength series.
    */
-  restarted: { id: string; name: string }[];
+  restarted: { id: string; name: LocalizedText }[];
 };
 
 /**
@@ -40,10 +41,12 @@ export function historyImpact(
   newStepIds: ReadonlySet<string>,
 ): HistoryImpact {
   const current = pickProgram(context.modules);
-  const seen = new Map<string, string>();
+  const seen = new Map<string, LocalizedText>();
   for (const routine of current?.routines ?? []) {
     for (const step of routine.steps) {
-      if (step.type === 'sets' && context.loggedStepIds.has(step.id)) seen.set(step.id, step.name);
+      if (step.type === 'sets' && context.loggedStepIds.has(step.id)) {
+        seen.set(step.id, step.name);
+      }
     }
   }
   const newBases = new Set([...newStepIds].map(exerciseIdOfStep));
@@ -66,8 +69,11 @@ export function prepareAccept(
   generated: GeneratedProgram,
   context: AcceptContext,
   t: TextResolver,
+  /** With an English resolver the module name is stored as `{ es, en }`. */
+  tEn?: TextResolver,
 ): PreparedAccept {
-  const imported = importTemplate(toModuleJson(generated, t));
+  const json = toModuleJson(generated, t);
+  const imported = importTemplate(tEn ? mergeLocales(json, toModuleJson(generated, tEn)) : json);
   if (!imported.ok) return { ok: false };
   const modules = toModuleTemplates(imported.template);
   const items: ProgramPreviewItem[] = modules.map((module) => ({

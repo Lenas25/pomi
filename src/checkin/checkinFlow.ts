@@ -18,6 +18,7 @@ import type { Repositories } from '../db/repositories';
 import { withTransaction } from '../db/transaction';
 import type { Db } from '../db/types';
 import type { CheckinQuestion } from '../templates/schema';
+import { templateText } from '../i18n/templateText';
 
 export type CheckinPlan = {
   kind: CheckinKind;
@@ -84,7 +85,8 @@ export async function loadCheckin(
   const previous = saved ? toAnswers(saved.answers) : {};
   const foodPrompt =
     kind === 'night'
-      ? (modules.find((module) => module.template.notes)?.template.notes?.prompt ?? null)
+      ? (templateText(modules.find((module) => module.template.notes)?.template.notes?.prompt) ??
+        null)
       : null;
   const food = foodPrompt === null ? undefined : await repos.foodNotes.forDate(today);
 

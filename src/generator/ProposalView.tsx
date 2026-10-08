@@ -4,11 +4,12 @@ import { Text, View } from 'react-native';
 import type { ExerciseLibrary } from '../domain/generator/library';
 import { swapOptions } from '../domain/generator/edit';
 import type { GeneratedProgram, GeneratorWarning, Muscle } from '../domain/generator/types';
-import { useT } from '../i18n';
+import { useLocaleStore, useT } from '../i18n';
 import type { TranslationKey } from '../i18n/types';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useTheme } from '../ui/theme';
+import { localizedText } from '../templates/localized';
 
 import { routinesOf, rulesToExplain, volumeRows } from './previewView';
 
@@ -38,6 +39,7 @@ export function ProposalView({
   onBack,
 }: ProposalViewProps) {
   const t = useT();
+  const language = useLocaleStore((state) => state.language);
   const theme = useTheme();
   const [swapping, setSwapping] = useState<{ sessionId: string; exerciseId: string } | null>(null);
   const byId = new Map(library.map((exercise) => [exercise.id, exercise]));
@@ -75,7 +77,7 @@ export function ProposalView({
           {t('creator.preview.intro')}
         </Text>
         <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-          {generated.program.name}
+          {localizedText(generated.program.name, language)}
         </Text>
         <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
           {t('creator.preview.summary', { days: summary.daysUsed, minutes: longestSession })}
@@ -100,7 +102,7 @@ export function ProposalView({
 
       <View style={{ gap: theme.space[3] }}>
         {heading(t('creator.preview.routines'))}
-        {routinesOf(generated).map((routine) => (
+        {routinesOf(generated, language).map((routine) => (
           <Card key={routine.id}>
             <View style={{ gap: theme.space[2] }}>
               {heading(

@@ -18,6 +18,8 @@ import {
   type SetsStep,
   type StoredSet,
 } from './sessionViewModel';
+import { useTemplateText } from '../i18n/templateText';
+import { localizedText } from '../templates/localized';
 
 type ExerciseCardProps = {
   step: SetsStep;
@@ -61,7 +63,9 @@ function lastTimeText(
 /** The "Meta de hoy" lines: the reason from the domain, or the hint / manual target. */
 function targetLines(view: ExerciseView, step: SetsStep, t: Translate, language: Language) {
   const { target } = view;
-  if (target.kind === 'manual') return [t('gym.session.targetManual', { reps: step.reps })];
+  if (target.kind === 'manual') {
+    return [t('gym.session.targetManual', { reps: localizedText(step.reps, language) })];
+  }
   return target.reason
     ? [t(target.reason.key, localizeTargetParams(target.reason.params, language))]
     : target.hint.map((message) => t(message.key, message.params));
@@ -82,6 +86,7 @@ function ExerciseCardBase({
 }: ExerciseCardProps) {
   const theme = useTheme();
   const t = useT();
+  const text = useTemplateText();
   const language = useLocaleStore((state) => state.language);
   const bodyweight = step.bodyweight === true;
   const byIndex = useMemo(() => new Map(logs.map((log) => [log.setIndex, log])), [logs]);
@@ -166,7 +171,7 @@ function ExerciseCardBase({
             numberOfLines={2}
             style={[theme.text('title-sm'), { flex: 1, color: theme.color.text }]}
           >
-            {step.name}
+            {text(step.name)}
           </Text>
           {complete ? (
             <View accessible accessibilityLabel={t('gym.session.exerciseComplete')}>
@@ -176,10 +181,10 @@ function ExerciseCardBase({
         </View>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[2] }}>
-          {chip(t('gym.session.chipSets', { sets: step.sets, reps: step.reps }), 'sets')}
+          {chip(t('gym.session.chipSets', { sets: step.sets, reps: text(step.reps) }), 'sets')}
           {chip(t('gym.session.chipRest', { time: formatClock(step.restSec) }), 'rest')}
           {step.weightHint
-            ? chip(t('gym.session.chipWeight', { hint: step.weightHint }), 'weight')
+            ? chip(t('gym.session.chipWeight', { hint: text(step.weightHint) }), 'weight')
             : null}
         </View>
 
@@ -214,7 +219,7 @@ function ExerciseCardBase({
             <SetRow
               key={row.index}
               index={row.index}
-              exerciseName={step.name}
+              exerciseName={text(step.name)}
               bodyweight={bodyweight}
               status={row.done ? 'done' : row.index === firstPending ? 'current' : 'pending'}
               previous={row.previous}

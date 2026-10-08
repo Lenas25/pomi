@@ -4,6 +4,7 @@ import type { SettingsValue } from '../db/repositories/settings';
 import type { CategoryPrefs } from '../domain/notifications/prefs';
 import type { UpcomingState } from '../domain/notifications/buildUpcoming';
 import { waterTargetFor } from '../domain/habits/waterTarget';
+import { currentLanguage } from '../i18n/templateText';
 import type { ModuleBody } from '../templates/schema';
 
 export type NotificationPlan = {
@@ -110,6 +111,7 @@ export async function loadNotificationPlan(
     monthlyReviewEnabled: prefs?.monthlyReview ?? true,
     ...(prefs?.monthlyReviewDay !== undefined ? { monthlyReviewDay: prefs.monthlyReviewDay } : {}),
     ...(prefs ? { categories: categoryPrefsOf(prefs) } : {}),
+    language: currentLanguage(),
     today: {
       activityLogged: activity !== undefined || gymDone,
       gymDone,

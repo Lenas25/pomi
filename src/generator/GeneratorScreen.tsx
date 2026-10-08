@@ -13,7 +13,8 @@ import type {
   TextResolver,
 } from '../domain/generator/types';
 import { useT } from '../i18n';
-import type { TranslationKey } from '../i18n/types';
+import { resolverFor, templateText } from '../i18n/templateText';
+import { mergeLocales } from '../templates/localized';
 import { requestNotificationSync } from '../notifications/sync';
 import { loadExerciseLibrary } from '../templates/exercises';
 import { Screen } from '../ui/Screen';
@@ -25,6 +26,18 @@ import { InputsForm, type WizardAnswers } from './InputsForm';
 import { ParqFlow } from './ParqFlow';
 import { ProposalView } from './ProposalView';
 
+/**
+ * Renders the program in Spanish and in English and merges the texts into `{ es, en }`, so a
+ * generated routine follows the language switch like the bundled templates (names come from i18n).
+ */
+function bilingual(
+  render: (resolver: TextResolver) => GeneratedProgram | null,
+): GeneratedProgram | null {
+  const es = render(resolverFor('es'));
+  const en = render(resolverFor('en'));
+  return es && en ? { ...es, program: mergeLocales(es.program, en.program) } : es;
+}
+
 type Step =
   | { name: 'parq' }
   | { name: 'inputs'; screening: Screening }
@@ -35,10 +48,6 @@ export function GeneratorScreen() {
   const t = useT();
   const theme = useTheme();
   const library = useMemo(() => loadExerciseLibrary(), []);
-  const resolver = useMemo<TextResolver>(
-    () => (key, params) => t(key as TranslationKey, params),
-    [t],
-  );
   const [step, setStep] = useState<Step>({ name: 'parq' });
   const [defaults, setDefaults] = useState<WizardDefaults>(FALLBACK_DEFAULTS);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +78,7 @@ export function GeneratorScreen() {
         limitations: answers.limitations,
         screening,
       };
-      const result = generateProgram(input, library, resolver);
+      const result = generateProgram(input, library, resolverFor('es'));
       if (!result.ok) {
         setError(
           result.reason === 'noExercises'
@@ -81,9 +90,14 @@ export function GeneratorScreen() {
         return;
       }
       setError(null);
-      setStep({ name: 'proposal', screening, generated: result.value });
+      const generated =
+        bilingual((resolver) => {
+          const rendered = generateProgram(input, library, resolver);
+          return rendered.ok ? rendered.value : null;
+        }) ?? result.value;
+      setStep({ name: 'proposal', screening, generated });
     },
-    [library, resolver, t],
+    [library, t],
   );
 
   const edit = useCallback((action: (generated: GeneratedProgram) => GeneratedProgram | null) => {
@@ -101,7 +115,12 @@ export function GeneratorScreen() {
       setFailed(false);
       try {
         const repos = getRepositories();
-        const prepared = prepareAccept(generated, await loadAcceptContext(repos), resolver);
+        const prepared = prepareAccept(
+          generated,
+          await loadAcceptContext(repos),
+          resolverFor('es'),
+          resolverFor('en'),
+        );
         if (!prepared.ok) {
           setFailed(true);
           return;
@@ -112,12 +131,12 @@ export function GeneratorScreen() {
             : null,
           prepared.impact.restarted.length > 0
             ? t('creator.accept.restarted', {
-                names: prepared.impact.restarted.map((item) => item.name).join(', '),
+                names: prepared.impact.restarted.map((item) => templateText(item.name)).join(', '),
               })
             : null,
           prepared.impact.lost.length > 0
             ? t('creator.accept.lost', {
-                names: prepared.impact.lost.map((item) => item.name).join(', '),
+                names: prepared.impact.lost.map((item) => templateText(item.name)).join(', '),
               })
             : null,
           t('creator.accept.note'),
@@ -144,7 +163,7 @@ export function GeneratorScreen() {
         setBusy(false);
       }
     },
-    [busy, resolver, t],
+    [busy, t],
   );
 
   return (
@@ -179,12 +198,16 @@ export function GeneratorScreen() {
             failed={failed}
             onSwap={(sessionId, exerciseId, replacementId) =>
               edit((generated) =>
-                swapExercise(generated, library, resolver, sessionId, exerciseId, replacementId),
+                bilingual((resolver) =>
+                  swapExercise(generated, library, resolver, sessionId, exerciseId, replacementId),
+                ),
               )
             }
             onRemove={(sessionId, exerciseId) =>
               edit((generated) =>
-                removeExercise(generated, library, resolver, sessionId, exerciseId),
+                bilingual((resolver) =>
+                  removeExercise(generated, library, resolver, sessionId, exerciseId),
+                ),
               )
             }
             onAccept={() => void accept(step.generated)}

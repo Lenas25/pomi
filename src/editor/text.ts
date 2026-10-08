@@ -1,5 +1,6 @@
 import type { EditorErrorCode, Step } from '../domain/editor';
 import type { Translate } from '../i18n';
+import { templateText } from '../i18n/templateText';
 
 const ERROR_KEYS = {
   programNameEmpty: 'editor.errors.programNameEmpty',
@@ -24,7 +25,7 @@ export const errorText = (code: EditorErrorCode, t: Translate): string => t(ERRO
 export function stepSummary(step: Step, t: Translate): string {
   switch (step.type) {
     case 'sets':
-      return t('editor.summary.sets', { sets: step.sets, reps: step.reps });
+      return t('editor.summary.sets', { sets: step.sets, reps: templateText(step.reps) });
     case 'wait':
       return t('editor.summary.wait', { sec: step.waitSec });
     case 'timed':

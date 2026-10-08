@@ -16,6 +16,7 @@ import { MascotBubble } from '../ui/MascotBubble';
 import { Screen } from '../ui/Screen';
 import { TextField } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
+import { templateText } from '../i18n/templateText';
 import { requestNotificationSync } from '../notifications/sync';
 import { loadCheckin, saveCheckin, type CheckinPlan, type LoadedCheckin } from './checkinFlow';
 
@@ -74,7 +75,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
           foodNote,
         );
         if (!result.ok) {
-          setError(t('checkin.missing', { question: result.question.label }));
+          setError(t('checkin.missing', { question: templateText(result.question.label) }));
           return;
         }
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

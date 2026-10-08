@@ -230,7 +230,7 @@ export function MonthlyReviewScreen() {
           {step === 'photos' && pose !== undefined ? (
             <PhotoStep
               key={pose}
-              pose={poseName(pose)}
+              pose={context.poseNames[pose] ?? poseName(pose)}
               current={poseIndex + 1}
               total={context.poses.length}
               guide={context.guide}

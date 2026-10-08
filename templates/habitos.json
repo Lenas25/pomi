@@ -4,14 +4,23 @@
   "modules": [
     {
       "id": "agua",
-      "name": "Agua",
+      "name": {
+        "es": "Agua",
+        "en": "Water"
+      },
       "icon": "Drop",
       "habits": [
         {
           "id": "agua",
           "type": "counter",
-          "name": "Vasos de agua",
-          "unit": "vasos",
+          "name": {
+            "es": "Vasos de agua",
+            "en": "Glasses of water"
+          },
+          "unit": {
+            "es": "vasos",
+            "en": "glasses"
+          },
           "glassMl": 250,
           "target": {
             "formula": "water",
@@ -35,23 +44,41 @@
             }
           ],
           "notification": {
-            "title": "💧 Agua",
-            "body": "Toma un vaso de agua.",
-            "action": "+1 vaso"
+            "title": {
+              "es": "💧 Agua",
+              "en": "💧 Water"
+            },
+            "body": {
+              "es": "Toma un vaso de agua.",
+              "en": "Have a glass of water."
+            },
+            "action": {
+              "es": "+1 vaso",
+              "en": "+1 glass"
+            }
           }
         }
       ]
     },
     {
       "id": "movimiento",
-      "name": "Movimiento",
+      "name": {
+        "es": "Movimiento",
+        "en": "Movement"
+      },
       "icon": "PersonSimpleWalk",
       "habits": [
         {
           "id": "pasos",
           "type": "counter",
-          "name": "Pasos",
-          "unit": "pasos",
+          "name": {
+            "es": "Pasos",
+            "en": "Steps"
+          },
+          "unit": {
+            "es": "pasos",
+            "en": "steps"
+          },
           "source": "health_connect_or_manual",
           "target": {
             "formula": "steps",
@@ -61,8 +88,14 @@
         {
           "id": "pausa-activa",
           "type": "check",
-          "name": "Pausa activa",
-          "how": "Párate, camina 2 minutos y haz 10 puentes de glúteo o sentadillas.",
+          "name": {
+            "es": "Pausa activa",
+            "en": "Active break"
+          },
+          "how": {
+            "es": "Párate, camina 2 minutos y haz 10 puentes de glúteo o sentadillas.",
+            "en": "Stand up, walk for 2 minutes and do 10 glute bridges or squats."
+          },
           "schedules": [
             {
               "days": [
@@ -84,18 +117,27 @@
         {
           "id": "caminar-comida",
           "type": "check",
-          "name": "Caminar 10–15 min después de comer"
+          "name": {
+            "es": "Caminar 10–15 min después de comer",
+            "en": "Walk 10–15 min after eating"
+          }
         }
       ]
     },
     {
       "id": "sueno",
-      "name": "Sueño",
+      "name": {
+        "es": "Sueño",
+        "en": "Sleep"
+      },
       "icon": "Moon",
       "reminders": [
         {
           "id": "pantallas",
-          "text": "Pantallas fuera, prepárate para dormir",
+          "text": {
+            "es": "Pantallas fuera, prepárate para dormir",
+            "en": "Screens off, get ready for bed"
+          },
           "schedule": {
             "days": [
               0,
@@ -112,7 +154,10 @@
         },
         {
           "id": "dormir",
-          "text": "Hora de dormir",
+          "text": {
+            "es": "Hora de dormir",
+            "en": "Time for bed"
+          },
           "schedule": {
             "days": [
               0,
@@ -131,10 +176,16 @@
     },
     {
       "id": "comida-notas",
-      "name": "Notas de comida",
+      "name": {
+        "es": "Notas de comida",
+        "en": "Food notes"
+      },
       "icon": "NotePencil",
       "notes": {
-        "prompt": "¿Qué comiste hoy y cómo te sentiste?",
+        "prompt": {
+          "es": "¿Qué comiste hoy y cómo te sentiste?",
+          "en": "What did you eat today and how did you feel?"
+        },
         "optional": true
       }
     }

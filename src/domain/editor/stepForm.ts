@@ -2,6 +2,13 @@
 import { slugify, uniqueId } from './reducer';
 import { validateStep } from './validate';
 import type { EditorErrorCode, Program, Step } from './types';
+import {
+  allTexts,
+  localizedText,
+  withLocalizedText,
+  type LocalizedText,
+} from '../../templates/localized';
+import { parseReps } from '../gym/reps';
 
 export const CUSTOM_STEP_KINDS = ['check', 'wait', 'timed'] as const;
 export type CustomStepKind = (typeof CUSTOM_STEP_KINDS)[number];
@@ -22,18 +29,20 @@ export type StepForm = {
   target: string;
 };
 
-const text = (value: string | undefined): string => value ?? '';
+const text = (value: LocalizedText | undefined, language: string): string =>
+  localizedText(value, language) ?? '';
 const num = (value: number | undefined): string => (value === undefined ? '' : String(value));
 
-export function formFromStep(step: Step): StepForm {
+/** The form shows (and edits) the texts in `language`; the other language is kept on save. */
+export function formFromStep(step: Step, language = 'es'): StepForm {
   return {
-    name: step.name,
-    how: text(step.how),
+    name: localizedText(step.name, language),
+    how: text(step.how, language),
     muscles: (step.muscles ?? []).join(', '),
     sets: step.type === 'sets' ? num(step.sets) : '',
-    reps: step.type === 'sets' ? step.reps : '',
+    reps: step.type === 'sets' ? localizedText(step.reps, language) : '',
     restSec: step.type === 'sets' ? num(step.restSec) : '',
-    weightHint: step.type === 'sets' ? text(step.weightHint) : '',
+    weightHint: step.type === 'sets' ? text(step.weightHint, language) : '',
     incrementKg: step.type === 'sets' ? num(step.incrementKg) : '',
     waitSec: step.type === 'wait' ? num(step.waitSec) : '',
     totalMin: step.type === 'timed' ? String(step.totalSec / 60) : '',
@@ -53,16 +62,29 @@ const parseMuscles = (value: string): string[] =>
     .map((part) => part.trim())
     .filter((part) => part !== '');
 
+/**
+ * Reps are numbers first: an edit keeps the other language only while it still means the same
+ * (same parsed range); otherwise the typed text replaces both, so no language shows stale numbers.
+ */
+export function editReps(previous: LocalizedText, typed: string, language: string): LocalizedText {
+  const next = withLocalizedText(previous, language, typed);
+  if (typeof next === 'string') return next;
+  const parsed = allTexts(next).map((text) => JSON.stringify(parseReps(text)));
+  return parsed.every((value) => value === parsed[0]) ? next : typed;
+}
+
 export type StepFormResult = { ok: true; step: Step } | { ok: false; errors: EditorErrorCode[] };
 
 /**
  * Applies the form to `base`. The id (and the type) never change, and fields the form does not
  * show (`holdSec`, `approach`, `bodyweight`, `when`, `segments`) are kept as they were.
  */
-export function applyForm(base: Step, form: StepForm): StepFormResult {
+export function applyForm(base: Step, form: StepForm, language = 'es'): StepFormResult {
+  const edit = (previous: LocalizedText | undefined, value: string) =>
+    withLocalizedText(previous, language, value.trim());
   const common = {
-    name: form.name.trim(),
-    ...(form.how.trim() ? { how: form.how.trim() } : {}),
+    name: edit(base.name, form.name),
+    ...(form.how.trim() ? { how: edit(base.how, form.how) } : {}),
     ...(parseMuscles(form.muscles).length > 0 ? { muscles: parseMuscles(form.muscles) } : {}),
   };
   let step: Step;
@@ -73,9 +95,9 @@ export function applyForm(base: Step, form: StepForm): StepFormResult {
         ...kept,
         ...common,
         sets: parseNumber(form.sets),
-        reps: form.reps.trim(),
+        reps: editReps(base.reps, form.reps.trim(), language),
         restSec: parseNumber(form.restSec),
-        ...(form.weightHint.trim() ? { weightHint: form.weightHint.trim() } : {}),
+        ...(form.weightHint.trim() ? { weightHint: edit(base.weightHint, form.weightHint) } : {}),
         ...(form.incrementKg.trim() ? { incrementKg: parseNumber(form.incrementKg) } : {}),
       };
       break;
@@ -111,9 +133,9 @@ export function applyForm(base: Step, form: StepForm): StepFormResult {
  * duration drops them. The first segment is never lost: if all are out, it moves to the start.
  */
 export function fitSegments(
-  segments: readonly { atSec: number; label: string }[],
+  segments: readonly { atSec: number; label: LocalizedText }[],
   totalSec: number,
-): { atSec: number; label: string }[] {
+): { atSec: number; label: LocalizedText }[] {
   if (!(totalSec > 0)) return [...segments];
   const inside = segments.filter((segment) => segment.atSec < totalSec);
   const first = segments[0];

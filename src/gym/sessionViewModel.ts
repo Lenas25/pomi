@@ -13,6 +13,8 @@ import {
 import { parseReps } from '../domain/gym/reps';
 import type { Language } from '../i18n/types';
 import type { Step } from '../templates/schema';
+import { sourceText } from '../templates/localized';
+import { templateText } from '../i18n/templateText';
 
 export type SetsStep = Extract<Step, { type: 'sets' }>;
 
@@ -70,9 +72,10 @@ export function buildExerciseView(
   const planned = todayTarget(
     {
       sets: step.sets,
-      reps: step.reps,
+      // Parsing is language-agnostic: the source (Spanish) text is the one parsed.
+      reps: sourceText(step.reps),
       ...(step.incrementKg !== undefined ? { incrementKg: step.incrementKg } : {}),
-      ...(step.weightHint !== undefined ? { weightHint: step.weightHint } : {}),
+      ...(step.weightHint !== undefined ? { weightHint: templateText(step.weightHint) } : {}),
     },
     sessions,
     rules,
@@ -85,7 +88,7 @@ export function buildExerciseView(
       ? { weightKg: set.weightKg, reps: set.reps }
       : { weightKg: null, reps: null };
   });
-  const parsed = parseReps(step.reps);
+  const parsed = parseReps(sourceText(step.reps));
 
   return {
     stepId: step.id,

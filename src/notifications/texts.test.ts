@@ -4,6 +4,7 @@ import { BODY_MAX, TITLE_MAX } from '../domain/notifications/buildUpcoming';
 import { loadDefaultTemplates } from '../templates/defaults';
 import { en } from '../i18n/en';
 import { es } from '../i18n/es';
+import { localizedText } from '../templates/localized';
 
 const LOCALES = { es: es.notify, en: en.notify } as const;
 // Parameters at their worst case: titles/bodies built from templates are clamped to the limits.
@@ -39,12 +40,21 @@ describe('notification texts (BRAND §9: title <= 30, body <= 80, one emoji at m
     });
   }
 
-  it('the bundled template notifications already fit the limits', () => {
+  it.each(['es', 'en'])('the bundled template notifications fit the limits in %s', (language) => {
     for (const module of loadDefaultTemplates().modules) {
       for (const habit of module.habits ?? []) {
         if (!habit.notification) continue;
-        expect([...habit.notification.title].length).toBeLessThanOrEqual(TITLE_MAX);
-        expect([...habit.notification.body].length).toBeLessThanOrEqual(BODY_MAX);
+        const title = localizedText(habit.notification.title, language);
+        const body = localizedText(habit.notification.body, language);
+        expect([...title].length).toBeLessThanOrEqual(TITLE_MAX);
+        expect([...body].length).toBeLessThanOrEqual(BODY_MAX);
+        expect(emojis(title).length + emojis(body).length).toBeLessThanOrEqual(1);
+        const action = localizedText(habit.notification.action, language);
+        if (action !== undefined) expect([...action].length).toBeLessThanOrEqual(20);
+      }
+      for (const reminder of module.reminders ?? []) {
+        const text = localizedText(reminder.text, language);
+        expect([...text].length).toBeLessThanOrEqual(BODY_MAX);
       }
     }
   });

@@ -78,3 +78,12 @@ export function useT(): Translate {
   const language = useLocaleStore((state) => state.language);
   return useCallback((key, options) => i18n.t(key, { ...options, locale: language }), [language]);
 }
+
+/** Translation in an explicit language (e.g. rendering a generated program in both languages). */
+export function translateIn(
+  language: Language,
+  key: TranslationKey,
+  options?: Record<string, string | number>,
+): string {
+  return i18n.t(key, { ...options, locale: language });
+}

@@ -13,6 +13,7 @@ import type { Icon } from 'phosphor-react-native';
 
 import { adjustClock, TIME_ADJUST_MIN, type AnswerValue } from '../domain/habits/checkins';
 import { useT, type TranslationKey } from '../i18n';
+import { useTemplateText } from '../i18n/templateText';
 import type { CheckinQuestion } from '../templates/schema';
 import { Button } from './Button';
 import { TextField } from './TextField';
@@ -40,6 +41,7 @@ function ScaleInput({
 }) {
   const theme = useTheme();
   const t = useT();
+  const text = useTemplateText();
   const [min, max] = question.scale;
   const options = Array.from({ length: max - min + 1 }, (_unused, index) => min + index);
   const hasFaces = options.length === FACES.length;
@@ -47,7 +49,7 @@ function ScaleInput({
   return (
     <View
       accessibilityRole="radiogroup"
-      accessibilityLabel={question.label}
+      accessibilityLabel={text(question.label)}
       style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[3] }}
     >
       {options.map((option, index) => {
@@ -104,6 +106,7 @@ function TimeInput({
 }) {
   const theme = useTheme();
   const t = useT();
+  const text = useTemplateText();
   const current = typeof value === 'string' ? value : undefined;
   const shift = (delta: number) => {
     if (current !== undefined) onChange(adjustClock(current, delta));
@@ -111,7 +114,7 @@ function TimeInput({
   const button = (kind: 'minus' | 'plus') => {
     const Glyph = kind === 'plus' ? Plus : Minus;
     const label = t(kind === 'plus' ? 'checkin.laterLabel' : 'checkin.earlierLabel', {
-      label: question.label,
+      label: text(question.label),
     });
     return (
       <Pressable
@@ -144,7 +147,7 @@ function TimeInput({
       <Text
         accessibilityLiveRegion="polite"
         accessibilityLabel={t('checkin.adjust', {
-          label: question.label,
+          label: text(question.label),
           time: current ?? '--:--',
         })}
         style={[
@@ -186,6 +189,7 @@ export function CheckinSheet({
 }: CheckinSheetProps) {
   const theme = useTheme();
   const t = useT();
+  const text = useTemplateText();
   return (
     <View style={{ gap: theme.space[5] }}>
       {questions.map((question) => {
@@ -194,7 +198,7 @@ export function CheckinSheet({
           <View key={question.id} style={{ gap: theme.space[2] }}>
             {question.type !== 'text' ? (
               <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
-                {question.label}
+                {text(question.label)}
               </Text>
             ) : null}
             {question.type === 'scale' ? (
@@ -211,7 +215,7 @@ export function CheckinSheet({
               />
             ) : (
               <TextField
-                label={question.label}
+                label={text(question.label)}
                 value={typeof answer === 'string' ? answer : ''}
                 onChangeText={(value) => onAnswer(question.id, value)}
               />

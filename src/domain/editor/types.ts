@@ -2,6 +2,7 @@
 // `Program` itself, so what it saves is exactly what the importer, the rotation and the session
 // already read. Ids are the history key: an edit never changes an existing step id.
 import type { ModuleTemplate, Step } from '../../templates/schema';
+import type { LocalizedText } from '../../templates/localized';
 
 export type Program = NonNullable<ModuleTemplate['programs']>[number];
 export type Routine = Program['routines'][number];
@@ -40,8 +41,8 @@ export type EditorIssue = {
 };
 
 export type EditorAction =
-  | { type: 'renameProgram'; name: string }
-  | { type: 'renameRoutine'; routineId: string; name: string }
+  | { type: 'renameProgram'; name: LocalizedText }
+  | { type: 'renameRoutine'; routineId: string; name: LocalizedText }
   | { type: 'addRoutine'; name: string }
   | { type: 'removeRoutine'; routineId: string }
   | { type: 'moveRoutine'; routineId: string; direction: -1 | 1 }

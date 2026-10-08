@@ -2,12 +2,18 @@
   "schemaVersion": 2,
   "kind": "module",
   "id": "gym",
-  "name": "Gym",
+  "name": {
+    "es": "Gym",
+    "en": "Gym"
+  },
   "icon": "Barbell",
   "programs": [
     {
       "id": "glute-4d",
-      "name": "Glúteo prioritario, 4 días",
+      "name": {
+        "es": "Glúteo prioritario, 4 días",
+        "en": "Glute focus, 4 days"
+      },
       "rotation": true,
       "schedules": [
         {
@@ -37,55 +43,94 @@
       "routines": [
         {
           "id": "d1",
-          "name": "Día 1: Glúteos e isquios",
+          "name": {
+            "es": "Día 1: Glúteos e isquios",
+            "en": "Day 1: Glutes and hamstrings"
+          },
           "steps": [
             {
               "type": "timed",
               "id": "w-tread",
-              "name": "Caminadora 5 min",
+              "name": {
+                "es": "Caminadora 5 min",
+                "en": "Treadmill 5 min"
+              },
               "totalSec": 300,
               "segments": [
                 {
                   "atSec": 0,
-                  "label": "Inclinación 3% · 5 km/h"
+                  "label": {
+                    "es": "Inclinación 3% · 5 km/h",
+                    "en": "Incline 3% · 5 km/h"
+                  }
                 }
               ]
             },
             {
               "type": "check",
               "id": "w-mob",
-              "name": "Movilidad: balanceo de pierna adelante-atrás y lateral 10 por lado, círculos de cadera 5 por lado, 5 sentadillas lentas"
+              "name": {
+                "es": "Movilidad: balanceo de pierna adelante-atrás y lateral 10 por lado, círculos de cadera 5 por lado, 5 sentadillas lentas",
+                "en": "Mobility: front-to-back and side leg swings 10 per side, hip circles 5 per side, 5 slow squats"
+              }
             },
             {
               "type": "check",
               "id": "w-9090",
-              "name": "Respiración 90/90: 5 respiraciones"
+              "name": {
+                "es": "Respiración 90/90: 5 respiraciones",
+                "en": "90/90 breathing: 5 breaths"
+              }
             },
             {
               "type": "check",
               "id": "act-1",
-              "name": "Activación: Puente de glúteo 1 × 15"
+              "name": {
+                "es": "Activación: Puente de glúteo 1 × 15",
+                "en": "Activation: Glute bridge 1 × 15"
+              }
             },
             {
               "type": "check",
               "id": "act-2",
-              "name": "Activación: Sentadilla al aire 1 × 10"
+              "name": {
+                "es": "Activación: Sentadilla al aire 1 × 10",
+                "en": "Activation: Air squat 1 × 10"
+              }
             },
             {
               "type": "check",
               "id": "act-3",
-              "name": "Activación: Patada en cuadrupedia 1 × 12 por pierna"
+              "name": {
+                "es": "Activación: Patada en cuadrupedia 1 × 12 por pierna",
+                "en": "Activation: Quadruped kickback 1 × 12 per leg"
+              }
             },
             {
               "type": "sets",
               "id": "ht-heavy",
-              "name": "Hip thrust en máquina",
+              "name": {
+                "es": "Hip thrust en máquina",
+                "en": "Machine hip thrust"
+              },
               "sets": 4,
-              "reps": "8–10",
+              "reps": {
+                "es": "8–10",
+                "en": "8–10"
+              },
               "restSec": 120,
-              "weightHint": "40–45 kg",
-              "approach": "1 × 10 al 50% + 1 × 5 al 75%",
-              "how": "Pausa de 1 s arriba apretando el glúteo.",
+              "weightHint": {
+                "es": "40–45 kg",
+                "en": "40–45 kg"
+              },
+              "approach": {
+                "es": "1 × 10 al 50% + 1 × 5 al 75%",
+                "en": "1 × 10 at 50% + 1 × 5 at 75%"
+              },
+              "how": {
+                "es": "Pausa de 1 s arriba apretando el glúteo.",
+                "en": "Pause 1 s at the top, squeezing the glutes."
+              },
               "incrementKg": 5,
               "muscles": [
                 "gluteo"
@@ -94,13 +139,28 @@
             {
               "type": "sets",
               "id": "rdl",
-              "name": "Peso muerto rumano con mancuernas",
+              "name": {
+                "es": "Peso muerto rumano con mancuernas",
+                "en": "Dumbbell Romanian deadlift"
+              },
               "sets": 3,
-              "reps": "8–10",
+              "reps": {
+                "es": "8–10",
+                "en": "8–10"
+              },
               "restSec": 120,
-              "weightHint": "32–34 kg",
-              "approach": "1 × 8 al 50%",
-              "how": "Cadera hacia atrás, espalda recta.",
+              "weightHint": {
+                "es": "32–34 kg",
+                "en": "32–34 kg"
+              },
+              "approach": {
+                "es": "1 × 8 al 50%",
+                "en": "1 × 8 at 50%"
+              },
+              "how": {
+                "es": "Cadera hacia atrás, espalda recta.",
+                "en": "Hips back, back straight."
+              },
               "incrementKg": 2,
               "muscles": [
                 "isquios",
@@ -110,12 +170,24 @@
             {
               "type": "sets",
               "id": "bss",
-              "name": "Sentadilla búlgara",
+              "name": {
+                "es": "Sentadilla búlgara",
+                "en": "Bulgarian split squat"
+              },
               "sets": 3,
-              "reps": "8–10 por pierna",
+              "reps": {
+                "es": "8–10 por pierna",
+                "en": "8–10 per leg"
+              },
               "restSec": 90,
-              "weightHint": "12–14 kg",
-              "how": "Torso un poco inclinado hacia adelante.",
+              "weightHint": {
+                "es": "12–14 kg",
+                "en": "12–14 kg"
+              },
+              "how": {
+                "es": "Torso un poco inclinado hacia adelante.",
+                "en": "Torso leaning slightly forward."
+              },
               "incrementKg": 2,
               "muscles": [
                 "gluteo",
@@ -125,12 +197,24 @@
             {
               "type": "sets",
               "id": "kick",
-              "name": "Patada de glúteo cruzada en polea (45°)",
+              "name": {
+                "es": "Patada de glúteo cruzada en polea (45°)",
+                "en": "Cable glute kickback, crossed (45°)"
+              },
               "sets": 2,
-              "reps": "12–15 por pierna",
+              "reps": {
+                "es": "12–15 por pierna",
+                "en": "12–15 per leg"
+              },
               "restSec": 45,
-              "weightHint": "11 kg",
-              "how": "Pierna atrás y un poco hacia afuera en diagonal, torso quieto.",
+              "weightHint": {
+                "es": "11 kg",
+                "en": "11 kg"
+              },
+              "how": {
+                "es": "Pierna atrás y un poco hacia afuera en diagonal, torso quieto.",
+                "en": "Leg back and slightly out on a diagonal, torso still."
+              },
               "incrementKg": 1,
               "muscles": [
                 "gluteo"
@@ -139,12 +223,24 @@
             {
               "type": "sets",
               "id": "abd",
-              "name": "Abducción sentada",
+              "name": {
+                "es": "Abducción sentada",
+                "en": "Seated abduction"
+              },
               "sets": 3,
-              "reps": "15–20",
+              "reps": {
+                "es": "15–20",
+                "en": "15–20"
+              },
               "restSec": 45,
-              "weightHint": "50–55 kg",
-              "how": "Inclinada hacia adelante.",
+              "weightHint": {
+                "es": "50–55 kg",
+                "en": "50–55 kg"
+              },
+              "how": {
+                "es": "Inclinada hacia adelante.",
+                "en": "Lean forward."
+              },
               "incrementKg": 5,
               "muscles": [
                 "gluteo_medio"
@@ -153,12 +249,21 @@
             {
               "type": "sets",
               "id": "deadbug",
-              "name": "Dead bug",
+              "name": {
+                "es": "Dead bug",
+                "en": "Dead bug"
+              },
               "sets": 3,
-              "reps": "8 por lado",
+              "reps": {
+                "es": "8 por lado",
+                "en": "8 per side"
+              },
               "restSec": 45,
               "bodyweight": true,
-              "how": "Espalda baja pegada al piso, exhala al extender.",
+              "how": {
+                "es": "Espalda baja pegada al piso, exhala al extender.",
+                "en": "Lower back pressed to the floor, breathe out as you extend."
+              },
               "muscles": [
                 "core"
               ]
@@ -166,12 +271,18 @@
             {
               "type": "timed",
               "id": "cardio",
-              "name": "Caminata inclinada 10 min",
+              "name": {
+                "es": "Caminata inclinada 10 min",
+                "en": "Incline walk 10 min"
+              },
               "totalSec": 600,
               "segments": [
                 {
                   "atSec": 0,
-                  "label": "Inclinación 10–12% · 4.0–4.5 km/h"
+                  "label": {
+                    "es": "Inclinación 10–12% · 4.0–4.5 km/h",
+                    "en": "Incline 10–12% · 4.0–4.5 km/h"
+                  }
                 }
               ]
             }
@@ -179,44 +290,74 @@
         },
         {
           "id": "d2",
-          "name": "Día 2: Espalda, brazos y core",
+          "name": {
+            "es": "Día 2: Espalda, brazos y core",
+            "en": "Day 2: Back, arms and core"
+          },
           "steps": [
             {
               "type": "timed",
               "id": "w-tread",
-              "name": "Caminadora 5 min",
+              "name": {
+                "es": "Caminadora 5 min",
+                "en": "Treadmill 5 min"
+              },
               "totalSec": 300,
               "segments": [
                 {
                   "atSec": 0,
-                  "label": "Inclinación 3% · 5 km/h"
+                  "label": {
+                    "es": "Inclinación 3% · 5 km/h",
+                    "en": "Incline 3% · 5 km/h"
+                  }
                 }
               ]
             },
             {
               "type": "check",
               "id": "w-mob",
-              "name": "Rotaciones de hombro 10 por lado y gato-camello 1 × 8"
+              "name": {
+                "es": "Rotaciones de hombro 10 por lado y gato-camello 1 × 8",
+                "en": "Shoulder rotations 10 per side and cat-camel 1 × 8"
+              }
             },
             {
               "type": "check",
               "id": "w-9090",
-              "name": "Respiración 90/90: 5 respiraciones"
+              "name": {
+                "es": "Respiración 90/90: 5 respiraciones",
+                "en": "90/90 breathing: 5 breaths"
+              }
             },
             {
               "type": "check",
               "id": "act-1",
-              "name": "Activación: Face pull ligero 1 × 15"
+              "name": {
+                "es": "Activación: Face pull ligero 1 × 15",
+                "en": "Activation: Light face pull 1 × 15"
+              }
             },
             {
               "type": "sets",
               "id": "row",
-              "name": "Remo sentado en polea baja",
+              "name": {
+                "es": "Remo sentado en polea baja",
+                "en": "Seated low cable row"
+              },
               "sets": 4,
-              "reps": "8–12",
+              "reps": {
+                "es": "8–12",
+                "en": "8–12"
+              },
               "restSec": 90,
-              "weightHint": "15–16 kg",
-              "approach": "1 × 12 ligero",
+              "weightHint": {
+                "es": "15–16 kg",
+                "en": "15–16 kg"
+              },
+              "approach": {
+                "es": "1 × 12 ligero",
+                "en": "1 × 12 light"
+              },
               "incrementKg": 2.5,
               "muscles": [
                 "espalda"
@@ -225,12 +366,24 @@
             {
               "type": "sets",
               "id": "dbrow",
-              "name": "Remo con mancuerna a una mano en banco",
+              "name": {
+                "es": "Remo con mancuerna a una mano en banco",
+                "en": "One-arm dumbbell bench row"
+              },
               "sets": 3,
-              "reps": "10–12 por lado",
+              "reps": {
+                "es": "10–12 por lado",
+                "en": "10–12 per side"
+              },
               "restSec": 60,
-              "weightHint": "6–8 kg",
-              "how": "Codo hacia la cadera, pegado al cuerpo.",
+              "weightHint": {
+                "es": "6–8 kg",
+                "en": "6–8 kg"
+              },
+              "how": {
+                "es": "Codo hacia la cadera, pegado al cuerpo.",
+                "en": "Elbow toward the hip, close to the body."
+              },
               "incrementKg": 1,
               "muscles": [
                 "espalda"
@@ -239,11 +392,20 @@
             {
               "type": "sets",
               "id": "facepull",
-              "name": "Face pull con cuerda",
+              "name": {
+                "es": "Face pull con cuerda",
+                "en": "Rope face pull"
+              },
               "sets": 3,
-              "reps": "12–15",
+              "reps": {
+                "es": "12–15",
+                "en": "12–15"
+              },
               "restSec": 60,
-              "weightHint": "11 kg",
+              "weightHint": {
+                "es": "11 kg",
+                "en": "11 kg"
+              },
               "incrementKg": 1,
               "muscles": [
                 "espalda_alta",
@@ -253,11 +415,20 @@
             {
               "type": "sets",
               "id": "curl",
-              "name": "Curl inclinado en banco a 45°",
+              "name": {
+                "es": "Curl inclinado en banco a 45°",
+                "en": "Incline bench curl at 45°"
+              },
               "sets": 3,
-              "reps": "10–15",
+              "reps": {
+                "es": "10–15",
+                "en": "10–15"
+              },
               "restSec": 60,
-              "weightHint": "4 kg",
+              "weightHint": {
+                "es": "4 kg",
+                "en": "4 kg"
+              },
               "incrementKg": 1,
               "muscles": [
                 "biceps"
@@ -266,11 +437,20 @@
             {
               "type": "sets",
               "id": "tri",
-              "name": "Extensión de tríceps en polea",
+              "name": {
+                "es": "Extensión de tríceps en polea",
+                "en": "Cable triceps extension"
+              },
               "sets": 3,
-              "reps": "10–15",
+              "reps": {
+                "es": "10–15",
+                "en": "10–15"
+              },
               "restSec": 60,
-              "weightHint": "6.8–7.5 kg",
+              "weightHint": {
+                "es": "6.8–7.5 kg",
+                "en": "6.8–7.5 kg"
+              },
               "incrementKg": 1,
               "muscles": [
                 "triceps"
@@ -279,12 +459,21 @@
             {
               "type": "sets",
               "id": "heeltap",
-              "name": "Toque de talones",
+              "name": {
+                "es": "Toque de talones",
+                "en": "Heel taps"
+              },
               "sets": 3,
-              "reps": "10 por pierna",
+              "reps": {
+                "es": "10 por pierna",
+                "en": "10 per leg"
+              },
               "restSec": 45,
               "bodyweight": true,
-              "how": "Rodillas a 90° en el aire, espalda baja pegada, baja un talón a la vez.",
+              "how": {
+                "es": "Rodillas a 90° en el aire, espalda baja pegada, baja un talón a la vez.",
+                "en": "Knees at 90° in the air, lower back pressed down, lower one heel at a time."
+              },
               "muscles": [
                 "core"
               ]
@@ -292,9 +481,15 @@
             {
               "type": "sets",
               "id": "plank",
-              "name": "Plancha",
+              "name": {
+                "es": "Plancha",
+                "en": "Plank"
+              },
               "sets": 3,
-              "reps": "30–45 s",
+              "reps": {
+                "es": "30–45 s",
+                "en": "30–45 s"
+              },
               "restSec": 45,
               "bodyweight": true,
               "holdSec": 40,
@@ -305,24 +500,39 @@
             {
               "type": "timed",
               "id": "cardio",
-              "name": "Caminata inclinada 20 min",
+              "name": {
+                "es": "Caminata inclinada 20 min",
+                "en": "Incline walk 20 min"
+              },
               "totalSec": 1200,
               "segments": [
                 {
                   "atSec": 0,
-                  "label": "Inclinación 5% · 4.0 km/h"
+                  "label": {
+                    "es": "Inclinación 5% · 4.0 km/h",
+                    "en": "Incline 5% · 4.0 km/h"
+                  }
                 },
                 {
                   "atSec": 300,
-                  "label": "Inclinación 12% · 4.0 km/h"
+                  "label": {
+                    "es": "Inclinación 12% · 4.0 km/h",
+                    "en": "Incline 12% · 4.0 km/h"
+                  }
                 },
                 {
                   "atSec": 600,
-                  "label": "Inclinación 5% · 4.5 km/h"
+                  "label": {
+                    "es": "Inclinación 5% · 4.5 km/h",
+                    "en": "Incline 5% · 4.5 km/h"
+                  }
                 },
                 {
                   "atSec": 900,
-                  "label": "Inclinación 10% · 3.8 km/h"
+                  "label": {
+                    "es": "Inclinación 10% · 3.8 km/h",
+                    "en": "Incline 10% · 3.8 km/h"
+                  }
                 }
               ]
             }
@@ -330,54 +540,90 @@
         },
         {
           "id": "d3",
-          "name": "Día 3: Cuádriceps y glúteos",
+          "name": {
+            "es": "Día 3: Cuádriceps y glúteos",
+            "en": "Day 3: Quads and glutes"
+          },
           "steps": [
             {
               "type": "timed",
               "id": "w-tread",
-              "name": "Caminadora 5 min",
+              "name": {
+                "es": "Caminadora 5 min",
+                "en": "Treadmill 5 min"
+              },
               "totalSec": 300,
               "segments": [
                 {
                   "atSec": 0,
-                  "label": "Inclinación 3% · 5 km/h"
+                  "label": {
+                    "es": "Inclinación 3% · 5 km/h",
+                    "en": "Incline 3% · 5 km/h"
+                  }
                 }
               ]
             },
             {
               "type": "check",
               "id": "w-mob",
-              "name": "Movilidad: balanceo de pierna adelante-atrás y lateral 10 por lado, círculos de cadera 5 por lado, 5 sentadillas lentas"
+              "name": {
+                "es": "Movilidad: balanceo de pierna adelante-atrás y lateral 10 por lado, círculos de cadera 5 por lado, 5 sentadillas lentas",
+                "en": "Mobility: front-to-back and side leg swings 10 per side, hip circles 5 per side, 5 slow squats"
+              }
             },
             {
               "type": "check",
               "id": "w-9090",
-              "name": "Respiración 90/90: 5 respiraciones"
+              "name": {
+                "es": "Respiración 90/90: 5 respiraciones",
+                "en": "90/90 breathing: 5 breaths"
+              }
             },
             {
               "type": "check",
               "id": "act-1",
-              "name": "Activación: Puente de glúteo 1 × 15"
+              "name": {
+                "es": "Activación: Puente de glúteo 1 × 15",
+                "en": "Activation: Glute bridge 1 × 15"
+              }
             },
             {
               "type": "check",
               "id": "act-2",
-              "name": "Activación: Sentadilla al aire 1 × 10"
+              "name": {
+                "es": "Activación: Sentadilla al aire 1 × 10",
+                "en": "Activation: Air squat 1 × 10"
+              }
             },
             {
               "type": "check",
               "id": "act-3",
-              "name": "Activación: Zancada al aire 1 × 8 por pierna"
+              "name": {
+                "es": "Activación: Zancada al aire 1 × 8 por pierna",
+                "en": "Activation: Bodyweight lunge 1 × 8 per leg"
+              }
             },
             {
               "type": "sets",
               "id": "press",
-              "name": "Prensa 45° con pies altos y separados",
+              "name": {
+                "es": "Prensa 45° con pies altos y separados",
+                "en": "45° leg press, feet high and wide"
+              },
               "sets": 3,
-              "reps": "8–12",
+              "reps": {
+                "es": "8–12",
+                "en": "8–12"
+              },
               "restSec": 90,
-              "approach": "1 × 15 al 50%",
-              "how": "Empuja con los talones y baja profundo.",
+              "approach": {
+                "es": "1 × 15 al 50%",
+                "en": "1 × 15 at 50%"
+              },
+              "how": {
+                "es": "Empuja con los talones y baja profundo.",
+                "en": "Push through your heels and go deep."
+              },
               "incrementKg": 5,
               "muscles": [
                 "cuadriceps",
@@ -387,11 +633,20 @@
             {
               "type": "sets",
               "id": "ht-mid",
-              "name": "Hip thrust",
+              "name": {
+                "es": "Hip thrust",
+                "en": "Hip thrust"
+              },
               "sets": 3,
-              "reps": "10–12",
+              "reps": {
+                "es": "10–12",
+                "en": "10–12"
+              },
               "restSec": 90,
-              "weightHint": "35–40 kg",
+              "weightHint": {
+                "es": "35–40 kg",
+                "en": "35–40 kg"
+              },
               "incrementKg": 5,
               "muscles": [
                 "gluteo"
@@ -400,9 +655,15 @@
             {
               "type": "sets",
               "id": "stepup",
-              "name": "Step-up con mancuernas",
+              "name": {
+                "es": "Step-up con mancuernas",
+                "en": "Dumbbell step-up"
+              },
               "sets": 3,
-              "reps": "10–12 por pierna",
+              "reps": {
+                "es": "10–12 por pierna",
+                "en": "10–12 per leg"
+              },
               "restSec": 90,
               "incrementKg": 2,
               "muscles": [
@@ -413,11 +674,20 @@
             {
               "type": "sets",
               "id": "legext",
-              "name": "Extensión de cuádriceps",
+              "name": {
+                "es": "Extensión de cuádriceps",
+                "en": "Leg extension"
+              },
               "sets": 3,
-              "reps": "10–15",
+              "reps": {
+                "es": "10–15",
+                "en": "10–15"
+              },
               "restSec": 75,
-              "approach": "1 × 15 ligero",
+              "approach": {
+                "es": "1 × 15 ligero",
+                "en": "1 × 15 light"
+              },
               "incrementKg": 2.5,
               "muscles": [
                 "cuadriceps"
@@ -426,11 +696,20 @@
             {
               "type": "sets",
               "id": "abd",
-              "name": "Abducción sentada",
+              "name": {
+                "es": "Abducción sentada",
+                "en": "Seated abduction"
+              },
               "sets": 3,
-              "reps": "12–15",
+              "reps": {
+                "es": "12–15",
+                "en": "12–15"
+              },
               "restSec": 45,
-              "weightHint": "50–55 kg",
+              "weightHint": {
+                "es": "50–55 kg",
+                "en": "50–55 kg"
+              },
               "incrementKg": 5,
               "muscles": [
                 "gluteo_medio"
@@ -439,9 +718,15 @@
             {
               "type": "sets",
               "id": "deadbug",
-              "name": "Dead bug",
+              "name": {
+                "es": "Dead bug",
+                "en": "Dead bug"
+              },
               "sets": 3,
-              "reps": "8–10 por lado",
+              "reps": {
+                "es": "8–10 por lado",
+                "en": "8–10 per side"
+              },
               "restSec": 45,
               "bodyweight": true,
               "muscles": [
@@ -451,12 +736,18 @@
             {
               "type": "timed",
               "id": "cardio",
-              "name": "Caminata inclinada 10 min",
+              "name": {
+                "es": "Caminata inclinada 10 min",
+                "en": "Incline walk 10 min"
+              },
               "totalSec": 600,
               "segments": [
                 {
                   "atSec": 0,
-                  "label": "Inclinación 10–12% · 4.0–4.5 km/h"
+                  "label": {
+                    "es": "Inclinación 10–12% · 4.0–4.5 km/h",
+                    "en": "Incline 10–12% · 4.0–4.5 km/h"
+                  }
                 }
               ]
             }
@@ -464,54 +755,90 @@
         },
         {
           "id": "d4",
-          "name": "Día 4: Glúteo ligero, espalda y core",
+          "name": {
+            "es": "Día 4: Glúteo ligero, espalda y core",
+            "en": "Day 4: Light glutes, back and core"
+          },
           "steps": [
             {
               "type": "timed",
               "id": "w-tread",
-              "name": "Caminadora 5 min",
+              "name": {
+                "es": "Caminadora 5 min",
+                "en": "Treadmill 5 min"
+              },
               "totalSec": 300,
               "segments": [
                 {
                   "atSec": 0,
-                  "label": "Inclinación 3% · 5 km/h"
+                  "label": {
+                    "es": "Inclinación 3% · 5 km/h",
+                    "en": "Incline 3% · 5 km/h"
+                  }
                 }
               ]
             },
             {
               "type": "check",
               "id": "w-mob",
-              "name": "Movilidad: balanceo de pierna adelante-atrás y lateral 10 por lado, círculos de cadera 5 por lado, 5 sentadillas lentas"
+              "name": {
+                "es": "Movilidad: balanceo de pierna adelante-atrás y lateral 10 por lado, círculos de cadera 5 por lado, 5 sentadillas lentas",
+                "en": "Mobility: front-to-back and side leg swings 10 per side, hip circles 5 per side, 5 slow squats"
+              }
             },
             {
               "type": "check",
               "id": "w-9090",
-              "name": "Respiración 90/90: 5 respiraciones"
+              "name": {
+                "es": "Respiración 90/90: 5 respiraciones",
+                "en": "90/90 breathing: 5 breaths"
+              }
             },
             {
               "type": "check",
               "id": "act-1",
-              "name": "Activación: Puente de glúteo 1 × 15"
+              "name": {
+                "es": "Activación: Puente de glúteo 1 × 15",
+                "en": "Activation: Glute bridge 1 × 15"
+              }
             },
             {
               "type": "check",
               "id": "act-2",
-              "name": "Activación: Peso muerto al aire 1 × 10"
+              "name": {
+                "es": "Activación: Peso muerto al aire 1 × 10",
+                "en": "Activation: Bodyweight deadlift 1 × 10"
+              }
             },
             {
               "type": "check",
               "id": "act-3",
-              "name": "Activación: Rotaciones de hombro 10 por lado"
+              "name": {
+                "es": "Activación: Rotaciones de hombro 10 por lado",
+                "en": "Activation: Shoulder rotations 10 per side"
+              }
             },
             {
               "type": "sets",
               "id": "ht-pulse",
-              "name": "Hip thrust con pulsos e isométrico",
+              "name": {
+                "es": "Hip thrust con pulsos e isométrico",
+                "en": "Hip thrust with pulses and isometric hold"
+              },
               "sets": 3,
-              "reps": "12–15 + 10 pulsos + 10 s arriba",
+              "reps": {
+                "es": "12–15 + 10 pulsos + 10 s arriba",
+                "en": "12–15 + 10 pulses + 10 s at the top"
+              },
               "restSec": 90,
-              "weightHint": "30–35 kg",
-              "approach": "1 × 10 al 50%",
+              "weightHint": {
+                "es": "30–35 kg",
+                "en": "30–35 kg"
+              },
+              "approach": {
+                "es": "1 × 10 al 50%",
+                "en": "1 × 10 at 50%"
+              },
               "incrementKg": 2.5,
               "muscles": [
                 "gluteo"
@@ -520,11 +847,20 @@
             {
               "type": "sets",
               "id": "sldl",
-              "name": "Peso muerto a una pierna",
+              "name": {
+                "es": "Peso muerto a una pierna",
+                "en": "Single-leg deadlift"
+              },
               "sets": 3,
-              "reps": "10–12 por pierna",
+              "reps": {
+                "es": "10–12 por pierna",
+                "en": "10–12 per leg"
+              },
               "restSec": 90,
-              "weightHint": "Ligero",
+              "weightHint": {
+                "es": "Ligero",
+                "en": "Light"
+              },
               "incrementKg": 2,
               "muscles": [
                 "isquios",
@@ -534,11 +870,20 @@
             {
               "type": "sets",
               "id": "kick",
-              "name": "Patada de glúteo cruzada en polea (45°)",
+              "name": {
+                "es": "Patada de glúteo cruzada en polea (45°)",
+                "en": "Cable glute kickback, crossed (45°)"
+              },
               "sets": 3,
-              "reps": "12–15 por pierna",
+              "reps": {
+                "es": "12–15 por pierna",
+                "en": "12–15 per leg"
+              },
               "restSec": 45,
-              "weightHint": "11 kg",
+              "weightHint": {
+                "es": "11 kg",
+                "en": "11 kg"
+              },
               "incrementKg": 1,
               "muscles": [
                 "gluteo"
@@ -547,9 +892,15 @@
             {
               "type": "sets",
               "id": "widerow",
-              "name": "Remo sentado con agarre ancho",
+              "name": {
+                "es": "Remo sentado con agarre ancho",
+                "en": "Wide-grip seated row"
+              },
               "sets": 3,
-              "reps": "12–15",
+              "reps": {
+                "es": "12–15",
+                "en": "12–15"
+              },
               "restSec": 75,
               "incrementKg": 2.5,
               "muscles": [
@@ -559,12 +910,21 @@
             {
               "type": "sets",
               "id": "captain",
-              "name": "Elevación de rodillas en silla romana",
+              "name": {
+                "es": "Elevación de rodillas en silla romana",
+                "en": "Captain's chair knee raise"
+              },
               "sets": 3,
-              "reps": "10–12",
+              "reps": {
+                "es": "10–12",
+                "en": "10–12"
+              },
               "restSec": 45,
               "bodyweight": true,
-              "how": "Enrolla la pelvis al subir, baja lento sin balancearte.",
+              "how": {
+                "es": "Enrolla la pelvis al subir, baja lento sin balancearte.",
+                "en": "Curl your pelvis up as you rise, lower slowly without swinging."
+              },
               "muscles": [
                 "core"
               ]
@@ -572,24 +932,39 @@
             {
               "type": "timed",
               "id": "cardio",
-              "name": "Caminata inclinada 20 min",
+              "name": {
+                "es": "Caminata inclinada 20 min",
+                "en": "Incline walk 20 min"
+              },
               "totalSec": 1200,
               "segments": [
                 {
                   "atSec": 0,
-                  "label": "Inclinación 5% · 4.0 km/h"
+                  "label": {
+                    "es": "Inclinación 5% · 4.0 km/h",
+                    "en": "Incline 5% · 4.0 km/h"
+                  }
                 },
                 {
                   "atSec": 300,
-                  "label": "Inclinación 12% · 4.0 km/h"
+                  "label": {
+                    "es": "Inclinación 12% · 4.0 km/h",
+                    "en": "Incline 12% · 4.0 km/h"
+                  }
                 },
                 {
                   "atSec": 600,
-                  "label": "Inclinación 5% · 4.5 km/h"
+                  "label": {
+                    "es": "Inclinación 5% · 4.5 km/h",
+                    "en": "Incline 5% · 4.5 km/h"
+                  }
                 },
                 {
                   "atSec": 900,
-                  "label": "Inclinación 10% · 3.8 km/h"
+                  "label": {
+                    "es": "Inclinación 10% · 3.8 km/h",
+                    "en": "Incline 10% · 3.8 km/h"
+                  }
                 }
               ]
             }

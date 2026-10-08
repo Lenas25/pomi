@@ -11,6 +11,7 @@ import {
   type ImportResult,
 } from './importer';
 import type { ModuleTemplate } from './schema';
+import { templateText } from '../i18n/templateText';
 
 /** What an import would change besides the stored modules themselves. */
 export type ImportImpact = {
@@ -72,7 +73,7 @@ function stepsOf(module: ModuleTemplate): Map<string, string> {
   const steps = new Map<string, string>();
   for (const program of module.programs ?? []) {
     for (const routine of program.routines) {
-      for (const step of routine.steps) steps.set(step.id, step.name);
+      for (const step of routine.steps) steps.set(step.id, templateText(step.name));
     }
   }
   return steps;

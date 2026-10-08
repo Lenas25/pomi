@@ -16,6 +16,8 @@ import { activeDeloadPct } from '../gym/deload';
 import { pickProgram, toRotationSessions } from '../gym/program';
 import { loadGymGoal, type GymGoal } from './gymGoal';
 import { loadHabitsData } from '../habits/habitsData';
+import { categoryPrefsOf } from '../notifications/loadState';
+import type { LocalizedText } from '../templates/localized';
 import { buildHabitsView } from '../habits/habitsView';
 
 import { parseInsightRow, type StoredInsight } from '../insights/payload';
@@ -35,7 +37,7 @@ export type TodayData = {
   state: TodayState;
   activityToday: ActivityKind | undefined;
   /** Name of today's routine, shown under the gym row. */
-  routineName: string | undefined;
+  routineName: LocalizedText | undefined;
   /** Target of the first main exercise of today's routine (the gym row highlight). */
   gymGoal: GymGoal | undefined;
   /** Sunday (and the weekly review is on): Hoy offers "Tu semana". */
@@ -145,6 +147,8 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     modules: habits.modules.filter((module) => module.active).map((module) => module.template),
     ...(routine ? { todayRoutine: { id: routine.id, steps: routine.steps } } : {}),
     ...(view.steps?.plan.goal != null ? { stepsGoal: view.steps.plan.goal } : {}),
+    // Same "Mis avisos" times as the notifications (`agendaTiming`).
+    ...(prefs ? { categories: categoryPrefsOf(prefs) } : {}),
   });
 
   const gymGoal = program

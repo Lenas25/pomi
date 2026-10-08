@@ -27,6 +27,7 @@ import {
 import { createKeyedQueue, memoizeUntilFailure } from './asyncControl';
 import { loadVolumeData, type VolumeData } from '../volume/loadVolume';
 import { createSetActions, nextLabelFor } from './setActions';
+import type { LocalizedText } from '../templates/localized';
 
 const ROTATION_LOOKBACK = 40;
 
@@ -115,7 +116,7 @@ export type GymSessionState =
   | { status: 'notFound' }
   | {
       status: 'ready';
-      routineName: string;
+      routineName: LocalizedText;
       /** All steps of the routine whose `when` passes today, in order. */
       steps: readonly Step[];
       exercises: readonly SessionExercise[];

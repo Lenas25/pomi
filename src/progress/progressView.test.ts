@@ -13,6 +13,7 @@ const base: ProgressData = {
   metrics: [],
   photos: [],
   poses: [],
+  poseNames: {},
   monthlyDone: false,
 };
 

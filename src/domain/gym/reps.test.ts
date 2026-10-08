@@ -69,7 +69,9 @@ describe('parseReps', () => {
   it('parses every `reps` string of the bundled gym template', () => {
     const texts = gymJson.programs.flatMap((program) =>
       program.routines.flatMap((routine) =>
-        routine.steps.flatMap((step) => ('reps' in step ? [String(step.reps)] : [])),
+        routine.steps.flatMap((step) =>
+          'reps' in step ? Object.values(step.reps as Record<string, string>) : [],
+        ),
       ),
     );
     expect(texts.length).toBeGreaterThan(10);

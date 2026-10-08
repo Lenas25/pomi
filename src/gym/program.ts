@@ -2,14 +2,15 @@
 import type { RotationSession } from '../domain/gym/rotation';
 import { DEFAULT_TARGET_RULES, type TargetRules } from '../domain/gym/todayTarget';
 import type { ModuleTemplate } from '../templates/schema';
+import type { LocalizedText } from '../templates/localized';
 
 export type ProgramModule = Pick<ModuleTemplate, 'id' | 'name' | 'programs'>;
 type ProgramOf = NonNullable<ModuleTemplate['programs']>[number];
 
 export type GymProgram = {
-  moduleName: string;
+  moduleName: LocalizedText;
   id: string;
-  name: string;
+  name: LocalizedText;
   routines: ProgramOf['routines'];
   rules: TargetRules;
 };

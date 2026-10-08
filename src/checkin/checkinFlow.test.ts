@@ -63,7 +63,8 @@ describe('loadCheckin', () => {
 
   it('adds the food prompt to the night check-in when the module is active', async () => {
     const plan = await ready('night', '2026-10-06');
-    expect(plan.foodPrompt).toBe('¿Qué comiste hoy y cómo te sentiste?');
+    // Template text follows the active language (English in the test environment).
+    expect(plan.foodPrompt).toBe('What did you eat today and how did you feel?');
     await repos.templates.setActive('comida-notas', false);
     expect((await ready('night', '2026-10-06')).foodPrompt).toBeNull();
   });

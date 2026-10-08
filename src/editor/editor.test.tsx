@@ -19,6 +19,7 @@ import { useEditorStore } from './editorStore';
 import { ProgramEditorScreen } from './ProgramEditorScreen';
 import { RoutineEditorScreen } from './RoutineEditorScreen';
 import { StepEditorScreen } from './StepEditorScreen';
+import { localizedText } from '../templates/localized';
 
 let mockDb: Db;
 let mockRepos: Repositories;
@@ -159,7 +160,9 @@ describe('RoutineEditorScreen', () => {
     await renderScreen(<RoutineEditorScreen />);
     const before = stepIds('d1');
     const name = useEditorStore.getState().state?.program.routines[0]?.steps[7]?.name ?? '';
-    await fireEvent.press(screen.getByRole('button', { name: `Subir ${name}` }));
+    await fireEvent.press(
+      screen.getByRole('button', { name: `Subir ${localizedText(name, 'es')}` }),
+    );
     const after = stepIds('d1');
     expect(after[6]).toBe(before[7]);
     expect(after[7]).toBe(before[6]);
@@ -190,7 +193,9 @@ describe('RoutineEditorScreen', () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
       buttons?.find((button) => button.style === 'destructive')?.onPress?.();
     });
-    await fireEvent.press(screen.getByRole('button', { name: `Quitar ${name}` }));
+    await fireEvent.press(
+      screen.getByRole('button', { name: `Quitar ${localizedText(name, 'es')}` }),
+    );
     expect(alert.mock.calls[0]?.[1]).toContain('Tiene historial de series');
     expect(alert.mock.calls[0]?.[1]).toContain('dejará de mostrarse');
     expect(stepIds('d1')).not.toContain('rdl');
@@ -228,6 +233,7 @@ describe('StepEditorScreen', () => {
     const step = useEditorStore
       .getState()
       .state?.program.routines[0]?.steps.find((s) => s.id === 'rdl');
+    // The English "8–10" no longer means the same range, so the typed text replaces both.
     expect(step).toMatchObject({ id: 'rdl', type: 'sets', sets: 4, reps: '6–8' });
     expect(router.back).toHaveBeenCalled();
   });

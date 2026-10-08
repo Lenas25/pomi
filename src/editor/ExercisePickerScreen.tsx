@@ -29,6 +29,7 @@ import { Screen } from '../ui/Screen';
 import { useTheme } from '../ui/theme';
 
 import { useEditorStore } from './editorStore';
+import { useTemplateText } from '../i18n/templateText';
 
 const library = loadExerciseLibrary();
 
@@ -51,6 +52,7 @@ const LIMITATION_LABELS = {
  */
 export function ExercisePickerScreen() {
   const t = useT();
+  const text = useTemplateText();
   const theme = useTheme();
   const { routineId, replace } = useLocalSearchParams<{ routineId: string; replace?: string }>();
   const source = useEditorStore((store) => store.source);
@@ -115,9 +117,9 @@ export function ExercisePickerScreen() {
       return;
     }
     const body = [
-      t('editor.swap.withHistory', { name: replacing.name }),
+      t('editor.swap.withHistory', { name: text(replacing.name) }),
       impact.stillIn.length > 0
-        ? t('editor.swap.stillIn', { routines: impact.stillIn.join(', ') })
+        ? t('editor.swap.stillIn', { routines: impact.stillIn.map(text).join(', ') })
         : t('editor.swap.historyLost'),
     ].join(' ');
     Alert.alert(t('editor.swap.title'), body, [

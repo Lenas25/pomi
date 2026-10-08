@@ -2,61 +2,109 @@
   "schemaVersion": 2,
   "kind": "module",
   "id": "metricas",
-  "name": "Progreso",
+  "name": {
+    "es": "Progreso",
+    "en": "Progress"
+  },
   "icon": "Ruler",
   "metrics": [
     {
       "id": "peso",
-      "name": "Peso",
-      "unit": "kg",
+      "name": {
+        "es": "Peso",
+        "en": "Weight"
+      },
+      "unit": {
+        "es": "kg",
+        "en": "kg"
+      },
       "frequency": "weekly"
     },
     {
       "id": "cintura",
-      "name": "Cintura",
-      "unit": "cm",
+      "name": {
+        "es": "Cintura",
+        "en": "Waist"
+      },
+      "unit": {
+        "es": "cm",
+        "en": "cm"
+      },
       "frequency": "monthly"
     },
     {
       "id": "cadera",
-      "name": "Cadera",
-      "unit": "cm",
+      "name": {
+        "es": "Cadera",
+        "en": "Hips"
+      },
+      "unit": {
+        "es": "cm",
+        "en": "cm"
+      },
       "frequency": "monthly"
     },
     {
       "id": "gluteo",
-      "name": "Contorno de glúteo",
-      "unit": "cm",
+      "name": {
+        "es": "Contorno de glúteo",
+        "en": "Glute circumference"
+      },
+      "unit": {
+        "es": "cm",
+        "en": "cm"
+      },
       "frequency": "monthly"
     }
   ],
   "photos": {
     "frequency": "monthly",
     "poses": [
-      "frente",
-      "perfil",
-      "espalda"
+      {
+        "es": "frente",
+        "en": "front"
+      },
+      {
+        "es": "perfil",
+        "en": "side"
+      },
+      {
+        "es": "espalda",
+        "en": "back"
+      }
     ],
-    "guide": "Misma luz, misma hora, misma ropa. La app muestra la foto anterior en transparencia para alinear la pose."
+    "guide": {
+      "es": "Misma luz, misma hora, misma ropa. La app muestra la foto anterior en transparencia para alinear la pose.",
+      "en": "Same light, same time, same clothes. The app shows your previous photo faded on top so you can line up the pose."
+    }
   },
   "checkins": {
     "morning": [
       {
         "id": "hora-dormir",
         "type": "time",
-        "label": "¿A qué hora te dormiste?",
+        "label": {
+          "es": "¿A qué hora te dormiste?",
+          "en": "What time did you fall asleep?"
+        },
         "prefill": "bed"
       },
       {
         "id": "hora-despertar",
         "type": "time",
-        "label": "¿A qué hora despertaste?",
+        "label": {
+          "es": "¿A qué hora despertaste?",
+          "en": "What time did you wake up?"
+        },
         "prefill": "wake"
       },
       {
         "id": "calidad-sueno",
         "type": "scale",
-        "label": "¿Cómo dormiste?",
+        "label": {
+          "es": "¿Cómo dormiste?",
+          "en": "How did you sleep?"
+        },
         "scale": [
           1,
           5
@@ -67,7 +115,10 @@
       {
         "id": "energia",
         "type": "scale",
-        "label": "¿Cómo estuvo tu energía hoy?",
+        "label": {
+          "es": "¿Cómo estuvo tu energía hoy?",
+          "en": "How was your energy today?"
+        },
         "scale": [
           1,
           5
@@ -76,7 +127,10 @@
       {
         "id": "animo",
         "type": "scale",
-        "label": "¿Y tu ánimo?",
+        "label": {
+          "es": "¿Y tu ánimo?",
+          "en": "And your mood?"
+        },
         "scale": [
           1,
           5
@@ -85,7 +139,10 @@
       {
         "id": "nota",
         "type": "text",
-        "label": "Algo que quieras recordar de hoy (opcional)",
+        "label": {
+          "es": "Algo que quieras recordar de hoy (opcional)",
+          "en": "Anything you want to remember about today (optional)"
+        },
         "optional": true
       }
     ]

@@ -23,6 +23,7 @@ import {
   type ProgramImportError,
   type ProgramPreviewItem,
 } from './programImport';
+import { templateText } from '../i18n/templateText';
 
 type Notice = { tone: 'success' | 'error'; text: string };
 
@@ -151,7 +152,7 @@ export function ProgramImportScreen() {
                 <View key={item.module.id}>
                   <Text style={[theme.text('body'), { color: theme.color.text }]}>
                     {t('programImport.item', {
-                      name: item.module.name,
+                      name: templateText(item.module.name),
                       programs: item.programs,
                       routines: item.routines,
                     })}

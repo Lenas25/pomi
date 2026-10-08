@@ -6,7 +6,9 @@ import type { Repositories } from '../db/repositories';
 import { withTransaction } from '../db/transaction';
 import type { Db } from '../db/types';
 import { latestEntry, type MetricFrequency, type MetricPoint } from '../domain/progress/metrics';
+import { currentLanguage, templateText } from '../i18n/templateText';
 import { previousPhoto, type PhotoFs } from '../photos/photoStore';
+import { poseEntries } from '../templates/localized';
 
 export type MonthlyMetric = {
   id: string;
@@ -18,7 +20,9 @@ export type MonthlyMetric = {
 
 export type MonthlyContext = {
   metrics: MonthlyMetric[];
+  /** Stable pose ids (the photo key) and their labels in the active language. */
   poses: string[];
+  poseNames: Record<string, string>;
   guide?: string | undefined;
   /** Per pose: the latest earlier photo whose file still exists (drawn over the camera). */
   previous: Record<string, { uri: string; date: string } | undefined>;
@@ -38,13 +42,13 @@ export async function loadMonthlyContext(
   const modules = (await repos.templates.listModules()).filter((module) => module.active);
   const definitions = modules.flatMap((module) => module.template.metrics ?? []);
   const photoSpec = modules.map((module) => module.template.photos).find((spec) => spec);
-  const poses = photoSpec?.poses ?? [];
+  const { ids: poses, names: poseNames } = poseEntries(photoSpec?.poses ?? [], currentLanguage());
 
   const metrics = await Promise.all(
     definitions.map(async (definition): Promise<MonthlyMetric> => ({
       id: definition.id,
-      name: definition.name,
-      unit: definition.unit,
+      name: templateText(definition.name),
+      unit: templateText(definition.unit),
       frequency: definition.frequency,
       latest: latestEntry(
         (await repos.metrics.inRange(definition.id, LOOKBACK_FROM, today)).map((row) => ({
@@ -65,7 +69,8 @@ export async function loadMonthlyContext(
   return {
     metrics,
     poses,
-    guide: photoSpec?.guide,
+    poseNames,
+    guide: templateText(photoSpec?.guide),
     previous,
     doneThisMonth: (await repos.checkins.inRange(monthStart, today, 'monthly')).length > 0,
     backupReminder: (await repos.settings.get('backupReminder')) ?? true,

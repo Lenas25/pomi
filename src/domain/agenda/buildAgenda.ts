@@ -12,9 +12,11 @@ import type {
   Schedule,
   Step,
 } from '../../templates/schema';
+import type { LocalizedText } from '../../templates/localized';
 import { waterGoal } from '../formulas/water';
 import { bedtimeFor } from '../formulas/sleep';
 import { effectiveGymPlan, type GymWeekPlans } from '../gym/gymPlan';
+import { applyCategoryTimes, checkinOffsets, type CategoryPrefs } from '../notifications/prefs';
 import { MINUTES_PER_DAY, clockToMinutes, wrapMinutes } from '../time';
 import { evaluateOnlyIf, evaluateWhen, type Profile } from './conditions';
 
@@ -30,7 +32,7 @@ export type AgendaKind =
 /** What to show: i18n key for built-in items, or the template's own text. */
 export type AgendaLabel =
   | { type: 'key'; key: 'agenda.checkin.morning' | 'agenda.checkin.night' | 'agenda.gym' }
-  | { type: 'template'; text: string };
+  | { type: 'template'; text: LocalizedText };
 
 export type AgendaItem = {
   /** Stable within a day and unique across modules, e.g. `water:hidratacion:agua`, `checkin:morning`. */
@@ -74,10 +76,32 @@ export type AgendaState = {
   /** Accepted suggestions that move the bedtime / water reminders. */
   shifts?: PlanShifts;
   flags?: Readonly<Record<string, boolean>>;
+  /** "Mis avisos" times (water / pause windows, check-in and screens-off offsets). */
+  categories?: CategoryPrefs | undefined;
 };
 
-const CHECKIN_MORNING_OFFSET = 10;
-const CHECKIN_NIGHT_OFFSET = -30;
+/**
+ * The ONE place where the person's "Mis avisos" times reach the day plan. `buildAgenda` (Hoy) and
+ * `buildUpcoming` (notifications, which calls `buildAgenda`) both go through it, so a timeline time
+ * always equals its notification time. A custom water start wins over an accepted "water earlier"
+ * shift (the person chose the time themselves).
+ */
+export function agendaTiming(state: AgendaState): {
+  modules: ModuleBody[];
+  shifts: PlanShifts | undefined;
+  checkinOffsets: { morning: number; night: number };
+} {
+  const categories = state.categories;
+  return {
+    modules: applyCategoryTimes(state.modules, categories),
+    shifts:
+      categories?.water?.from !== undefined
+        ? { ...state.shifts, waterMin: undefined }
+        : state.shifts,
+    checkinOffsets: checkinOffsets(categories),
+  };
+}
+
 const GYM_HOURS_PER_SESSION = 1;
 /**
  * A derived bedtime whose clock is earlier than the wake clock belongs after midnight (end of
@@ -194,7 +218,8 @@ function byTime(a: AgendaItem, b: AgendaItem): number {
 
 export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
   const weekday = getDay(date);
-  const anchors = resolveAnchors(state.anchors, state.shifts);
+  const timing = agendaTiming(state);
+  const anchors = resolveAnchors(state.anchors, timing.shifts);
   const items: AgendaItem[] = [];
 
   // Gym: weekdays and per-day times come from settings (`effectiveGymPlan`, override-aware for the
@@ -233,10 +258,10 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
     });
   }
 
-  // Check-ins: morning at wake + 10, night at bed − 30 (bed is derived).
+  // Check-ins: morning at wake + offset (10), night at bed − offset (30); bed is derived.
   const prefs = state.checkinPrefs ?? { morning: true, night: true };
   if (prefs.morning && anchors.wake !== undefined) {
-    const minutes = offsetFrom(anchors.wake, CHECKIN_MORNING_OFFSET, 'wake');
+    const minutes = offsetFrom(anchors.wake, timing.checkinOffsets.morning, 'wake');
     items.push({
       id: 'checkin:morning',
       kind: 'checkin',
@@ -246,7 +271,7 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
     });
   }
   if (prefs.night && anchors.bed !== undefined) {
-    const minutes = offsetFrom(anchors.bed, CHECKIN_NIGHT_OFFSET, 'bed');
+    const minutes = offsetFrom(anchors.bed, timing.checkinOffsets.night, 'bed');
     items.push({
       id: 'checkin:night',
       kind: 'checkin',
@@ -256,7 +281,7 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
     });
   }
 
-  for (const module of state.modules) {
+  for (const module of timing.modules) {
     for (const habit of module.habits ?? []) {
       if (!evaluateOnlyIf(habit.onlyIf, state.profile)) continue;
       const kind = habitKind(habit);
@@ -276,7 +301,7 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
       if ((habit.schedules?.length ?? 0) > 0 && times.length === 0) continue;
       const sorted = shiftEarlier(
         [...new Set(times)].sort((a, b) => a - b),
-        kind === 'water' ? (state.shifts?.waterMin ?? 0) : 0,
+        kind === 'water' ? (timing.shifts?.waterMin ?? 0) : 0,
         anchors.wake !== undefined ? anchors.wake + WATER_AFTER_WAKE_MIN : undefined,
       );
 

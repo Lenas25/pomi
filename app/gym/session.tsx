@@ -23,6 +23,7 @@ import { Screen } from '../../src/ui/Screen';
 import { TimerSheet } from '../../src/ui/TimerSheet';
 import { Toast } from '../../src/ui/Toast';
 import { useTheme } from '../../src/ui/theme';
+import { useTemplateText } from '../../src/i18n/templateText';
 
 const FINISHED_SHEET_MS = 5000;
 const NO_LOGS: readonly StoredSet[] = [];
@@ -55,6 +56,7 @@ function stepOwner(step: NonSetsStep): string {
 export default function GymSession() {
   const theme = useTheme();
   const t = useT();
+  const text = useTemplateText();
   const { routineId } = useLocalSearchParams<{ routineId?: string }>();
   const session = useGymSession(routineId);
   // Primitive selectors only: the screen re-renders when the status / owner change, never per tick.
@@ -154,7 +156,7 @@ export default function GymSession() {
         owner: stepOwner(step),
         kind: 'cardio',
         durationSec: step.totalSec,
-        segments: step.segments,
+        segments: step.segments.map((segment) => ({ ...segment, label: text(segment.label) })),
         notification: {
           title: t('timers.notification.cardioTitle'),
           body: t('timers.notification.bodyDefault'),
@@ -192,7 +194,7 @@ export default function GymSession() {
             accessibilityRole="header"
             style={[theme.text('title-lg'), { color: theme.color.text }]}
           >
-            {routineName}
+            {text(routineName)}
           </Text>
           <ProgressBar
             current={session.setsDone}

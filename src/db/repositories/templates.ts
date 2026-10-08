@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 
-import { loadDefaultTemplates } from '../../templates/defaults';
+import { bundledTranslations, loadDefaultTemplates } from '../../templates/defaults';
+import { addKnownTranslations, sourceText } from '../../templates/localized';
 import { moduleTemplateSchema, type ModuleTemplate } from '../../templates/schema';
 import { templates } from '../schema';
 import { withTransaction, type Tx } from '../transaction';
@@ -35,7 +36,8 @@ export function createTemplatesRepository(
           name: row.name,
           active: row.active,
           importedAt: row.importedAt,
-          template: parsed.data,
+          // Older installs stored the bundled modules in Spanish only: add the known English.
+          template: addKnownTranslations(parsed.data, bundledTranslations()),
         },
       ];
     });
@@ -65,14 +67,14 @@ export function createTemplatesRepository(
           .values({
             id: module.id,
             kind: 'module',
-            name: module.name,
+            name: sourceText(module.name),
             json: module,
             importedAt,
             active: true,
           })
           .onConflictDoUpdate({
             target: templates.id,
-            set: { name: module.name, json: module, importedAt },
+            set: { name: sourceText(module.name), json: module, importedAt },
           });
         known.add(module.id);
         result.saved.push(module.id);

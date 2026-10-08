@@ -544,7 +544,7 @@ describe('transactions and constraints', () => {
       saved: ['gym'],
       skipped: ['gym'],
     });
-    expect((await repos.templates.getModule('gym'))?.template.name).toBe(gym.name);
+    expect((await repos.templates.getModule('gym'))?.template.name).toEqual(gym.name);
   });
 
   it('rejects values outside the enum columns', async () => {

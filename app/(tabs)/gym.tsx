@@ -11,6 +11,7 @@ import { Card } from '../../src/ui/Card';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Screen } from '../../src/ui/Screen';
 import { useTheme } from '../../src/ui/theme';
+import { useTemplateText } from '../../src/i18n/templateText';
 
 function openSession(routineId: string): void {
   router.push({ pathname: '/gym/session', params: { routineId } });
@@ -19,6 +20,7 @@ function openSession(routineId: string): void {
 export default function Gym() {
   const theme = useTheme();
   const t = useT();
+  const text = useTemplateText();
   const tab = useGymTab();
   const { reload } = tab;
 
@@ -69,7 +71,7 @@ export default function Gym() {
             accessibilityRole="header"
             style={[theme.text('title-lg'), { color: theme.color.text }]}
           >
-            {program.name}
+            {text(program.name)}
           </Text>
           {today ? (
             <Card variant="highlight">
@@ -78,7 +80,7 @@ export default function Gym() {
                   {resuming ? t('gym.tab.inProgress') : t('gym.tab.todayTitle')}
                 </Text>
                 <Text style={[theme.text('title-md'), { color: theme.color.text }]}>
-                  {today.name}
+                  {text(today.name)}
                 </Text>
                 <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
                   {t('gym.tab.exercises', { count: countSets(today.id) })}
@@ -110,13 +112,13 @@ export default function Gym() {
                 onPress={() => openSession(routine.id)}
                 accessibilityLabel={t(
                   open ? 'gym.tab.resumeRoutineLabel' : 'gym.tab.startRoutineLabel',
-                  { name: routine.name },
+                  { name: text(routine.name) },
                 )}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
                   <View style={{ flex: 1, gap: theme.space[1] }}>
                     <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-                      {routine.name}
+                      {text(routine.name)}
                     </Text>
                     <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
                       {t('gym.tab.exercises', { count: countSets(routine.id) })}

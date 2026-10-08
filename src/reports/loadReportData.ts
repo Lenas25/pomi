@@ -14,6 +14,8 @@ import { waterHabit } from '../suggestions/loadData';
 
 import { REPORT_LOOKBACK_DAYS } from './period';
 import type { ReportData } from './types';
+import { templateText } from '../i18n/templateText';
+import type { LocalizedText } from '../templates/localized';
 
 export { REPORT_LOOKBACK_DAYS };
 
@@ -27,7 +29,9 @@ export function exerciseNamesFor(
   modules: readonly {
     template: {
       programs?: readonly {
-        routines: readonly { steps: readonly { type: string; id: string; name?: string }[] }[];
+        routines: readonly {
+          steps: readonly { type: string; id: string; name?: LocalizedText }[];
+        }[];
       }[];
     };
   }[],
@@ -38,7 +42,7 @@ export function exerciseNamesFor(
       for (const routine of program.routines) {
         for (const step of routine.steps) {
           if (step.type === 'sets' && step.name !== undefined && names[step.id] === undefined) {
-            names[step.id] = step.name;
+            names[step.id] = templateText(step.name);
           }
         }
       }
@@ -126,7 +130,7 @@ export async function loadReportData(repos: Repositories, now: Date): Promise<Re
       .filter((habit) => habit.type === 'check')
       .map((habit) => ({
         id: habit.id,
-        name: habit.name,
+        name: templateText(habit.name),
         dates: logs
           .filter((log) => log.habitId === habit.id && log.value > 0)
           .map((log) => log.date),
@@ -171,8 +175,8 @@ export async function loadReportData(repos: Repositories, now: Date): Promise<Re
         .flatMap((module) => module.template.metrics ?? [])
         .map(async (definition) => ({
           id: definition.id,
-          name: definition.name,
-          unit: definition.unit,
+          name: templateText(definition.name),
+          unit: templateText(definition.unit),
           entries: (await repos.metrics.inRange(definition.id, from, today)).map((row) => ({
             date: row.date,
             value: row.value,

@@ -7,6 +7,7 @@ import type {
   RuleRef,
   SessionKind,
 } from '../domain/generator/types';
+import { localizedText } from '../templates/localized';
 
 export type ExerciseLine = {
   sessionId: string;
@@ -25,14 +26,15 @@ export type RoutineView = {
   cardioMin: number;
 };
 
-export function routinesOf(generated: GeneratedProgram): RoutineView[] {
+/** `language` picks the text of the bilingual program (`{ es, en }`, see `renderBilingual`). */
+export function routinesOf(generated: GeneratedProgram, language = 'es'): RoutineView[] {
   return generated.program.routines.map((routine) => {
     const session = generated.plan.sessions.find((candidate) => candidate.id === routine.id);
     const summary = generated.summary.sessions.find((candidate) => candidate.id === routine.id);
     return {
       id: routine.id,
       kind: session?.kind ?? 'full',
-      name: routine.name,
+      name: localizedText(routine.name, language),
       minutes: summary?.minutes ?? 0,
       cardioMin: session?.cardioMin ?? 0,
       lines: routine.steps.flatMap((step) =>
@@ -42,7 +44,7 @@ export function routinesOf(generated: GeneratedProgram): RoutineView[] {
                 sessionId: routine.id,
                 exerciseId: exerciseIdOfStep(step.id),
                 sets: step.sets,
-                reps: step.reps,
+                reps: localizedText(step.reps, language),
               },
             ]
           : [],

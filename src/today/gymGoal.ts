@@ -6,6 +6,7 @@ import type { TargetRules } from '../domain/gym/todayTarget';
 import type { TranslationKey } from '../i18n/types';
 import type { GymProgram } from '../gym/program';
 import { buildExerciseView, type ExerciseView, type SetsStep } from '../gym/sessionViewModel';
+import { templateText } from '../i18n/templateText';
 
 export type GoalMessage = { key: TranslationKey; params: Record<string, string | number> };
 
@@ -15,7 +16,7 @@ export type GymGoal = { exercise: string; message: GoalMessage };
 export function goalMessage(view: ExerciseView, step: SetsStep): GoalMessage | undefined {
   const { target } = view;
   if (target.kind === 'manual')
-    return { key: 'gym.session.targetManual', params: { reps: step.reps } };
+    return { key: 'gym.session.targetManual', params: { reps: templateText(step.reps) } };
   return target.reason ?? target.hint[0];
 }
 
@@ -47,5 +48,5 @@ export async function loadGymGoal(
     deloadPct,
   );
   const message = goalMessage(view, step);
-  return message ? { exercise: step.name, message } : undefined;
+  return message ? { exercise: templateText(step.name), message } : undefined;
 }

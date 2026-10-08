@@ -2,6 +2,8 @@ import { BODY_MAX, clampText, TITLE_MAX } from '../domain/notifications/buildUpc
 import { minutesToClock } from '../domain/time';
 import type { TimelineEntry } from '../domain/today/timeline';
 import type { Language, Translate } from '../i18n';
+import { templateText } from '../i18n/templateText';
+import type { LocalizedText } from '../templates/localized';
 import { localizeTargetParams } from '../gym/sessionViewModel';
 
 import type { GymGoal } from './gymGoal';
@@ -15,7 +17,7 @@ export function isBedtimeEntry(entry: TimelineEntry): boolean {
 }
 
 export function entryTitle(entry: TimelineEntry, t: Translate): string {
-  return entry.label.type === 'key' ? t(entry.label.key) : entry.label.text;
+  return entry.label.type === 'key' ? t(entry.label.key) : templateText(entry.label.text);
 }
 
 export function entryTime(entry: TimelineEntry): string | null {
@@ -25,10 +27,10 @@ export function entryTime(entry: TimelineEntry): string | null {
 /** The line under the title: today's routine on the gym row, "x de y vasos" on the water row. */
 export function entrySubtitle(
   entry: TimelineEntry,
-  context: { routineName: string | undefined; facts: LiveFacts },
+  context: { routineName: LocalizedText | undefined; facts: LiveFacts },
   t: Translate,
 ): string | undefined {
-  if (entry.kind === 'gym') return context.routineName;
+  if (entry.kind === 'gym') return templateText(context.routineName);
   if (entry.kind === 'water') {
     const progress = waterProgress(context.facts.view);
     return progress ? t('today.sub.water', progress) : undefined;

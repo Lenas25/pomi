@@ -26,6 +26,7 @@ import { toExerciseSession } from '../gym/sessionViewModel';
 import type { ModuleTemplate } from '../templates/schema';
 
 import { parsePayload } from './payload';
+import { templateText } from '../i18n/templateText';
 
 const SLEEP_LOOKBACK_DAYS = 14;
 const STEPS_LOOKBACK_DAYS = 15;
@@ -203,7 +204,7 @@ export async function loadSuggestionData(
       const history = await repos.workouts.recentSessionsForStep(step.id, rules.stallSessions + 2);
       lifts.push({
         stepId: step.id,
-        name: step.name,
+        name: templateText(step.name),
         sessions: history.map(({ session, sets }) =>
           toExerciseSession({ date: session.date, sets }),
         ),

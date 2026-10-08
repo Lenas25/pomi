@@ -1,10 +1,11 @@
 import type { Program } from './types';
+import type { LocalizedText } from '../../templates/localized';
 
 export type StepRemovalImpact = {
   /** The step has logged sets. */
   hasHistory: boolean;
   /** Other routines that keep the same step id: its history stays visible there. */
-  stillIn: string[];
+  stillIn: LocalizedText[];
 };
 
 /** What deleting `stepId` from `routineId` does to the exercise history (the step id is its key). */
@@ -27,7 +28,7 @@ export function routineRemovalLosses(
   program: Program,
   routineId: string,
   loggedStepIds: ReadonlySet<string>,
-): { id: string; name: string }[] {
+): { id: string; name: LocalizedText }[] {
   const routine = program.routines.find((candidate) => candidate.id === routineId);
   if (!routine) return [];
   const elsewhere = new Set(

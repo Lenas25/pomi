@@ -23,8 +23,9 @@ function sourceFiles(dir: string): string[] {
 const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g;
 const FORBIDDEN_BARE =
   /^(react($|\/)|react-native|@react-native|react-[^/]+|expo($|[-/])|@expo|drizzle-orm|zustand|expo-)/;
-// Relative imports may only stay inside the domain (or take types from the template schema).
-const ALLOWED_RELATIVE_TARGET = /(^|\/)(domain|templates\/schema)(\/|$)/;
+// Relative imports may only stay inside the domain (or take the template schema and the pure
+// localized-text helpers, `templates/localized`).
+const ALLOWED_RELATIVE_TARGET = /(^|\/)(domain|templates\/schema|templates\/localized)(\/|$)/;
 
 function specifiersOf(file: string): string[] {
   return [...readFileSync(file, 'utf8').matchAll(SPECIFIER)].flatMap((m) => (m[1] ? [m[1]] : []));

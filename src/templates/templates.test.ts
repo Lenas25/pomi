@@ -196,7 +196,7 @@ describe('shipped templates', () => {
 describe('importer errors', () => {
   it('reports a missing field with its path', () => {
     const json = clone(shipped.gym);
-    delete (json.programs[0]!.routines[1]!.steps[3] as { name?: string }).name;
+    delete (json.programs[0]!.routines[1]!.steps[3] as { name?: unknown }).name;
     const errors = errorsOf(json);
     expect(errors).toContainEqual({
       code: 'missing',

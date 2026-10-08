@@ -10,7 +10,7 @@ import {
   type CustomStepKind,
   type Step,
 } from '../domain/editor';
-import { useT } from '../i18n';
+import { useLocaleStore, useT } from '../i18n';
 import type { TranslationKey } from '../i18n';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -23,6 +23,8 @@ import { useTheme } from '../ui/theme';
 import { useEditorStore } from './editorStore';
 import { IconAction } from './IconAction';
 import { stepSummary } from './text';
+import { useTemplateText } from '../i18n/templateText';
+import { editableText, withLocalizedText } from '../templates/localized';
 
 const KIND_LABELS = {
   check: 'editor.routine.kind.check',
@@ -33,6 +35,8 @@ const KIND_LABELS = {
 /** One routine: rename it, reorder / edit / delete its steps and add new ones. */
 export function RoutineEditorScreen() {
   const t = useT();
+  const text = useTemplateText();
+  const language = useLocaleStore((state) => state.language);
   const theme = useTheme();
   const { routineId } = useLocalSearchParams<{ routineId: string }>();
   const source = useEditorStore((store) => store.source);
@@ -62,13 +66,13 @@ export function RoutineEditorScreen() {
       source.context.loggedStepIds,
     );
     let body = t(impact.hasHistory ? 'editor.deleteStep.withHistory' : 'editor.deleteStep.plain', {
-      name: step.name,
+      name: text(step.name),
     });
     if (impact.hasHistory) {
       body +=
         ' ' +
         (impact.stillIn.length > 0
-          ? t('editor.deleteStep.stillIn', { routines: impact.stillIn.join(', ') })
+          ? t('editor.deleteStep.stillIn', { routines: impact.stillIn.map(text).join(', ') })
           : t('editor.deleteStep.historyLost'));
     }
     Alert.alert(t('editor.deleteStep.title'), body, [
@@ -95,12 +99,18 @@ export function RoutineEditorScreen() {
           accessibilityRole="header"
           style={[theme.text('title-lg'), { color: theme.color.text }]}
         >
-          {routine.name}
+          {text(routine.name)}
         </Text>
         <TextField
           label={t('editor.routine.name')}
-          value={routine.name}
-          onChangeText={(name) => dispatch({ type: 'renameRoutine', routineId: routine.id, name })}
+          value={editableText(routine.name, language)}
+          onChangeText={(name) =>
+            dispatch({
+              type: 'renameRoutine',
+              routineId: routine.id,
+              name: withLocalizedText(routine.name, language, name),
+            })
+          }
         />
 
         <Text
@@ -117,14 +127,16 @@ export function RoutineEditorScreen() {
         {routine.steps.map((step, index) => (
           <Card key={step.id}>
             <View style={{ gap: theme.space[1] }}>
-              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>{step.name}</Text>
+              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
+                {text(step.name)}
+              </Text>
               <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
                 {stepSummary(step, t)}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[1] }}>
                 <IconAction
                   icon={ArrowUp}
-                  label={t('editor.moveUp', { name: step.name })}
+                  label={t('editor.moveUp', { name: text(step.name) })}
                   disabled={index === 0}
                   onPress={() =>
                     dispatch({
@@ -137,7 +149,7 @@ export function RoutineEditorScreen() {
                 />
                 <IconAction
                   icon={ArrowDown}
-                  label={t('editor.moveDown', { name: step.name })}
+                  label={t('editor.moveDown', { name: text(step.name) })}
                   disabled={index === routine.steps.length - 1}
                   onPress={() =>
                     dispatch({
@@ -150,7 +162,7 @@ export function RoutineEditorScreen() {
                 />
                 <IconAction
                   icon={PencilSimple}
-                  label={t('editor.edit', { name: step.name })}
+                  label={t('editor.edit', { name: text(step.name) })}
                   onPress={() =>
                     router.push({
                       pathname: '/editar-paso',
@@ -161,7 +173,7 @@ export function RoutineEditorScreen() {
                 <IconAction
                   icon={Trash}
                   danger
-                  label={t('editor.remove', { name: step.name })}
+                  label={t('editor.remove', { name: text(step.name) })}
                   onPress={() => confirmDelete(step)}
                 />
               </View>

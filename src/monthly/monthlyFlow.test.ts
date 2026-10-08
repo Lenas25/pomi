@@ -37,7 +37,9 @@ describe('loadMonthlyContext', () => {
     ]);
     expect(context.metrics.every((metric) => metric.latest === undefined)).toBe(true);
     expect(context.poses).toEqual(['frente', 'perfil', 'espalda']);
-    expect(context.guide).toContain('Misma luz');
+    // Labels follow the active language (English in tests); the pose ids stay Spanish.
+    expect(context.guide).toContain('Same light');
+    expect(context.poseNames).toEqual({ frente: 'Front', perfil: 'Side', espalda: 'Back' });
     expect(context.previous).toEqual({ frente: undefined, perfil: undefined, espalda: undefined });
     expect(context.doneThisMonth).toBe(false);
   });

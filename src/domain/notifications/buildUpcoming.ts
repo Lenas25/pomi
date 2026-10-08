@@ -3,8 +3,10 @@
 // STABLE ids, so the scheduler can diff it against what the OS already holds.
 import { addDays, format, getDay } from 'date-fns';
 
+import { localizedText } from '../../templates/localized';
 import type { Habit } from '../../templates/schema';
 import {
+  agendaTiming,
   buildAgenda,
   offsetFrom,
   resolveAnchors,
@@ -12,14 +14,7 @@ import {
   type AgendaState,
 } from '../agenda/buildAgenda';
 import { clockToMinutes, dayKeyFor, dayStartFor } from '../time';
-import {
-  DEFAULT_GYM_BEFORE_MIN,
-  DEFAULT_MORNING_OFFSET_MIN,
-  DEFAULT_NIGHT_OFFSET_MIN,
-  applyCategoryPrefs,
-  isInQuietWindow,
-  type CategoryPrefs,
-} from './prefs';
+import { DEFAULT_GYM_BEFORE_MIN, isInQuietWindow, removeDisabledCategories } from './prefs';
 
 /** The OS keeps at most this many scheduled notifications (iOS limit; Android OEMs cap too). */
 export const MAX_SCHEDULED = 64;
@@ -93,8 +88,8 @@ export type UpcomingState = AgendaState & {
   /** Monthly review on/off (default on) and its day of the month (default 1). */
   monthlyReviewEnabled?: boolean;
   monthlyReviewDay?: number;
-  /** "Mis avisos": per-category switches, windows and offsets (missing = today's behaviour). */
-  categories?: CategoryPrefs | undefined;
+  /** Language of the template texts (habit notifications, reminders); default Spanish. */
+  language?: string;
   /** What is already done TODAY (later days are never affected). */
   today: {
     /** An activity answer exists, or a gym session was finished. */
@@ -168,15 +163,15 @@ function habitCategory(habit: Habit | undefined, item: AgendaItem): CategoryId {
   return habit?.type === 'check' ? 'pomi_habit' : 'pomi_snooze';
 }
 
-function habitText(habit: Habit | undefined, item: AgendaItem): PlannedText {
+function habitText(habit: Habit | undefined, item: AgendaItem, language: string): PlannedText {
   if (habit?.notification) {
     return {
       type: 'text',
-      title: clampText(habit.notification.title, TITLE_MAX),
-      body: clampText(habit.notification.body, BODY_MAX),
+      title: clampText(localizedText(habit.notification.title, language), TITLE_MAX),
+      body: clampText(localizedText(habit.notification.body, language), BODY_MAX),
     };
   }
-  const name = item.label.type === 'template' ? item.label.text : '';
+  const name = item.label.type === 'template' ? localizedText(item.label.text, language) : '';
   return { type: 'key', key: 'notify.habit', params: { name: clampText(name, TITLE_MAX) } };
 }
 
@@ -194,40 +189,21 @@ export function buildUpcoming(
   from: Date,
   days: number = WINDOW_DAYS,
 ): PlannedNotification[] {
-  const anchors = resolveAnchors(state.anchors, state.shifts);
   const categories = state.categories;
-  // The planner sees the modules through the person's preferences; a custom water start wins
-  // over an accepted "water earlier" shift (the person chose the time themselves).
+  const language = state.language ?? 'es';
+  // Times come from `buildAgenda` (through `agendaTiming`, shared with Hoy); here the categories
+  // whose notifications are off are only removed.
+  const timing = agendaTiming(state);
+  const anchors = resolveAnchors(state.anchors, timing.shifts);
   const agendaState: AgendaState = {
     ...state,
-    modules: applyCategoryPrefs(state.modules, categories),
-    ...(categories?.water?.from !== undefined
-      ? { shifts: { ...state.shifts, waterMin: undefined } }
-      : {}),
+    modules: removeDisabledCategories(state.modules, categories),
   };
   const gymOn = categories?.gym?.enabled ?? true;
   const gymBefore = categories?.gym?.minutesBefore ?? DEFAULT_GYM_BEFORE_MIN;
   const checkinOn = {
     morning: categories?.morningCheckin?.enabled ?? true,
     night: categories?.nightCheckin?.enabled ?? true,
-  };
-  const checkinMinutes = {
-    morning:
-      anchors.wake === undefined
-        ? undefined
-        : offsetFrom(
-            anchors.wake,
-            categories?.morningCheckin?.offsetAfterWakeMin ?? DEFAULT_MORNING_OFFSET_MIN,
-            'wake',
-          ),
-    night:
-      anchors.bed === undefined
-        ? undefined
-        : offsetFrom(
-            anchors.bed,
-            -(categories?.nightCheckin?.offsetBeforeBedMin ?? DEFAULT_NIGHT_OFFSET_MIN),
-            'bed',
-          ),
   };
   const candidates: Candidate[] = [];
   // Day 0 is the logical day in progress (before 04:00 it is still yesterday).
@@ -281,7 +257,7 @@ export function buildUpcoming(
       } else if (item.kind === 'checkin') {
         const which = item.id === 'checkin:morning' ? 'morning' : 'night';
         if (!checkinOn[which] || (isToday && state.today.checkinsDone[which])) continue;
-        for (const minutes of [checkinMinutes[which] ?? item.minutes ?? 0]) {
+        for (const minutes of item.occurrences) {
           add('checkin', 'core', which, minutes, {
             channel: 'checkins',
             category: null,
@@ -293,7 +269,7 @@ export function buildUpcoming(
           });
         }
       } else if (item.kind === 'reminder') {
-        const text = item.label.type === 'template' ? item.label.text : '';
+        const text = item.label.type === 'template' ? localizedText(item.label.text, language) : '';
         for (const minutes of item.occurrences) {
           add('reminder', item.moduleId ?? 'core', item.reminderId ?? item.id, minutes, {
             channel: 'reminders',
@@ -315,7 +291,7 @@ export function buildUpcoming(
           add(item.kind, item.moduleId ?? 'core', item.habitId ?? item.id, minutes, {
             channel: 'habits',
             category: habitCategory(habit, item),
-            text: habitText(habit, item),
+            text: habitText(habit, item, language),
             data: {
               ...(item.moduleId ? { moduleId: item.moduleId } : {}),
               ...(item.habitId ? { habitId: item.habitId } : {}),
