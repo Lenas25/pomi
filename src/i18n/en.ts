@@ -546,6 +546,7 @@ export const en: Messages = {
     },
     saveFailed: "We couldn't save the change.",
     back: 'Back to Settings',
+    about: { title: 'About', body: 'Version, license and an important notice.' },
     backup: { title: 'Backup', body: 'Save or restore all your data from a file.' },
     programImport: {
       title: 'Import a gym program',
@@ -606,6 +607,18 @@ export const en: Messages = {
         'This backup comes from a newer version of Pomi ({{found}}). Update the app and try again.',
     },
   },
+  about: {
+    title: 'About Pomi',
+    tagline: 'Gym and healthy habits, with no accounts and no ads.',
+    version: 'Version',
+    license: 'License',
+    repository: 'Source code',
+    privacy: 'Privacy',
+    privacyBody: 'Your data lives only on this phone. Pomi has no accounts and no analytics.',
+    disclaimerTitle: 'Important',
+    disclaimer:
+      'Pomi does not give medical advice. Goals are general starting points, not a prescription. If you have a medical condition (for example kidney or heart), an injury or any doubt, talk to a professional before following the water and exercise goals.',
+  },
   programImport: {
     title: 'Import a gym program',
     intro:
@@ -657,7 +670,7 @@ export const en: Messages = {
       skip: 'Skip today',
       cancel: 'Cancel',
     },
-    sub: { water: '{{done}} of {{total}} glasses' },
+    sub: { goal: '{{exercise}}: {{goal}}', water: '{{done}} of {{total}} glasses' },
     loadError: "We couldn't load your day",
     retry: 'Try again',
   },

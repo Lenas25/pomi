@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 
 import type { TimelineEntry } from '../domain/today/timeline';
 import { ActivityCard } from '../habits/ActivityCard';
-import { useT } from '../i18n';
+import { useLocaleStore, useT } from '../i18n';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
@@ -13,7 +13,13 @@ import { Screen } from '../ui/Screen';
 import { TimelineItem } from '../ui/TimelineItem';
 import { useTheme } from '../ui/theme';
 
-import { entryAccessibilityLabel, entrySubtitle, entryTime, entryTitle } from './labels';
+import {
+  entryAccessibilityLabel,
+  entryHighlight,
+  entrySubtitle,
+  entryTime,
+  entryTitle,
+} from './labels';
 import { InsightSlot, SuggestionSlot } from './slots';
 import { useToday } from './useToday';
 
@@ -22,6 +28,7 @@ export function TodayScreen() {
   const theme = useTheme();
   const t = useT();
   const today = useToday();
+  const language = useLocaleStore((state) => state.language);
   const [menuFor, setMenuFor] = useState<TimelineEntry | null>(null);
   const { reload } = today;
 
@@ -47,7 +54,7 @@ export function TodayScreen() {
 
   const { data, entries } = view;
   const firstDay = data.identity.firstDay;
-  const context = { routineName: data.routineName, facts: data.facts };
+  const context = { routineName: data.routineName, facts: data.facts, gymGoal: data.gymGoal };
 
   return (
     <Screen>
@@ -95,6 +102,10 @@ export function TodayScreen() {
                 {...(() => {
                   const subtitle = entrySubtitle(entry, context, t);
                   return subtitle ? { subtitle } : {};
+                })()}
+                {...(() => {
+                  const highlight = entryHighlight(entry, context, t, language);
+                  return highlight ? { highlight } : {};
                 })()}
                 accessibilityLabel={entryAccessibilityLabel(entry, t)}
                 checkLabel={t('today.markDone', { title: entryTitle(entry, t) })}

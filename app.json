@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "pe.nakea.pomi",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icons/adaptive-foreground.png",
         "backgroundImage": "./assets/icons/adaptive-background.png",

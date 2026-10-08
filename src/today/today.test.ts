@@ -43,6 +43,12 @@ describe('loadTodayData', () => {
     expect(morning.activityToday).toBeUndefined();
   });
 
+  it("loads the goal of the first main exercise of today's routine", async () => {
+    const data = await loadTodayData(repos, NOW);
+    expect(data.gymGoal?.exercise).toBeTruthy();
+    expect(data.gymGoal?.message.key).toMatch(/^gym\.(target|session)\./);
+  });
+
   it('builds the agenda of the day with the routine, the name and nothing done yet', async () => {
     const data = await loadTodayData(repos, NOW);
     expect(data.today).toBe(TODAY);

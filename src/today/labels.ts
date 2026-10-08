@@ -1,7 +1,9 @@
 import { minutesToClock } from '../domain/time';
 import type { TimelineEntry } from '../domain/today/timeline';
-import type { Translate } from '../i18n';
+import type { Language, Translate } from '../i18n';
+import { localizeTargetParams } from '../gym/sessionViewModel';
 
+import type { GymGoal } from './gymGoal';
 import { waterProgress, type LiveFacts } from './todayView';
 
 export function entryTitle(entry: TimelineEntry, t: Translate): string {
@@ -32,5 +34,23 @@ export function entryAccessibilityLabel(entry: TimelineEntry, t: Translate): str
     time: entryTime(entry) ?? t('today.allDayLabel'),
     title: entryTitle(entry, t),
     status: t(`today.status.${entry.status}`),
+  });
+}
+
+/**
+ * The highlighted "meta de hoy" under the gym row (energy color): the first main exercise and its
+ * target. Hidden once the session is done, and when there is no target to show.
+ */
+export function entryHighlight(
+  entry: TimelineEntry,
+  context: { gymGoal: GymGoal | undefined },
+  t: Translate,
+  language: Language,
+): string | undefined {
+  if (entry.kind !== 'gym' || entry.status === 'done' || !context.gymGoal) return undefined;
+  const { exercise, message } = context.gymGoal;
+  return t('today.sub.goal', {
+    exercise,
+    goal: t(message.key, localizeTargetParams(message.params, language)),
   });
 }

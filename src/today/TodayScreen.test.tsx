@@ -25,7 +25,11 @@ jest.mock('./useToday', () => ({ useToday: jest.fn() }));
 const mockedUseToday = jest.mocked(useToday);
 const defaults = loadDefaultTemplates();
 
-function dataWith(overrides: Partial<TodayData['identity']> = {}, activity?: 'gym'): TodayData {
+function dataWith(
+  overrides: Partial<TodayData['identity']> = {},
+  activity?: 'gym',
+  gymGoal?: TodayData['gymGoal'],
+): TodayData {
   const now = new Date(2026, 9, 5, 10, 0);
   const agenda = buildAgenda(now, {
     profile: { weightKg: 60, workType: 'sentada' },
@@ -42,6 +46,7 @@ function dataWith(overrides: Partial<TodayData['identity']> = {}, activity?: 'gy
     state: { date: '2026-10-05', skipped: [], acked: [], snoozed: {} },
     activityToday: activity,
     routineName: 'Día 1',
+    gymGoal,
     identity: { gymDates: [], plannedGymDays: 4, waterDays: null, firstDay: false, ...overrides },
   };
 }
@@ -98,6 +103,21 @@ describe('TodayScreen', () => {
     expect(screen.getByText('Día 1')).toBeTruthy();
     // No fake suggestion / insight cards yet.
     expect(screen.queryByText('Aceptar')).toBeNull();
+  });
+
+  it('highlights the goal of the first main exercise on the gym row', async () => {
+    mockToday(
+      dataWith({}, undefined, {
+        exercise: 'Sentadilla',
+        message: { key: 'gym.target.chooseWeight', params: {} },
+      }),
+    );
+    await renderThemed(<TodayScreen />);
+    expect(
+      screen.getByText(
+        'Sentadilla: Elige un peso con el que te queden 1 o 2 repeticiones en reserva.',
+      ),
+    ).toBeTruthy();
   });
 
   it('first day: mascot hola and the agenda, no charts', async () => {

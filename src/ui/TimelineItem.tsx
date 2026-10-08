@@ -15,6 +15,8 @@ type TimelineItemProps = {
   time: string | null;
   title: string;
   subtitle?: string;
+  /** Highlighted line (energy color), e.g. today's goal on the gym row. */
+  highlight?: string;
   /** Spoken description of the whole row (time, title and status). */
   accessibilityLabel: string;
   checkLabel: string;
@@ -35,6 +37,7 @@ export function TimelineItem({
   time,
   title,
   subtitle,
+  highlight,
   accessibilityLabel,
   checkLabel,
   onPress,
@@ -133,6 +136,14 @@ export function TimelineItem({
           {subtitle ? (
             <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
               {subtitle}
+            </Text>
+          ) : null}
+          {highlight ? (
+            <Text
+              numberOfLines={3}
+              style={[theme.text('caption'), { color: theme.color.energyText }]}
+            >
+              {highlight}
             </Text>
           ) : null}
         </View>

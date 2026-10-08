@@ -1,6 +1,6 @@
 import { ScrollView, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Barbell, FloppyDisk, ShieldCheck } from 'phosphor-react-native';
+import { Barbell, FloppyDisk, Info, ShieldCheck } from 'phosphor-react-native';
 
 import { useT } from '../../src/i18n';
 import { useNotificationPrefs } from '../../src/notifications/useNotificationPrefs';
@@ -98,6 +98,20 @@ export default function Ajustes() {
               </Text>
               <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
                 {t('settings.backup.body')}
+              </Text>
+            </View>
+          </View>
+        </Card>
+
+        <Card onPress={() => router.push('/acerca')} accessibilityLabel={t('settings.about.title')}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
+            <Info color={theme.color.text} />
+            <View style={{ flex: 1 }}>
+              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
+                {t('settings.about.title')}
+              </Text>
+              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+                {t('settings.about.body')}
               </Text>
             </View>
           </View>

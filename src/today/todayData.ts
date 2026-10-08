@@ -1,5 +1,5 @@
 // Everything the Hoy screen needs, read in one pass (all local, near instant).
-import { format, subDays } from 'date-fns';
+import { format, getDay, subDays } from 'date-fns';
 
 import type { Repositories } from '../db/repositories';
 import { buildAgenda, type AgendaItem } from '../domain/agenda/buildAgenda';
@@ -8,6 +8,7 @@ import { dayKeyFor, dayStartFor } from '../domain/time';
 import type { ActivityKind } from '../domain/habits/activity';
 import type { IdentityInput } from '../domain/today/identity';
 import { pickProgram, toRotationSessions } from '../gym/program';
+import { loadGymGoal, type GymGoal } from './gymGoal';
 import { loadHabitsData } from '../habits/habitsData';
 import { buildHabitsView } from '../habits/habitsView';
 
@@ -27,6 +28,8 @@ export type TodayData = {
   activityToday: ActivityKind | undefined;
   /** Name of today's routine, shown under the gym row. */
   routineName: string | undefined;
+  /** Target of the first main exercise of today's routine (the gym row highlight). */
+  gymGoal: GymGoal | undefined;
   identity: Omit<IdentityInput, 'today'>;
 };
 
@@ -71,6 +74,10 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     ...(view.steps?.plan.goal != null ? { stepsGoal: view.steps.plan.goal } : {}),
   });
 
+  const gymGoal = program
+    ? await loadGymGoal(repos, routine, program.rules, getDay(midnight))
+    : undefined;
+
   return {
     today,
     midnight,
@@ -80,6 +87,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     state: todayStateFor(stored, today),
     activityToday: view.activityToday,
     routineName: routine?.name,
+    gymGoal,
     identity: {
       gymDates,
       plannedGymDays: new Set(habits.gymDays.flatMap((entry) => entry.days)).size,

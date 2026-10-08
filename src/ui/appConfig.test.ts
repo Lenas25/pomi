@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import appJson from '../../app.json';
 import tokens from '../../design/tokens.json';
+import easJson from '../../eas.json';
 
 type PluginConfig = Record<string, unknown>;
 
@@ -27,5 +28,24 @@ describe('app.json colors match design tokens', () => {
     const adaptive: Record<string, unknown> = appJson.expo.android.adaptiveIcon;
     const background = adaptive.backgroundColor;
     if (background !== undefined) expect(background).toBe(tokens.color.light.bg);
+  });
+});
+
+describe('release configuration', () => {
+  it('has a versionCode and a semver version', () => {
+    expect(appJson.expo.android.versionCode).toBeGreaterThanOrEqual(1);
+    expect(appJson.expo.version).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it('defines the development, preview (APK) and production (AAB) EAS profiles', () => {
+    expect(easJson.build.development).toMatchObject({
+      developmentClient: true,
+      distribution: 'internal',
+    });
+    expect(easJson.build.preview).toMatchObject({
+      distribution: 'internal',
+      android: { buildType: 'apk' },
+    });
+    expect(easJson.build.production.android.buildType).toBe('app-bundle');
   });
 });

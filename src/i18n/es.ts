@@ -542,6 +542,7 @@ export const es = {
     },
     saveFailed: 'No pudimos guardar el cambio.',
     back: 'Volver a Ajustes',
+    about: { title: 'Acerca de', body: 'Versión, licencia y aviso importante.' },
     backup: { title: 'Respaldo', body: 'Guarda o restaura todos tus datos en un archivo.' },
     programImport: {
       title: 'Importar programa de gym',
@@ -604,6 +605,18 @@ export const es = {
         'Este respaldo viene de una versión más nueva de Pomi ({{found}}). Actualiza la app e inténtalo otra vez.',
     },
   },
+  about: {
+    title: 'Acerca de Pomi',
+    tagline: 'Gym y hábitos saludables, sin cuentas ni anuncios.',
+    version: 'Versión',
+    license: 'Licencia',
+    repository: 'Código fuente',
+    privacy: 'Privacidad',
+    privacyBody: 'Tus datos viven solo en este teléfono. Pomi no tiene cuentas ni analítica.',
+    disclaimerTitle: 'Importante',
+    disclaimer:
+      'Pomi no da consejo médico. Las metas son puntos de partida generales, no una prescripción. Si tienes una condición médica (por ejemplo renal o cardíaca), una lesión o dudas, consulta a un profesional antes de seguir las metas de agua y ejercicio.',
+  },
   programImport: {
     title: 'Importar programa de gym',
     intro:
@@ -655,7 +668,7 @@ export const es = {
       skip: 'Omitir hoy',
       cancel: 'Cancelar',
     },
-    sub: { water: '{{done}} de {{total}} vasos' },
+    sub: { water: '{{done}} de {{total}} vasos', goal: '{{exercise}}: {{goal}}' },
     loadError: 'No pudimos cargar tu día',
     retry: 'Reintentar',
   },
