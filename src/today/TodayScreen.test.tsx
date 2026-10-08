@@ -257,20 +257,44 @@ describe('TodayScreen', () => {
     expect(handlers.dismissCompanionCard).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a new insight (celebrate card), marks it seen once and opens Progreso', async () => {
-    const handlers = mockToday(dataWith(), {
-      insight: {
-        id: 9,
-        text: 'Notamos que los días que entrenas duermes en promedio 35 minutos más.',
-        evidence: 'Basado en 24 días',
-      },
-    });
-    await renderThemed(<TodayScreen />);
-    expect(screen.getByText(/Notamos que los días que entrenas/)).toBeTruthy();
-    expect(screen.getByText('Basado en 24 días')).toBeTruthy();
-    expect(handlers.markInsightSeen).toHaveBeenCalledWith(9);
-    await fireEvent.press(screen.getByRole('button', { name: 'Ver todos los hallazgos' }));
-    expect(jest.mocked(router.push)).toHaveBeenCalledWith('/progreso');
+  it('shows a new insight (celebrate card), marks it seen after 1 s on screen and opens Progreso', async () => {
+    jest.useFakeTimers();
+    try {
+      const handlers = mockToday(dataWith(), {
+        insight: {
+          id: 9,
+          text: 'Notamos que los días que entrenas duermes en promedio 35 minutos más.',
+          evidence: 'Basado en 24 días',
+        },
+      });
+      await renderThemed(<TodayScreen />);
+      expect(screen.getByText(/Notamos que los días que entrenas/)).toBeTruthy();
+      expect(screen.getByText('Basado en 24 días')).toBeTruthy();
+      expect(handlers.markInsightSeen).not.toHaveBeenCalled();
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(handlers.markInsightSeen).toHaveBeenCalledTimes(1);
+      expect(handlers.markInsightSeen).toHaveBeenCalledWith(9);
+      await fireEvent.press(screen.getByRole('button', { name: 'Ver todos los hallazgos' }));
+      expect(jest.mocked(router.push)).toHaveBeenCalledWith('/progreso');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('an insight card that unmounts before 1 s is not marked as seen', async () => {
+    jest.useFakeTimers();
+    try {
+      const handlers = mockToday(dataWith(), {
+        insight: { id: 9, text: 'Notamos algo.', evidence: 'Basado en 24 días' },
+      });
+      const view = await renderThemed(<TodayScreen />);
+      await jest.advanceTimersByTimeAsync(600);
+      view.unmount();
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(handlers.markInsightSeen).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('shows no companion card by default', async () => {

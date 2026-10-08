@@ -11,6 +11,7 @@ import { es } from '../i18n/es';
 import type { Translate } from '../i18n';
 import { loadDefaultTemplates } from '../templates/defaults';
 
+import { loadInsightData } from './loadData';
 import { parseInsightRow } from './payload';
 import { runWeeklyInsights } from './run';
 import { insightTexts } from './text';
@@ -100,13 +101,21 @@ describe('runWeeklyInsights', () => {
     expect(await repos.settings.get('insightsLastRun')).toBeUndefined();
   });
 
-  it('without enough data it stores nothing but still marks the week', async () => {
+  it('without enough data it stores nothing and leaves the week unmarked', async () => {
     const test = await createTestDb();
     const fresh = createRepositories(test.db, () => NOW.getTime());
     await fresh.settings.set('onboardingComplete', true);
     expect(await runWeeklyInsights(test.db, fresh, NOW)).toEqual([]);
-    expect(await fresh.settings.get('insightsLastRun')).toBe('2026-01-26');
+    expect(await fresh.settings.get('insightsLastRun')).toBeUndefined();
     test.close();
+  });
+
+  it('runs on the day the 21-day threshold is crossed, even mid-week', async () => {
+    // The series starts on 2025-12-03: Monday 12-22 is its 20th day, Tuesday 12-23 the 21st.
+    expect(await runWeeklyInsights(db, repos, new Date(2025, 11, 22, 10))).toEqual([]);
+    expect(await repos.settings.get('insightsLastRun')).toBeUndefined();
+    await runWeeklyInsights(db, repos, new Date(2025, 11, 23, 10));
+    expect(await repos.settings.get('insightsLastRun')).toBe('2025-12-22');
   });
 
   it('a run that fails stores nothing and does not mark the week', async () => {
@@ -122,6 +131,30 @@ describe('runWeeklyInsights', () => {
     await expect(runWeeklyInsights(db, failing, NOW)).rejects.toThrow('disk full');
     expect(await repos.insights.all()).toEqual([]);
     expect(await repos.settings.get('insightsLastRun')).toBeUndefined();
+  });
+});
+
+describe('loadInsightData', () => {
+  const today = '2026-01-31';
+
+  it('uses the default free days (Saturday and Sunday), the same as the rhythm code', async () => {
+    expect((await loadInsightData(repos, today)).freeWeekdays).toEqual([6, 0]);
+  });
+
+  it('counts as "no gym" only answered non-gym days and unplanned days without a session', async () => {
+    await repos.settings.set('gymDays', [{ days: [1], anchor: 'gymMorning' }]);
+    const data = await loadInsightData(repos, today);
+    const noGym = new Set(data.noGymDates);
+    const answers = new Map(
+      generateSyntheticDays({ days: 60, seed: 1 }).map((d) => [d.date, d.activity]),
+    );
+    for (const [date, kind] of answers) {
+      if (kind === 'gym') expect(noGym.has(date)).toBe(false);
+      else expect(noGym.has(date)).toBe(true);
+    }
+    // Days with no answer: unplanned weekdays count, the planned Monday does not.
+    expect(noGym.has('2025-11-06')).toBe(true); // Thursday, no data
+    expect(noGym.has('2025-11-03')).toBe(false); // Monday, planned, no data
   });
 });
 
@@ -215,9 +248,11 @@ describe('insight texts', () => {
       value: 3,
     } as const;
     expect(insightTexts(weekday, translator(es), 'es').text).toBe(
-      'Notamos que los miércoles sueles moverte más: 80 % de esos días, frente a 60 % del resto.',
+      'Notamos que, en estas semanas, los miércoles fueron tus días más activos: te moviste 80 % de esos días, frente a 60 % del resto.',
     );
-    expect(insightTexts(weekday, translator(en), 'en').text).toContain('on Wednesdays');
+    expect(insightTexts(weekday, translator(en), 'en').text).toContain(
+      'Wednesdays were your most active days',
+    );
   });
 
   it('no emitted string is left with a placeholder or a causal verb', () => {

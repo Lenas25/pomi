@@ -89,4 +89,27 @@ describe('useSedentarySettings', () => {
     await waitFor(() => expect(result.current.notice).toBe('missingPermission'));
     expect(await mockEnv.repos!.settings.get('sedentaryPermissionLost')).toBeUndefined();
   });
+
+  it('an unmounted screen does not consume the permission-lost flag', async () => {
+    const settings = mockEnv.repos!.settings;
+    await settings.set('sedentaryNudge', { enabled: false });
+    await settings.set('sedentaryPermissionLost', true);
+    // The read of the flag is still in flight when the screen unmounts.
+    const realGet = settings.get.bind(settings);
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    jest.spyOn(settings, 'get').mockImplementation(async (key) => {
+      const value = await realGet(key);
+      if (key === 'sedentaryPermissionLost') await gate;
+      return value;
+    });
+    const { unmount } = await renderHook(() => useSedentarySettings());
+    await unmount();
+    await act(async () => {
+      release();
+    });
+    expect(await realGet('sedentaryPermissionLost')).toBe(true);
+  });
 });

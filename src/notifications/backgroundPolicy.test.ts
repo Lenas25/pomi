@@ -5,6 +5,7 @@ import {
   isHeavyDue,
   runBackgroundJob,
   shouldRegister,
+  type HeavyRetries,
   type JobDeps,
 } from './backgroundPolicy';
 
@@ -83,6 +84,36 @@ describe('background policy', () => {
     expect(await runBackgroundJob(d)).toBe('failed');
     expect(calls).toContain('nudge');
     expect(stamps).toEqual([NOW, NOW - HEAVY_INTERVAL_MS - 1]);
+  });
+
+  it('rewinds the stamp at most twice per 6 h window, then waits the normal interval', async () => {
+    const stamps: number[] = [];
+    let retries: HeavyRetries | undefined;
+    const failing = (at: number) =>
+      deps({
+        now: () => new Date(at),
+        lastHeavyRunAt: async () => stamps.at(-1) ?? undefined,
+        saveHeavyRunAt: async (ms) => {
+          stamps.push(ms);
+        },
+        heavyRetries: async () => retries,
+        saveHeavyRetries: async (value) => {
+          retries = value;
+        },
+        sync: async () => {
+          throw new Error('boom');
+        },
+      }).deps;
+    await runBackgroundJob(failing(NOW)); // stamp NOW, rewind 1
+    await runBackgroundJob(failing(NOW + 15 * 60_000)); // due again (rewound to 0), rewind 2
+    expect(retries).toEqual({ windowStart: NOW, count: 2 });
+    stamps.length = 0;
+    await runBackgroundJob(failing(NOW + 30 * 60_000)); // stamp kept: no third rewind
+    expect(stamps).toEqual([NOW + 30 * 60_000]);
+    expect(isHeavyDue(stamps[0], NOW + 45 * 60_000)).toBe(false);
+    // A new window gets a new budget.
+    await runBackgroundJob(failing(NOW + HEAVY_INTERVAL_MS + 31 * 60_000));
+    expect(retries).toEqual({ windowStart: NOW + HEAVY_INTERVAL_MS + 31 * 60_000, count: 1 });
   });
 
   it('a failed first sync rewinds the stamp to 0 so it is due again', async () => {

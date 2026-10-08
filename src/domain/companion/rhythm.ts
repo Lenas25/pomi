@@ -67,6 +67,7 @@ export type Rhythm = {
 
 const mean = (values: readonly number[]) =>
   values.reduce((sum, value) => sum + value, 0) / values.length;
+const round2 = (value: number) => Math.round(value * 100) / 100;
 const oneDecimal = (value: number) => Math.round(value * 10) / 10;
 
 /** Tendency from the mid-sleep of free days. Before 03:30 morning, until 05:00 intermediate. */
@@ -97,17 +98,17 @@ export function energyBySleep(
   if (enough.length < RHYTHM_MIN_GROUP || short.length < RHYTHM_MIN_GROUP) {
     return { status: 'insufficient' };
   }
+  // The means are compared at two decimals (float noise must not decide the boundary: a gap of
+  // exactly 0.5 passes) and the shown difference is rounded from that same value.
+  const gap = round2(round2(mean(enough)) - round2(mean(short)));
   const value: EnergyBySleep = {
     enoughAvg: oneDecimal(mean(enough)),
     shortAvg: oneDecimal(mean(short)),
     enoughDays: enough.length,
     shortDays: short.length,
-    diff: oneDecimal(mean(enough) - mean(short)),
+    diff: oneDecimal(gap),
   };
-  return {
-    status: Math.abs(mean(enough) - mean(short)) >= ENERGY_DIFF_MIN ? 'found' : 'none',
-    value,
-  };
+  return { status: Math.abs(gap) >= ENERGY_DIFF_MIN ? 'found' : 'none', value };
 }
 
 function activeWeekdays(activity: readonly ActivityDay[]): number[] {

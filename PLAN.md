@@ -272,6 +272,12 @@ Función pura `buildInsights(data, today)`, ejecutada una vez por semana. Muestr
   - Rendimiento en el gym (volumen o meta cumplida) según la calidad del sueño de la noche anterior.
   - Día de la semana con más constancia.
 - Cada hallazgo muestra los datos detrás ("basado en 24 días").
+- **Reglas de implementación:**
+  - Rendimiento en el gym: una sesión cuenta como "igualada" cuando el e1RM es **mayor o igual** (`>=`) al de la sesión anterior del mismo ejercicio (el empate cuenta como igualada).
+  - Sueño con gym vs. sin gym: el grupo "sin gym" solo incluye días con evidencia positiva (respuesta de actividad que no es gym, o día que no estaba planificado como gym y sin sesión). Un día sin información no entra en ningún grupo.
+  - Día de la semana más activo: mínimo 10 días observados de ese día, ventaja de al menos 25 puntos sobre el segundo mejor día (y 20 sobre el resto), y no se repite en 4 semanas sea cual sea el día.
+  - Pasos: "días de trabajo vs. días libres" (por defecto sábado y domingo, igual que "Tu ritmo").
+  - El motor corre la primera vez que se alcanzan los 21 días, aunque sea a mitad de semana: la semana solo se marca cuando hubo datos suficientes.
 
 ## 13. Pantallas
 

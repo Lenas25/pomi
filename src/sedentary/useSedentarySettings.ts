@@ -106,11 +106,11 @@ export function useSedentarySettings() {
     settings
       .get('sedentaryPermissionLost')
       .then(async (lost) => {
-        if (!lost) return;
-        await settings.remove('sedentaryPermissionLost');
-        if (cancelled) return;
+        // An unmounted screen must NOT consume the flag: the next mount still has to show it.
+        if (!lost || cancelled) return;
         setConfig((current) => (current ? { ...current, enabled: false } : current));
         setNotice('missingPermission');
+        await settings.remove('sedentaryPermissionLost');
       })
       .catch(() => undefined);
     return () => {

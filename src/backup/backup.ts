@@ -33,6 +33,7 @@ import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, type Backup, type BackupData } fr
 export const DEVICE_LOCAL_SETTINGS: readonly string[] = [
   'backgroundIntervalMin',
   'backgroundLastHeavyRunAt',
+  'backgroundHeavyRetries',
 ];
 
 export type ExportOptions = {

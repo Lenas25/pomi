@@ -47,11 +47,20 @@ export function shouldRegister(
   return !registered || remembered !== wanted;
 }
 
+/** A failed heavy run rewinds the stamp (so the next wake retries) at most this often per window. */
+export const MAX_HEAVY_REWINDS = 2;
+
+/** Rewinds already spent in the window that started at `windowStart` (epoch ms). */
+export type HeavyRetries = { windowStart: number; count: number };
+
 export type JobDeps = {
   now: () => Date;
   bootstrap: () => Promise<void>;
   lastHeavyRunAt: () => Promise<number | undefined>;
   saveHeavyRunAt: (ms: number) => Promise<void>;
+  /** Persisted rewind budget; without it a failed sync always rewinds (no cap). */
+  heavyRetries?: () => Promise<HeavyRetries | undefined>;
+  saveHeavyRetries?: (retries: HeavyRetries) => Promise<void>;
   suggestions: () => Promise<unknown>;
   /** Weekly insights run (its own once-per-ISO-week guard); optional. */
   insights?: () => Promise<unknown>;
@@ -87,9 +96,21 @@ export async function runBackgroundJob(deps: JobDeps): Promise<'success' | 'fail
       heavyFailed = true;
       report('sync', error);
     });
-    // A failed sync rewinds the stamp so the next wake retries instead of waiting ~6 h.
+    // A failed sync rewinds the stamp so the next wake retries instead of waiting ~6 h, but only
+    // `MAX_HEAVY_REWINDS` times per 6 h window: a sync that keeps failing must not run every 15 min.
     if (heavyFailed) {
-      await deps.saveHeavyRunAt(last ?? 0).catch((error: unknown) => report('rewind', error));
+      const spent = await deps.heavyRetries?.().catch(() => undefined);
+      const open =
+        spent !== undefined &&
+        spent.windowStart <= nowMs &&
+        nowMs - spent.windowStart < HEAVY_INTERVAL_MS;
+      const used = open ? spent.count : 0;
+      if (!deps.heavyRetries || used < MAX_HEAVY_REWINDS) {
+        await deps.saveHeavyRunAt(last ?? 0).catch((error: unknown) => report('rewind', error));
+        await deps
+          .saveHeavyRetries?.({ windowStart: open ? spent.windowStart : nowMs, count: used + 1 })
+          .catch((error: unknown) => report('retries', error));
+      }
     }
   }
   await deps.nudge().catch((error: unknown) => report('nudge', error));

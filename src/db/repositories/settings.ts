@@ -117,6 +117,11 @@ export const settingsSchemas = {
   sedentaryPermissionLost: z.boolean(),
   /** Epoch ms of the last heavy background run (suggestions + notification sync, at most every ~6 h). */
   backgroundLastHeavyRunAt: z.number().nonnegative(),
+  /** Stamp rewinds spent after failed heavy runs in the current ~6 h window (caps the retries). */
+  backgroundHeavyRetries: z.strictObject({
+    windowStart: z.number().nonnegative(),
+    count: z.number().int().nonnegative(),
+  }),
   /** Interval (minutes) the periodic job was last registered with; re-registering resets its period. */
   backgroundIntervalMin: z.number().int().positive(),
   /** Day the person put away the one companion card of Hoy ("Tu ritmo"); it stays away that day. */

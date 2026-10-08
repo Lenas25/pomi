@@ -27,6 +27,7 @@ const empty: InsightData = {
   energy: [],
   checkinDates: [],
   gymDates: [],
+  noGymDates: [],
   steps: [],
   activity: [],
   sessions: [],
@@ -52,6 +53,7 @@ function sleepData(gymCount: number, otherCount: number, gymSleep: number, other
     nights: all.map((date, index) => night(date, index < gymCount ? gymSleep : otherSleep)),
     checkinDates: all,
     gymDates,
+    noGymDates: all.slice(gymCount),
   };
 }
 
@@ -93,6 +95,15 @@ describe('sleep on gym vs non-gym days (threshold 20 min)', () => {
     expect(SLEEP_DIFF_MIN).toBe(20);
   });
 
+  it('days without positive evidence of no gym are in neither group', () => {
+    const data = sleepData(10, 11, 480, 420);
+    // Only 6 of the 11 other days have evidence of no gym: below the 7-day minimum.
+    expect(buildInsights({ ...data, noGymDates: data.noGymDates.slice(0, 6) }, TODAY)).toEqual([]);
+    expect(buildInsights({ ...data, noGymDates: data.noGymDates.slice(0, 7) }, TODAY)).toHaveLength(
+      1,
+    );
+  });
+
   it('reads the other direction too', () => {
     const [insight] = buildInsights(sleepData(10, 11, 400, 420), TODAY);
     expect(insight).toMatchObject({ variant: 'sleepGym.less', params: { minutes: 20 } });
@@ -113,7 +124,6 @@ describe('energy after >= 7 h nights vs shorter (threshold 0.5)', () => {
         value: [...enoughEnergy, ...shortEnergy][index] ?? 3,
       })),
       checkinDates: all,
-      gymDates: [],
       activity: enough.map((date) => ({ date, moved: false })),
     };
   }
@@ -134,6 +144,15 @@ describe('energy after >= 7 h nights vs shorter (threshold 0.5)', () => {
       params: { points: 0.5 },
       evidence: { days: 21, enoughDays: 10, shortDays: 11 },
     });
+  });
+
+  it('compares the means at two decimals: a gap of exactly 0.5 passes and the text uses it', () => {
+    // 3.45 vs 2.95 (20 days each): float subtraction alone gives 0.4999999999999996.
+    const enough = [...Array(11).fill(3), ...Array(9).fill(4)];
+    const short = [...Array(1).fill(2), ...Array(19).fill(3)];
+    const [insight] = buildInsights(energyData(enough, short), TODAY);
+    expect(insight).toMatchObject({ variant: 'energySleep.higher', params: { points: 0.5 } });
+    expect(insight?.evidence.value).toBe(0.5);
   });
 
   it('lower energy after long nights reads as lower', () => {
@@ -269,32 +288,67 @@ describe('weekday with the most consistency', () => {
     };
   }
 
-  it('a lead of exactly 20 points counts, a smaller one does not', () => {
-    // Wednesdays move 8 of 10 (0.8); every other weekday 6 of 10 (0.6): lead 0.2.
+  it('needs 20 points over the rest AND 25 over the second-best weekday', () => {
+    // Wednesdays move 9 of 10 (0.9); every other weekday 6 of 10 (0.6): leads 0.3 and 0.3.
     const found = buildInsights(
-      weekdayData((weekday, n) => (weekday === 3 ? n < 8 : n < 6)),
+      weekdayData((weekday, n) => (weekday === 3 ? n < 9 : n < 6)),
       TODAY,
     );
     expect(found[0]).toMatchObject({
       kind: 'bestWeekday',
       variant: 'bestWeekday.top',
-      params: { weekday: 3, percent: 80, otherPercent: 60 },
+      params: { weekday: 3, percent: 90, otherPercent: 60 },
       evidence: { days: 70, weekdayDays: 10, otherDays: 60, value: 3 },
     });
-    // One other weekday moves 7 of 10: rest 37 / 60 = 0.617, lead 0.183.
-    const close = buildInsights(
-      weekdayData((weekday, n) => (weekday === 3 ? n < 8 : weekday === 1 ? n < 7 : n < 6)),
-      TODAY,
-    );
-    expect(close).toEqual([]);
+    // One other weekday at 7 of 10: lead over the runner-up is only 0.2.
+    expect(
+      buildInsights(
+        weekdayData((weekday, n) => (weekday === 3 ? n < 9 : weekday === 1 ? n < 7 : n < 6)),
+        TODAY,
+      ),
+    ).toEqual([]);
+    // Everyone else at 7 of 10: lead over the rest is 0.2 but over the runner-up too.
+    expect(
+      buildInsights(
+        weekdayData((weekday, n) => (weekday === 3 ? n < 9 : n < 7)),
+        TODAY,
+      ),
+    ).toEqual([]);
   });
 
-  it('ties go to the earliest weekday number (deterministic)', () => {
-    const [insight] = buildInsights(
-      weekdayData((weekday) => weekday === 2 || weekday === 5),
-      TODAY,
-    );
-    expect(insight?.params.weekday).toBe(2);
+  it('a tie at the top is no finding, and a close runner-up either', () => {
+    // Tuesday and Friday tie at 1.0: neither stands out from the other.
+    expect(
+      buildInsights(
+        weekdayData((weekday) => weekday === 2 || weekday === 5),
+        TODAY,
+      ),
+    ).toEqual([]);
+    // Wednesday 1.0, Monday 0.9, the rest 0: the lead over the rest is huge, over Monday only 0.1.
+    expect(
+      buildInsights(
+        weekdayData((weekday, n) => (weekday === 3 ? true : weekday === 1 ? n < 9 : false)),
+        TODAY,
+      ),
+    ).toEqual([]);
+  });
+
+  it('needs 10 observed days of that weekday', () => {
+    const nine = (offset: number) => {
+      const all = dates(63);
+      const seen = new Map<number, number>();
+      return {
+        ...empty,
+        checkinDates: all,
+        activity: all.map((date) => {
+          const weekday = getDay(parseISO(date));
+          const n = seen.get(weekday) ?? 0;
+          seen.set(weekday, n + 1);
+          return { date, moved: weekday === 3 ? true : n < offset };
+        }),
+      };
+    };
+    expect(buildInsights(nine(0), TODAY)).toEqual([]);
   });
 });
 
@@ -327,6 +381,20 @@ describe('weekly maximum and repeat block', () => {
     expect(
       buildInsights({ ...data, history: [{ kind: 'sleepGym', createdOn: day(10) }] }, TODAY),
     ).toEqual([]);
+  });
+
+  it('bestWeekday is blocked for 4 weeks whichever weekday it names', () => {
+    const weekdayData: InsightData = {
+      ...empty,
+      checkinDates: dates(70),
+      activity: dates(70).map((date) => ({
+        date,
+        moved: getDay(parseISO(date)) === 3,
+      })),
+    };
+    expect(buildInsights(weekdayData, TODAY)).toHaveLength(1);
+    const history = [{ kind: 'bestWeekday' as const, createdOn: day(10), value: 5 }];
+    expect(buildInsights({ ...weekdayData, history }, TODAY)).toEqual([]);
   });
 
   it('a blocked kind yields to the next qualifying one', () => {
@@ -401,6 +469,7 @@ describe('determinism with the 60-day synthetic generator', () => {
     energy: synthetic.map((d) => ({ date: d.date, value: d.night.energy })),
     checkinDates: synthetic.map((d) => d.date),
     gymDates: synthetic.filter((d) => d.gym).map((d) => d.date),
+    noGymDates: synthetic.filter((d) => !d.gym).map((d) => d.date),
     steps: synthetic.map((d) => ({ date: d.date, steps: d.steps })),
     activity: synthetic.map((d) => ({
       date: d.date,

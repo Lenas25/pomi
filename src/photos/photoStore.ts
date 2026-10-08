@@ -208,7 +208,10 @@ export function deleteAllPhotos(
   });
 }
 
-const thumbnailFailures = new Set<string>();
+/** A thumbnail that failed to resize is retried after this long (not until the app restarts). */
+export const THUMBNAIL_RETRY_MS = 10 * 60_000;
+/** Name -> epoch ms of the last failure. */
+const thumbnailFailures = new Map<string, number>();
 
 type ThumbnailJob = { promise: Promise<boolean>; cancels: Array<() => boolean> };
 const thumbnailJobs = new Map<string, ThumbnailJob>();
@@ -223,7 +226,7 @@ export type EnsureThumbnailOptions = {
 /**
  * Creates the thumbnail of `name` when the photo is there and the thumbnail is not (photos taken
  * before thumbnails existed). Returns whether a thumbnail now exists; a photo that failed once is
- * not retried until the app restarts.
+ * not retried for `THUMBNAIL_RETRY_MS` (a transient failure heals without a restart).
  *
  * Backfills run in their OWN queue (one at a time), outside the photo lock: the slow resize never
  * blocks a save, a delete or a sweep. The lock is taken only for the final write, after checking
@@ -237,10 +240,18 @@ export function ensureThumbnail(
 ): Promise<boolean> {
   const thumb = thumbnailName(name);
   if (fs.exists(thumb)) return Promise.resolve(true);
-  if (thumbnailFailures.has(name)) return Promise.resolve(false);
+  const failedAt = thumbnailFailures.get(name);
+  if (failedAt !== undefined) {
+    if (Date.now() - failedAt < THUMBNAIL_RETRY_MS && failedAt <= Date.now()) {
+      return Promise.resolve(false);
+    }
+    thumbnailFailures.delete(name);
+  }
   const cancelled = options.isCancelled ?? (() => false);
   const running = thumbnailJobs.get(name);
   if (running) {
+    // Drop callers that are gone (unmounted cells) so a long job does not pile up closures.
+    running.cancels = running.cancels.filter((isCancelled) => !isCancelled());
     running.cancels.push(cancelled);
     return running.promise;
   }
@@ -253,7 +264,7 @@ export function ensureThumbnail(
     try {
       temp = await fs.resizeToTemp(name);
     } catch {
-      thumbnailFailures.add(name);
+      thumbnailFailures.set(name, Date.now());
       return false;
     }
     try {
@@ -265,7 +276,7 @@ export function ensureThumbnail(
         return fs.exists(thumb);
       });
     } catch {
-      thumbnailFailures.add(name);
+      thumbnailFailures.set(name, Date.now());
       return false;
     } finally {
       fs.discard(temp);

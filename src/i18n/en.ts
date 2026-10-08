@@ -1071,11 +1071,11 @@ export const en: Messages = {
         'We noticed that after nights you rate 4 or 5, you match or beat your previous session on {{points}} percentage points fewer of your exercises than after nights rated 1 or 2.',
     },
     stepsWeek: {
-      more: 'We noticed that on weekdays you walk {{steps}} more steps on average than on weekends.',
-      less: 'We noticed that on weekdays you walk {{steps}} fewer steps on average than on weekends.',
+      more: 'We noticed that on your workdays you walk {{steps}} more steps on average than on your free days.',
+      less: 'We noticed that on your workdays you walk {{steps}} fewer steps on average than on your free days.',
     },
     bestWeekday: {
-      top: 'We noticed that on {{day}} you tend to move more: {{percent}}% of those days, against {{otherPercent}}% of the rest.',
+      top: 'We noticed that in these weeks, {{day}} were your most active days: you moved on {{percent}}% of those days, against {{otherPercent}}% of the rest.',
     },
   },
   suggestions: {

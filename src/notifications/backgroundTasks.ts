@@ -57,6 +57,8 @@ TaskManager.defineTask(NOTIFICATION_SYNC_TASK, async () => {
     bootstrap: bootstrapDatabase,
     lastHeavyRunAt: () => repos().settings.get('backgroundLastHeavyRunAt'),
     saveHeavyRunAt: (ms) => repos().settings.set('backgroundLastHeavyRunAt', ms),
+    heavyRetries: () => repos().settings.get('backgroundHeavyRetries'),
+    saveHeavyRetries: (retries) => repos().settings.set('backgroundHeavyRetries', retries),
     // Once per day: look for suggestions while the app is closed (the card waits on Hoy).
     suggestions: () => runDailySuggestions(getDatabase(), getRepositories()),
     // Once per ISO week (guarded in the engine).

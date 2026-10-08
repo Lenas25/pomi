@@ -21,6 +21,8 @@ import {
   SCALE_DIFF_MIN,
   SLEEP_DIFF_MIN,
   STEPS_DIFF_MIN,
+  WEEKDAY_LEAD_OVER_SECOND_MIN,
+  WEEKDAY_MIN_OBSERVED,
   WEEKDAY_SHARE_DIFF_MIN,
 } from './limits';
 import type { Insight, InsightData, InsightKind } from './types';
@@ -31,8 +33,8 @@ export const VALUE_STEP: Readonly<Record<InsightKind, number>> = {
   energySleep: SCALE_DIFF_MIN,
   gymSleepQuality: GYM_PERFORMANCE_DIFF_MIN,
   stepsWeek: STEPS_DIFF_MIN,
-  // The value is the weekday number: any other weekday is a different finding.
-  bestWeekday: 1,
+  // Never repeated within the block, whichever weekday it names (see `isRepeat`).
+  bestWeekday: Infinity,
 };
 
 const mean = (values: readonly number[]) =>
@@ -54,13 +56,21 @@ type Context = {
   free: ReadonlySet<number>;
 };
 
+/**
+ * Sleep on gym days vs days with POSITIVE evidence of no gym (`data.noGymDates`). A day with no
+ * information at all is in neither group: "nothing logged" is not "did not train". A date in both
+ * lists counts as a gym day.
+ */
 function sleepGym({ data, today, inWindow }: Context): Insight | null {
   const gym = new Set(data.gymDates);
+  const noGym = new Set(data.noGymDates);
   const withGym: number[] = [];
   const without: number[] = [];
   for (const night of nightsInWindow(data.nights, today, INSIGHTS_WINDOW_DAYS)) {
     if (!inWindow(night.date)) continue;
-    (gym.has(night.date) ? withGym : without).push(sleepDurationMin(night.bed, night.wake));
+    const minutes = sleepDurationMin(night.bed, night.wake);
+    if (gym.has(night.date)) withGym.push(minutes);
+    else if (noGym.has(night.date)) without.push(minutes);
   }
   if (withGym.length < MIN_GROUP_DAYS || without.length < MIN_GROUP_DAYS) return null;
   const diff = round2(mean(withGym) - mean(without));
@@ -192,11 +202,14 @@ function bestWeekday({ data, inWindow }: Context): Insight | null {
   const total = days.length;
   const totalMoved = days.filter((day) => day.moved).length;
   const ranked = [...byWeekday]
-    .filter(([, entry]) => entry.observed >= MIN_GROUP_DAYS)
+    .filter(([, entry]) => entry.observed >= WEEKDAY_MIN_OBSERVED)
     .map(([weekday, entry]) => ({ weekday, ...entry, share: entry.moved / entry.observed }))
     .sort((a, b) => b.share - a.share || b.observed - a.observed || a.weekday - b.weekday);
   const top = ranked[0];
   if (!top) return null;
+  // The leader must stand out from the runner-up too, not only from the average of the rest.
+  const second = ranked[1];
+  if (second && round2(top.share - second.share) < WEEKDAY_LEAD_OVER_SECOND_MIN) return null;
   const restObserved = total - top.observed;
   if (restObserved < MIN_GROUP_DAYS) return null;
   const restShare = (totalMoved - top.moved) / restObserved;
@@ -237,6 +250,13 @@ function isRepeat(insight: Insight, data: InsightData, today: string): boolean {
   if (!last) return false;
   if (last.value === undefined) return true;
   return Math.abs(insight.evidence.value - last.value) < VALUE_STEP[insight.kind];
+}
+
+/** True once the window holds `MIN_CHECKIN_DAYS` days with check-ins (the PLAN §12 threshold). */
+export function hasEnoughCheckinDays(data: InsightData, today: string): boolean {
+  const from = shiftDay(today, -(INSIGHTS_WINDOW_DAYS - 1));
+  const days = data.checkinDates.filter((date) => date >= from && date <= today);
+  return new Set(days).size >= MIN_CHECKIN_DAYS;
 }
 
 /**

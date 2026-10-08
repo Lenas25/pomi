@@ -2,7 +2,7 @@
 //
 // Counting convention (docs/evidence/training.md, Pelland's fractional method): a completed set is
 // 1 direct set for the FIRST muscle listed on its step and 0.5 for every other listed muscle
-// (secondary movers). Weeks are ISO weeks (Monday start); a set belongs to the logical day
+// (secondary movers). A step whose first muscle is unknown is skipped entirely. Weeks are ISO weeks (Monday start); a set belongs to the logical day
 // `dayKeyFor(doneAt)`, so a set done at 00:30 counts for the day that was ending.
 //
 // The reference ranges are the evidence table already encoded in the generator params (single
@@ -64,11 +64,15 @@ export function weeklyVolume(input: WeeklyVolumeInput): VolumeWeek[] {
     if (listed === undefined) continue;
     const week = byStart.get(weekOf(dayKeyFor(new Date(set.doneAt), rollover)));
     if (week === undefined) continue;
-    const muscles = [...new Set(listed)].filter(isMuscle);
-    muscles.forEach((muscle, position) => {
-      const weight = position === 0 ? DIRECT_WEIGHT : INDIRECT_WEIGHT;
-      week.sets[muscle] = (week.sets[muscle] ?? 0) + weight;
-    });
+    const distinct = [...new Set(listed)];
+    // The direct muscle is the FIRST one listed. If that name is unknown the step is skipped:
+    // promoting the next muscle to "direct" would count a set that was never meant for it.
+    const [first, ...others] = distinct;
+    if (first === undefined || !isMuscle(first)) continue;
+    week.sets[first] = (week.sets[first] ?? 0) + DIRECT_WEIGHT;
+    for (const muscle of others.filter(isMuscle)) {
+      week.sets[muscle] = (week.sets[muscle] ?? 0) + INDIRECT_WEIGHT;
+    }
   }
   return weeks;
 }

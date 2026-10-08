@@ -41,13 +41,26 @@ describe('weeklyVolume', () => {
     const [week] = weeklyVolume({
       today,
       weeks: 1,
-      stepMuscles: { odd: ['not-a-muscle', 'pecho'] },
+      stepMuscles: { odd: ['pecho', 'not-a-muscle', 'triceps'] },
       sets: [
         { stepId: 'ghost', doneAt: at('2026-10-06T10:00:00') },
         { stepId: 'odd', doneAt: at('2026-10-06T10:00:00') },
       ],
     });
-    expect(week?.sets).toEqual({ pecho: 1 });
+    expect(week?.sets).toEqual({ pecho: 1, triceps: 0.5 });
+  });
+
+  it('skips a step whose FIRST muscle is unknown instead of promoting the next one', () => {
+    const [week] = weeklyVolume({
+      today,
+      weeks: 1,
+      stepMuscles: { odd: ['not-a-muscle', 'pecho'], empty: [] },
+      sets: [
+        { stepId: 'odd', doneAt: at('2026-10-06T10:00:00') },
+        { stepId: 'empty', doneAt: at('2026-10-06T10:00:00') },
+      ],
+    });
+    expect(week?.sets).toEqual({});
   });
 
   it('does not double count a muscle listed twice in a step', () => {

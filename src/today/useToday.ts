@@ -65,6 +65,9 @@ export function useToday() {
   const [now, setNow] = useState(() => new Date());
   const generation = useRef(0);
   const loadedDay = useRef<string | undefined>(undefined);
+  // The insight card of this session: once shown it is marked seen, and the next load no longer
+  // returns it, but it must stay on Hoy until the app is closed (it would vanish under the reader).
+  const sessionInsight = useRef<TodayData['insight']>(undefined);
 
   const reload = useCallback(async (): Promise<void> => {
     const ticket = (generation.current += 1);
@@ -72,7 +75,12 @@ export function useToday() {
       // Once per day (guarded in the engine); a failure here must never block Hoy.
       await runDailySuggestions(getDatabase(), getRepositories()).catch(() => []);
       await runWeeklyInsights(getDatabase(), getRepositories()).catch(() => []);
-      const data = await loadTodayData(getRepositories(), new Date());
+      const loaded = await loadTodayData(getRepositories(), new Date());
+      if (loaded.insight) sessionInsight.current = loaded.insight;
+      const keep = !loaded.insight && !loaded.suggestion ? sessionInsight.current : undefined;
+      const data: TodayData = keep
+        ? { ...loaded, insight: keep, companionCard: undefined }
+        : loaded;
       if (ticket === generation.current) {
         setNow(new Date());
         loadedDay.current = data.today;

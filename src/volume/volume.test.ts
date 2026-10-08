@@ -14,7 +14,9 @@ const step = (id: string, muscles?: string[]) => ({
 });
 const module = (active: boolean, steps: ReturnType<typeof step>[]) => ({
   active,
-  template: { programs: [{ id: 'p', name: 'p', routines: [{ id: 'r', name: 'r', steps }] }] },
+  template: {
+    programs: [{ id: 'p', name: 'p', rotation: false, routines: [{ id: 'r', name: 'r', steps }] }],
+  },
 });
 
 describe('resolveStepMuscles', () => {

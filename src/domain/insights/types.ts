@@ -62,12 +62,17 @@ export type InsightData = {
   checkinDates: readonly string[];
   /** Days (`yyyy-MM-dd`) the person trained: a finished session or a "Fui al gym" answer. */
   gymDates: readonly string[];
+  /**
+   * Days with POSITIVE evidence of no gym: an activity answer of another kind, or a day that is not
+   * a planned gym day and has no finished session. Days without information are in neither list.
+   */
+  noGymDates: readonly string[];
   steps: readonly { date: string; steps: number }[];
   /** Days with movement information (gym / walk answers, sessions, steps). */
   activity: readonly ActivityDay[];
   /** Finished sessions with at least one set (more than the window: the previous one is needed). */
   sessions: readonly SessionSets[];
   history: readonly InsightHistoryEntry[];
-  /** Weekend days (0 = Sunday). Default Saturday and Sunday. */
+  /** Free days, the "weekend" of workdays vs free days (0 = Sunday). Default Saturday and Sunday. */
   freeWeekdays?: readonly number[];
 };

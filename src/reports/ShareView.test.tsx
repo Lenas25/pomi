@@ -106,7 +106,9 @@ describe('ShareView', () => {
     await fireEvent(screen.getByRole('switch', { name: 'Hallazgos' }), 'valueChange', true);
     await fireEvent.press(screen.getByRole('button', { name: 'Ver qué se enviará' }));
     expect(
-      screen.getByText(/Notamos que entre semana caminas en promedio 1\.?800 pasos más/),
+      screen.getByText(
+        /Notamos que, en tus días de trabajo, caminas en promedio 1\.?800 pasos más/,
+      ),
     ).toBeTruthy();
     expect(screen.getByText(/Basado en 30 días/)).toBeTruthy();
   });

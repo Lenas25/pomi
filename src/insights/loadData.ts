@@ -1,8 +1,9 @@
 // Reads everything `buildInsights` needs from the repositories (all local, near instant).
-import { format, parseISO, subDays } from 'date-fns';
+import { format, getDay, parseISO, subDays } from 'date-fns';
 
 import type { Repositories } from '../db/repositories';
 import type { InsightRow } from '../db/repositories/insights';
+import { DEFAULT_FREE_WEEKDAYS } from '../domain/companion/limits';
 import { toMorningCheckin } from '../domain/habits/checkins';
 import {
   INSIGHTS_WINDOW_DAYS,
@@ -47,7 +48,12 @@ export async function loadInsightData(repos: Repositories, today: string): Promi
   const from = key(INSIGHTS_WINDOW_DAYS - 1);
   const sessionsFrom = key(INSIGHTS_WINDOW_DAYS - 1 + SESSIONS_EXTRA_DAYS);
 
-  const [modules, past] = await Promise.all([repos.templates.listModules(), repos.insights.all()]);
+  const [modules, past, plannedGym] = await Promise.all([
+    repos.templates.listModules(),
+    repos.insights.all(),
+    repos.settings.get('gymDays'),
+  ]);
+  const plannedWeekdays = new Set((plannedGym ?? []).flatMap((entry) => entry.days));
   const morningQuestions = modules
     .filter((module) => module.active)
     .find((module) => module.template.checkins?.morning)?.template.checkins?.morning;
@@ -74,6 +80,16 @@ export async function loadInsightData(repos: Repositories, today: string): Promi
     if (row.kind === 'gym') gymDates.add(row.date);
     if (row.kind === 'gym' || row.kind === 'walk') moved.add(row.date);
   }
+  // POSITIVE evidence of no gym: an answer of another kind, or a day that was not a planned gym day
+  // and has no session. A planned day with nothing logged is unknown, not "no gym".
+  const noGym = new Set<string>();
+  const answered = new Set(activityRows.map((row) => row.date));
+  for (const row of activityRows) if (row.kind !== 'gym') noGym.add(row.date);
+  for (let offset = INSIGHTS_WINDOW_DAYS - 1; offset >= 0; offset -= 1) {
+    const date = key(offset);
+    if (!answered.has(date) && !plannedWeekdays.has(getDay(parseISO(date)))) noGym.add(date);
+  }
+  for (const date of gymDates) noGym.delete(date);
   const stepsByDate = new Map(stepRows.filter((r) => r.steps > 0).map((r) => [r.date, r.steps]));
   for (const date of stepsByDate.keys()) observed.add(date);
 
@@ -87,6 +103,9 @@ export async function loadInsightData(repos: Repositories, today: string): Promi
     energy: rating(nightRows, RATING_QUESTION_IDS.energy),
     checkinDates: [...morningRows, ...nightRows].map((row) => row.date),
     gymDates: [...gymDates],
+    noGymDates: [...noGym],
+    // The companion/rhythm code has no setting for free days either: both use the default.
+    freeWeekdays: DEFAULT_FREE_WEEKDAYS,
     steps: stepRows,
     activity: [...observed].map((date) => ({
       date,

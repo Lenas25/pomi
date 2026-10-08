@@ -1075,11 +1075,11 @@ export const es = {
         'Notamos que, después de noches que valoras con 4 o 5, igualas o superas tu sesión anterior en {{points}} puntos porcentuales menos de tus ejercicios que después de noches de 1 o 2.',
     },
     stepsWeek: {
-      more: 'Notamos que entre semana caminas en promedio {{steps}} pasos más que los fines de semana.',
-      less: 'Notamos que entre semana caminas en promedio {{steps}} pasos menos que los fines de semana.',
+      more: 'Notamos que, en tus días de trabajo, caminas en promedio {{steps}} pasos más que en tus días libres.',
+      less: 'Notamos que, en tus días de trabajo, caminas en promedio {{steps}} pasos menos que en tus días libres.',
     },
     bestWeekday: {
-      top: 'Notamos que los {{day}} sueles moverte más: {{percent}} % de esos días, frente a {{otherPercent}} % del resto.',
+      top: 'Notamos que, en estas semanas, los {{day}} fueron tus días más activos: te moviste {{percent}} % de esos días, frente a {{otherPercent}} % del resto.',
     },
   },
   suggestions: {
