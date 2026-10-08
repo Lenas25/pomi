@@ -4,6 +4,7 @@ import { buildSuggestions } from '../domain/suggestions/buildSuggestions';
 import { applyChange, type PlanPatch } from '../domain/suggestions/applyChange';
 import { dayKeyFor } from '../domain/time';
 import type { Repositories } from '../db/repositories';
+import { waitForMaintenance } from '../db/maintenance';
 import { withTransaction } from '../db/transaction';
 import type { Db } from '../db/types';
 
@@ -20,6 +21,7 @@ export async function runDailySuggestions(
   repos: Repositories,
   now: Date = new Date(),
 ): Promise<number[]> {
+  await waitForMaintenance();
   const today = dayKeyFor(now);
   if ((await repos.settings.get('onboardingComplete')) !== true) return [];
   if ((await repos.settings.get('suggestionsLastRun')) === today) return [];

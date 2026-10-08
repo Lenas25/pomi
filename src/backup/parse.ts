@@ -8,6 +8,11 @@ import {
 } from '../templates/importer';
 
 import {
+  isValidInsightEvidence,
+  isValidReminderSchedule,
+  isValidSuggestionPayload,
+} from './payloads';
+import {
   BACKUP_FORMAT,
   BACKUP_SCHEMA_VERSION,
   backupSchema,
@@ -29,6 +34,37 @@ export type BackupError =
 export type ParseBackupResult = { ok: true; backup: Backup } | { ok: false; errors: BackupError[] };
 
 const MAX_ERRORS = 20;
+
+type BackupJson = Record<string, unknown>;
+
+/** `BACKUP_MIGRATIONS[n]` upgrades a file written with schema version `n` to `n + 1`. */
+export type BackupMigrationTable = Readonly<Record<number, (json: BackupJson) => BackupJson>>;
+
+/**
+ * Upgrade steps for older backups. Empty today (version 1 is the first). When the schema changes,
+ * bump `BACKUP_SCHEMA_VERSION` and add `[previousVersion]: (json) => ...newJson` here, so files
+ * written by earlier app versions keep restoring.
+ */
+export const BACKUP_MIGRATIONS: BackupMigrationTable = {};
+
+/**
+ * Walks `json` from `version` up to `target` through the migration chain. `null` when a step is
+ * missing (the version is too old to read). Each step's result is stamped with the new version.
+ */
+export function migrateBackupJson(
+  json: BackupJson,
+  version: number,
+  target: number = BACKUP_SCHEMA_VERSION,
+  migrations: BackupMigrationTable = BACKUP_MIGRATIONS,
+): BackupJson | null {
+  let current = json;
+  for (let from = version; from < target; from += 1) {
+    const step = migrations[from];
+    if (!step) return null;
+    current = { ...step(current), schemaVersion: from + 1 };
+  }
+  return current;
+}
 
 function field(code: ImportError['code'], path: string): BackupError {
   return { kind: 'field', error: { code, path, params: {} } };
@@ -82,6 +118,22 @@ function crossChecks(backup: Backup): BackupError[] {
     }
   });
 
+  backup.data.suggestions.forEach((row, index) => {
+    if (!isValidSuggestionPayload(row.kind, row.payload)) {
+      errors.push(field('invalidValue', `data.suggestions[${index}].payload`));
+    }
+  });
+  backup.data.insights.forEach((row, index) => {
+    if (!isValidInsightEvidence(row.evidence)) {
+      errors.push(field('invalidValue', `data.insights[${index}].evidence`));
+    }
+  });
+  backup.data.reminders.forEach((row, index) => {
+    if (!isValidReminderSchedule(row.schedule)) {
+      errors.push(field('invalidValue', `data.reminders[${index}].schedule`));
+    }
+  });
+
   return errors;
 }
 
@@ -105,10 +157,15 @@ export function parseBackupText(text: string): ParseBackupResult {
   if (typeof version !== 'number' || !Number.isInteger(version) || version < 0) {
     return { ok: false, errors: [field('invalidValue', 'schemaVersion')] };
   }
-  if (version !== BACKUP_SCHEMA_VERSION) {
-    // Migrations from older versions would run here; none exists yet.
-    const code = version < BACKUP_SCHEMA_VERSION ? 'olderVersion' : 'newerVersion';
-    return { ok: false, errors: [{ kind: 'file', code, found: version }] };
+  if (version > BACKUP_SCHEMA_VERSION) {
+    return { ok: false, errors: [{ kind: 'file', code: 'newerVersion', found: version }] };
+  }
+  if (version < BACKUP_SCHEMA_VERSION) {
+    const migrated = migrateBackupJson(json, version);
+    if (migrated === null) {
+      return { ok: false, errors: [{ kind: 'file', code: 'olderVersion', found: version }] };
+    }
+    json = migrated;
   }
 
   const parsed = backupSchema.safeParse(json);

@@ -571,6 +571,9 @@ export const es = {
       title: 'Restaurar desde un archivo',
       body: 'Elige un respaldo de Pomi. Antes de cambiar nada verás qué contiene.',
       pick: 'Elegir archivo',
+      tooLarge: 'Ese archivo es demasiado grande para un respaldo (máximo {{mb}} MB).',
+      photosCleared:
+        'Este respaldo no incluye fotos: al restaurarlo se quitarán las fotos que tienes ahora.',
       readFailed: 'No pudimos leer el archivo.',
       errorsTitle: 'Este archivo no se puede usar',
       previewTitle: 'Esto contiene el respaldo',
@@ -607,6 +610,10 @@ export const es = {
         'Este respaldo viene de una versión más nueva de Pomi ({{found}}). Actualiza la app e inténtalo otra vez.',
     },
   },
+  maintenance: {
+    title: 'Restaurando tus datos',
+    body: 'Un momento, no cierres la app.',
+  },
   about: {
     title: 'Acerca de Pomi',
     tagline: 'Gym y hábitos saludables, sin cuentas ni anuncios.',
@@ -624,6 +631,7 @@ export const es = {
     intro:
       'Elige el archivo JSON de tu programa (por ejemplo, el que te preparó tu entrenador). Verás un resumen antes de guardar nada.',
     pick: 'Elegir archivo',
+    tooLarge: 'Ese archivo es demasiado grande para un programa (máximo {{mb}} MB).',
     readFailed: 'No pudimos leer el archivo.',
     errorsTitle: 'El archivo tiene problemas',
     noProgram: 'El archivo no incluye ningún programa de gym.',
@@ -635,6 +643,9 @@ export const es = {
     replace: 'Reemplazar el que ya tengo',
     add: 'Añadir sin tocar lo que ya tengo',
     apply: 'Importar',
+    losingHistory:
+      'Estos ejercicios ya no están en el programa nuevo y su historial dejará de mostrarse: {{names}}.',
+    deactivated: 'Se desactivará lo que tienes ahora: {{names}}.',
     note: 'Pomi entrena un programa a la vez: el importado pasa a ser el activo.',
     done: 'Programa importado.',
     skipped: 'No se importó porque ya existía: {{ids}}.',

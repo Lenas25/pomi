@@ -7,7 +7,8 @@ import type { Db } from '../db/types';
 import gymJson from '../../templates/gym.json';
 import habitosJson from '../../templates/habitos.json';
 
-import { applyProgramImport, previewProgramImport } from './programImport';
+import { applyProgramImport, computeImportImpact, previewProgramImport } from './programImport';
+import type { ModuleTemplate } from './schema';
 
 let db: Db;
 let repos: Repositories;
@@ -74,5 +75,68 @@ describe('gym program import', () => {
     const modules = await repos.templates.listModules();
     expect(modules.find((m) => m.id === 'otro-gym')?.active).toBe(false);
     expect(modules.find((m) => m.id === preview.items[0]!.module.id)?.active).toBe(true);
+  });
+});
+
+describe('import impact preview', () => {
+  async function stored() {
+    const preview = previewProgramImport(trainerFile, new Set());
+    if (!preview.ok) throw new Error('preview failed');
+    await applyProgramImport(db, repos, preview.items, 'add');
+    return preview.items[0]!.module;
+  }
+
+  function renameFirstStep(module: ModuleTemplate, newId: string): { module: ModuleTemplate; oldId: string } {
+    const copy = JSON.parse(JSON.stringify(module)) as ModuleTemplate;
+    const step = copy.programs![0]!.routines[0]!.steps[0]!;
+    const oldId = step.id;
+    for (const routine of copy.programs![0]!.routines) {
+      for (const candidate of routine.steps) if (candidate.id === oldId) candidate.id = newId;
+    }
+    return { module: copy, oldId };
+  }
+
+  it('lists the exercises with history that the replacing program drops', async () => {
+    const module = await stored();
+    const { module: renamed, oldId } = renameFirstStep(module, 'paso-nuevo');
+    const items = [{ module: renamed, programs: 1, routines: 1, exists: true }];
+    const context = {
+      modules: await repos.templates.listModules(),
+      loggedStepIds: new Set([oldId]),
+    };
+
+    const replace = computeImportImpact(items, 'replace', context);
+    expect(replace.losingHistory.map((step) => step.id)).toEqual([oldId]);
+    expect(replace.losingHistory[0]?.name).not.toBe('');
+
+    // `add` leaves the existing module alone, so nothing is lost and nothing is switched off.
+    expect(computeImportImpact(items, 'add', context)).toEqual({
+      losingHistory: [],
+      deactivated: [],
+    });
+    // Steps without logged sets have no history to lose.
+    expect(
+      computeImportImpact(items, 'replace', { ...context, loggedStepIds: new Set() }).losingHistory,
+    ).toEqual([]);
+  });
+
+  it('lists the other active modules with a program that would be switched off', async () => {
+    const module = await stored();
+    await repos.templates.saveModules([{ ...module, id: 'otro-gym', name: 'Otro' }], 'add');
+    const context = {
+      modules: await repos.templates.listModules(),
+      loggedStepIds: new Set<string>(),
+    };
+    const fresh = { ...module, id: 'nuevo-gym', name: 'Nuevo' };
+    const items = [{ module: fresh, programs: 1, routines: 1, exists: false }];
+    const impact = computeImportImpact(items, 'add', context);
+    expect(impact.deactivated.map((entry) => entry.id).sort()).toEqual(
+      [module.id, 'otro-gym'].sort(),
+    );
+    // The module being replaced is not "switched off": it is saved and activated.
+    const replacing = [{ module, programs: 1, routines: 1, exists: true }];
+    expect(
+      computeImportImpact(replacing, 'replace', context).deactivated.map((entry) => entry.id),
+    ).toEqual(['otro-gym']);
   });
 });

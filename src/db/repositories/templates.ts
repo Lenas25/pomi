@@ -81,6 +81,14 @@ export function createTemplatesRepository(
     });
   }
 
+  /** Read inside a transaction (requires the `Tx`, so a callback never reaches for a top-level twin). */
+  const listModulesIn = (_tx: Tx) => listModules();
+
+  /** Same as `setActive`, for use INSIDE a transaction callback. */
+  async function setActiveIn(_tx: Tx, id: string, active: boolean): Promise<void> {
+    await db.update(templates).set({ active }).where(eq(templates.id, id));
+  }
+
   /** Opens its own top-level transaction: inside one, use `saveModulesIn(tx, ...)`. */
   const saveModules = (modules: ModuleTemplate[], mode: 'replace' | 'add') =>
     withTransaction(db, (tx) => saveModulesIn(tx, modules, mode));
@@ -92,8 +100,10 @@ export function createTemplatesRepository(
       return (await listModules()).find((module) => module.id === id);
     },
 
+    listModulesIn,
     saveModules,
     saveModulesIn,
+    setActiveIn,
 
     async setActive(id: string, active: boolean): Promise<void> {
       await db.update(templates).set({ active }).where(eq(templates.id, id));

@@ -575,6 +575,8 @@ export const en: Messages = {
       title: 'Restore from a file',
       body: 'Pick a Pomi backup. You will see what it contains before anything changes.',
       pick: 'Choose file',
+      tooLarge: 'That file is too large for a backup (maximum {{mb}} MB).',
+      photosCleared: 'This backup has no photos: restoring it removes the photos you have now.',
       readFailed: 'We could not read the file.',
       errorsTitle: 'This file cannot be used',
       previewTitle: 'What the backup contains',
@@ -609,6 +611,10 @@ export const en: Messages = {
         'This backup comes from a newer version of Pomi ({{found}}). Update the app and try again.',
     },
   },
+  maintenance: {
+    title: 'Restoring your data',
+    body: 'One moment, please keep the app open.',
+  },
   about: {
     title: 'About Pomi',
     tagline: 'Gym and healthy habits, with no accounts and no ads.',
@@ -626,6 +632,7 @@ export const en: Messages = {
     intro:
       'Choose the JSON file of your program (for example, the one your trainer prepared). You will see a summary before anything is saved.',
     pick: 'Choose file',
+    tooLarge: 'That file is too large for a program (maximum {{mb}} MB).',
     readFailed: 'We could not read the file.',
     errorsTitle: 'The file has problems',
     noProgram: 'The file does not include any gym program.',
@@ -637,6 +644,9 @@ export const en: Messages = {
     replace: 'Replace the one I have',
     add: 'Add without touching what I have',
     apply: 'Import',
+    losingHistory:
+      'These exercises are no longer in the new program, so their history will stop showing: {{names}}.',
+    deactivated: 'What you have now will be switched off: {{names}}.',
     note: 'Pomi trains one program at a time: the imported one becomes the active one.',
     done: 'Program imported.',
     skipped: 'Not imported because it already existed: {{ids}}.',

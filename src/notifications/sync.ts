@@ -4,6 +4,7 @@
 import * as Notifications from 'expo-notifications';
 
 import { getRepositories } from '../db';
+import { waitForMaintenance } from '../db/maintenance';
 import type { ScheduledEntry } from '../domain/notifications/diff';
 import { t } from '../i18n';
 
@@ -84,7 +85,12 @@ export type SyncReason =
 let lock: Promise<unknown> = Promise.resolve();
 
 function exclusive<T>(job: () => Promise<T>): Promise<T> {
-  const result = lock.then(job, job);
+  // A restore replaces every table: nothing is planned or scheduled until it has finished.
+  const gated = async () => {
+    await waitForMaintenance();
+    return job();
+  };
+  const result = lock.then(gated, gated);
   lock = result.catch(() => undefined);
   return result;
 }

@@ -38,6 +38,12 @@ export function createWorkoutsRepository(db: Db) {
   }
 
   return {
+    /** Every step id that has at least one logged set (the exercise history keys in use). */
+    async loggedStepIds(): Promise<string[]> {
+      const rows = await db.selectDistinct({ stepId: setLogs.stepId }).from(setLogs);
+      return rows.map((row) => row.stepId);
+    },
+
     async createSession(input: NewSession): Promise<number> {
       const rows = await db
         .insert(workoutSessions)

@@ -145,7 +145,7 @@ export const checkins = sqliteTable(
   {
     date: text('date').notNull(),
     kind: text('kind', { enum: ['morning', 'night', 'monthly'] }).notNull(),
-    answers: text('answers', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
+    answers: text('answers', { mode: 'json' }).$type<Record<string, string | number>>().notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.date, table.kind] }),

@@ -14,9 +14,15 @@ import { Card } from '../ui/Card';
 import { Screen } from '../ui/Screen';
 import { useTheme } from '../ui/theme';
 
-import { createBackup, restoreBackup, summarizeBackup, type BackupSummary } from './backup';
+import {
+  createBackup,
+  restoreBackupExclusive,
+  summarizeBackup,
+  type BackupSummary,
+} from './backup';
 import { describeBackupError } from './describeError';
 import { pickTextFile, shareJsonFile } from './files';
+import { FileTooLargeError, MAX_BACKUP_BYTES, toMegabytes } from './limits';
 import { parseBackupText } from './parse';
 import type { Backup } from './schema';
 
@@ -79,12 +85,19 @@ export function BackupScreen() {
     setProblems([]);
     setPending(null);
     try {
-      const text = await pickTextFile();
+      const text = await pickTextFile(MAX_BACKUP_BYTES);
       if (text === null) return;
       const result = parseBackupText(text);
       if (result.ok) setPending(result.backup);
       else setProblems(result.errors.map((error) => describeBackupError(error, t)));
     } catch (error) {
+      if (error instanceof FileTooLargeError) {
+        setNotice({
+          tone: 'error',
+          text: t('backup.import.tooLarge', { mb: toMegabytes(error.maxBytes) }),
+        });
+        return;
+      }
       if (__DEV__) console.error('Could not read the file', error);
       setNotice({ tone: 'error', text: t('backup.import.readFailed') });
     } finally {
@@ -96,7 +109,7 @@ export function BackupScreen() {
     async (backup: Backup) => {
       setBusy('restore');
       try {
-        await restoreBackup(getDatabase(), backup);
+        await restoreBackupExclusive(getDatabase(), backup);
         const repositories = getRepositories();
         await hydrateStores(repositories);
         // The plan of reminders came from the old data.
@@ -229,9 +242,11 @@ export function BackupScreen() {
                     </Text>
                   ),
                 )}
-                {summary.includesPhotos ? (
-                  <Text style={muted}>{t('backup.import.withPhotos')}</Text>
-                ) : null}
+                <Text style={muted}>
+                  {summary.includesPhotos
+                    ? t('backup.import.withPhotos')
+                    : t('backup.import.photosCleared')}
+                </Text>
                 <Button
                   label={t('backup.import.replaceAll')}
                   variant="danger"

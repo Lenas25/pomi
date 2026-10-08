@@ -15,6 +15,9 @@
     "assets:sounds": "node scripts/generate-timer-sounds.js",
     "db:generate": "drizzle-kit generate && node scripts/build-migrations.js"
   },
+  "engines": {
+    "node": ">=22.13"
+  },
   "dependencies": {
     "@expo-google-fonts/fredoka": "^0.4.1",
     "@expo-google-fonts/nunito": "^0.4.2",

@@ -20,7 +20,8 @@ import {
   templates,
   workoutSessions,
 } from '../db/schema';
-import { withTransaction } from '../db/transaction';
+import { runMaintenance } from '../db/maintenance';
+import { Tx, withTransaction } from '../db/transaction';
 import type { Db } from '../db/types';
 
 import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, type Backup, type BackupData } from './schema';
@@ -81,13 +82,15 @@ async function insertChunks<Row>(
 
 /**
  * Replaces ALL user data with the backup, in ONE transaction: any failure (a CHECK, a foreign key,
- * a duplicate key) rolls everything back and the current data stays untouched. Photo rows are only
- * replaced when the backup includes them. The caller reschedules notifications and re-hydrates the
- * in-memory stores afterwards.
+ * a duplicate key) rolls everything back and the current data stays untouched. Photo rows are
+ * always cleared (a backup without photos leaves none behind) and re-inserted only when the backup
+ * includes them. The caller reschedules notifications and re-hydrates the in-memory stores
+ * afterwards. Pass a `Tx` to run inside a surrounding transaction (see `restoreBackupExclusive`).
  */
-export async function restoreBackup(db: Db, backup: Backup): Promise<void> {
+export async function restoreBackup(target: Db | Tx, backup: Backup): Promise<void> {
   const { data } = backup;
-  await withTransaction(db, async () => {
+  const db = target instanceof Tx ? target.db : target;
+  await withTransaction(target, async () => {
     // Children first so foreign keys never see an orphan.
     await db.delete(setLogs);
     await db.delete(workoutSessions);
@@ -97,7 +100,7 @@ export async function restoreBackup(db: Db, backup: Backup): Promise<void> {
     await db.delete(activityLogs);
     await db.delete(checkins);
     await db.delete(metricEntries);
-    if (backup.includesPhotos) await db.delete(photos);
+    await db.delete(photos);
     await db.delete(foodNotes);
     await db.delete(suggestions);
     await db.delete(insights);
@@ -125,6 +128,15 @@ export async function restoreBackup(db: Db, backup: Backup): Promise<void> {
     await insertChunks(data.insights, (rows) => db.insert(insights).values(rows));
     await insertChunks(data.reminders, (rows) => db.insert(reminders).values(rows));
   });
+}
+
+/**
+ * The restore the app uses: holds the global maintenance gate (no repository call, notification
+ * sync, suggestion run or background task touches the database meanwhile) and drives the
+ * full-screen busy state. Hydrating the stores and rescheduling happen after it returns.
+ */
+export function restoreBackupExclusive(db: Db, backup: Backup): Promise<void> {
+  return runMaintenance(db, (tx) => restoreBackup(tx, backup));
 }
 
 export type BackupSummary = {

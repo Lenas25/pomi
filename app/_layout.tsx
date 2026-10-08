@@ -18,6 +18,7 @@ import { useT } from '../src/i18n';
 import { useNotificationSetup } from '../src/notifications/useNotificationSetup';
 import { useOnboardingStatusStore } from '../src/onboarding/statusStore';
 import { EmptyState } from '../src/ui/EmptyState';
+import { MaintenanceOverlay } from '../src/ui/MaintenanceOverlay';
 import { Screen } from '../src/ui/Screen';
 import { IconProvider } from '../src/ui/icons';
 import { ThemeProvider, useTheme } from '../src/ui/theme';
@@ -56,6 +57,7 @@ function RootStack() {
           <Stack.Screen name="importar-programa" />
         </Stack.Protected>
       </Stack>
+      <MaintenanceOverlay />
     </>
   );
 }

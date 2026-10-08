@@ -8,18 +8,28 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same branch / PR replaces the run that is still going.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # The repository tests use node:sqlite, which needs Node >= 22.5.
-          node-version: 22
+          # `.nvmrc` pins the major (22). The repository tests use node:sqlite, which needs
+          # Node >= 22.5; `engines` in package.json states the supported minimum (>= 22.13).
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test -- --ci
-      - run: npm run validate:templates
+      # Kept as its own visible step (also covered by `npm test`) so a broken template file shows
+      # up by name in the checks list.
+      - name: Validate templates
+        run: npm run validate:templates

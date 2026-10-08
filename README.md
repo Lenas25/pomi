@@ -25,7 +25,7 @@ Expo SDK 57, React Native 0.86, TypeScript (strict), expo-router, expo-sqlite + 
 
 ## Build, run and test
 
-Requirements: Node >= 22.5 (the repository tests use `node:sqlite`) and, to run on a device, the Android toolchain (Android Studio / SDK).
+Requirements: Node >= 22.13 (`.nvmrc` pins 22) (the repository tests use `node:sqlite`) and, to run on a device, the Android toolchain (Android Studio / SDK).
 
 ```bash
 npm install            # plain install; never --force or --legacy-peer-deps

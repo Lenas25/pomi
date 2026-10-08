@@ -1,5 +1,5 @@
 // Pure time helpers. A "clock" is an `HH:mm` string; a "minute of day" is 0..1439.
-import { format } from 'date-fns';
+import { differenceInCalendarDays, format } from 'date-fns';
 
 export const MINUTES_PER_DAY = 1440;
 
@@ -57,10 +57,14 @@ export function dayStartFor(date: Date, rolloverHour: number = DAY_ROLLOVER_HOUR
 }
 
 /**
- * Minutes elapsed since the start of the logical day. Between midnight and the rollover this is
- * >= 1440, matching the agenda convention (bed 00:30 is minute 1470 of the day that is ending).
+ * Minutes since the start of the logical day on the WALL CLOCK (calendar days apart x 1440 + the
+ * local time of day). Between midnight and the rollover this is >= 1440, matching the agenda
+ * convention (bed 00:30 is minute 1470 of the day that is ending). Agenda minutes always mean local
+ * wall-clock time (`new Date(y, m, d, 0, minutes)`), so this is deliberately NOT the elapsed time:
+ * on a daylight-saving day the two differ by an hour, and the invariant that matters is
+ * `new Date(y, m, d, 0, minutesIntoDay(x))` being `x` again (tested with a DST time zone).
  */
 export function minutesIntoDay(date: Date, rolloverHour: number = DAY_ROLLOVER_HOUR): number {
-  const clock = date.getHours() * 60 + date.getMinutes();
-  return date.getHours() < rolloverHour ? clock + MINUTES_PER_DAY : clock;
+  const days = differenceInCalendarDays(date, dayStartFor(date, rolloverHour));
+  return days * MINUTES_PER_DAY + date.getHours() * 60 + date.getMinutes();
 }

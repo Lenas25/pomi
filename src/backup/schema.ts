@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 import { settingsSchemas } from '../db/repositories/settings';
 
+import { checkinAnswersSchema } from './payloads';
+
 export const BACKUP_FORMAT = 'pomi-backup';
 /** Bump when the shape changes; add a migration step in `parse.ts` for the older versions. */
 export const BACKUP_SCHEMA_VERSION = 1;
@@ -96,7 +98,7 @@ export const activityRowSchema = z.strictObject({
 export const checkinRowSchema = z.strictObject({
   date: dayKey,
   kind: z.enum(['morning', 'night', 'monthly']),
-  answers: z.record(z.string(), z.unknown()),
+  answers: checkinAnswersSchema,
 });
 
 export const metricEntryRowSchema = z.strictObject({

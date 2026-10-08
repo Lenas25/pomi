@@ -8,7 +8,7 @@ import { loadDefaultTemplates } from '../templates/defaults';
 
 import { createBackup, restoreBackup, summarizeBackup } from './backup';
 import { describeBackupError } from './describeError';
-import { parseBackupText } from './parse';
+import { migrateBackupJson, parseBackupText } from './parse';
 import type { Backup } from './schema';
 
 type Fixture = { db: Db; repos: Repositories; close: () => void };
@@ -58,13 +58,26 @@ async function seed({ db, repos }: Fixture): Promise<void> {
   await repos.checkins.upsert('2026-10-05', 'night', { energy: 4, note: 'ok' });
   await repos.metrics.upsert('peso', '2026-10-05', 61.5);
   await repos.foodNotes.save('2026-10-05', 'Lentejas');
-  await db
-    .insert(suggestions)
-    .values({ kind: 'k', payload: { a: 1 }, reason: 'r', createdAt: 1, status: 'pending' });
+  await db.insert(suggestions).values({
+    kind: 'deload',
+    payload: {
+      variant: 'deload',
+      change: { type: 'deload', pct: 10, stepId: 's1' },
+      params: {},
+      evidence: { days: 7 },
+    },
+    reason: 'r',
+    createdAt: 1,
+    status: 'pending',
+  });
   await db.insert(insights).values({ kind: 'k', text: 'texto', evidence: [1, 2], createdAt: 1 });
-  await db
-    .insert(reminders)
-    .values({ id: 'rem', text: 'Beber', schedule: { time: '10:00' }, enabled: true, createdAt: 1 });
+  await db.insert(reminders).values({
+    id: 'rem',
+    text: 'Beber',
+    schedule: { days: [1, 3], time: '10:00' },
+    enabled: true,
+    createdAt: 1,
+  });
   await db.insert(photos).values({ date: '2026-10-05', pose: 'front', uri: 'file:///a.jpg' });
 }
 
@@ -121,7 +134,7 @@ describe('backup export / restore', () => {
     expect((await createBackup(target.db, OPTIONS)).data.habitEvents).toEqual([]);
   });
 
-  it('leaves photos out unless asked, and keeps existing photo rows when the backup has none', async () => {
+  it('leaves photos out unless asked, and clears the existing photo rows when the backup has none', async () => {
     const withoutPhotos = await createBackup(source.db, OPTIONS);
     expect(withoutPhotos.includesPhotos).toBe(false);
     expect(withoutPhotos.data.photos).toEqual([]);
@@ -133,7 +146,7 @@ describe('backup export / restore', () => {
     await restoreBackup(target.db, parse(withoutPhotos));
     expect(
       (await createBackup(target.db, { ...OPTIONS, includePhotos: true })).data.photos,
-    ).toHaveLength(1);
+    ).toEqual([]);
   });
 
   it('summarizes the counts for the preview', async () => {
@@ -224,5 +237,87 @@ describe('parseBackupText', () => {
       expect(paths.some((path) => path.startsWith('data.templates[0].json'))).toBe(true);
       expect(paths).toContain('data.setLogs[0].sessionId');
     }
+  });
+});
+
+describe('parseBackupText: JSON columns', () => {
+  async function corrupted(change: (backup: Backup) => void): Promise<string[]> {
+    const base = await createBackup(source.db, OPTIONS);
+    const copy = JSON.parse(JSON.stringify(base)) as Backup;
+    change(copy);
+    const result = parseBackupText(JSON.stringify(copy));
+    if (result.ok) return [];
+    return result.errors.map((error) => (error.kind === 'field' ? error.error.path : ''));
+  }
+
+  it('accepts the seeded, valid payloads', async () => {
+    expect(await corrupted(() => undefined)).toEqual([]);
+  });
+
+  it('rejects a suggestion whose payload does not match its kind', async () => {
+    const paths = await corrupted((backup) => {
+      backup.data.suggestions[0]!.kind = 'stepsGoal';
+    });
+    expect(paths).toContain('data.suggestions[0].payload');
+    expect(
+      await corrupted((backup) => {
+        backup.data.suggestions[0]!.payload = { a: 1 };
+      }),
+    ).toContain('data.suggestions[0].payload');
+    expect(
+      await corrupted((backup) => {
+        backup.data.suggestions[0]!.kind = 'madeUp';
+      }),
+    ).toContain('data.suggestions[0].payload');
+  });
+
+  it('rejects insight evidence that is not an object or a list', async () => {
+    const paths = await corrupted((backup) => {
+      backup.data.insights[0]!.evidence = 'texto';
+    });
+    expect(paths).toContain('data.insights[0].evidence');
+  });
+
+  it('rejects a reminder schedule that is not a template schedule', async () => {
+    const paths = await corrupted((backup) => {
+      backup.data.reminders[0]!.schedule = { time: '10:00' };
+    });
+    expect(paths).toContain('data.reminders[0].schedule');
+  });
+
+  it('rejects check-in answers that are not text or numbers', async () => {
+    const paths = await corrupted((backup) => {
+      backup.data.checkins[0]!.answers = { energy: { deep: true } } as never;
+    });
+    expect(paths.some((path) => path.startsWith('data.checkins[0].answers'))).toBe(true);
+  });
+});
+
+describe('backup migration chain', () => {
+  const table = {
+    1: (json: Record<string, unknown>) => ({ ...json, renamed: json.old }),
+    2: (json: Record<string, unknown>) => ({ ...json, third: true }),
+  };
+
+  it('runs every step from the file version up to the target and stamps the version', () => {
+    expect(migrateBackupJson({ old: 'x', schemaVersion: 1 }, 1, 3, table)).toEqual({
+      old: 'x',
+      renamed: 'x',
+      third: true,
+      schemaVersion: 3,
+    });
+    expect(migrateBackupJson({ schemaVersion: 2 }, 2, 3, table)).toEqual({
+      third: true,
+      schemaVersion: 3,
+    });
+  });
+
+  it('returns null when a step is missing, and the file as is when it is current', () => {
+    expect(migrateBackupJson({ schemaVersion: 0 }, 0, 3, table)).toBeNull();
+    expect(migrateBackupJson({ schemaVersion: 3 }, 3, 3, table)).toEqual({ schemaVersion: 3 });
+  });
+
+  it('the real table is empty today: version 0 stays unreadable', () => {
+    expect(migrateBackupJson({ schemaVersion: 0 }, 0)).toBeNull();
   });
 });

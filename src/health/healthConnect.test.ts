@@ -61,11 +61,11 @@ describe('Health Connect adapter', () => {
     expect(await adapter.requestPermission()).toBe(true);
   });
 
-  it('reads one aggregated slice per local day and zero-fills missing slices', async () => {
+  it('reads one aggregated slice per logical day and zero-fills missing slices', async () => {
     const adapter = createHealthConnectAdapter();
     mockLib.aggregateGroupByPeriod.mockResolvedValue([
-      { startTime: '2026-10-05T00:00', result: { COUNT_TOTAL: 4200 } },
-      { startTime: '2026-10-06T00:00', result: { COUNT_TOTAL: 8000 } },
+      { startTime: '2026-10-05T04:00', result: { COUNT_TOTAL: 4200 } },
+      { startTime: '2026-10-06T04:00', result: { COUNT_TOTAL: 8000 } },
     ]);
     const days = await adapter.readDailySteps('2026-10-05', '2026-10-07');
     expect(days).toEqual([
@@ -73,18 +73,22 @@ describe('Health Connect adapter', () => {
       { date: '2026-10-06', steps: 8000 },
       { date: '2026-10-07', steps: 0 },
     ]);
+    // The window opens at 04:00 local of the first day (the logical-day rollover), not at midnight.
     expect(mockLib.aggregateGroupByPeriod.mock.calls[0]?.[0]).toMatchObject({
       recordType: 'Steps',
       timeRangeSlicer: { period: 'DAYS', length: 1 },
-      timeRangeFilter: { operator: 'between' },
+      timeRangeFilter: {
+        operator: 'between',
+        startTime: new Date(2026, 9, 5, 4, 0).toISOString(),
+      },
     });
   });
 
   it('maps slices by their local start date, not by position (omitted and reordered slices)', async () => {
     const adapter = createHealthConnectAdapter();
     mockLib.aggregateGroupByPeriod.mockResolvedValue([
-      { startTime: '2026-10-07T00:00', result: { COUNT_TOTAL: 900 } },
-      { startTime: '2026-10-05T00:00:30', result: { COUNT_TOTAL: 4200 } },
+      { startTime: '2026-10-07T04:00', result: { COUNT_TOTAL: 900 } },
+      { startTime: '2026-10-05T04:00:30', result: { COUNT_TOTAL: 4200 } },
       { startTime: 'not a date', result: { COUNT_TOTAL: 1 } },
     ]);
     expect(await adapter.readDailySteps('2026-10-05', '2026-10-07')).toEqual([

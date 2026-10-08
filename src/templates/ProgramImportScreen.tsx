@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { pickTextFile } from '../backup/files';
+import { FileTooLargeError, MAX_PROGRAM_BYTES, toMegabytes } from '../backup/limits';
 import { getDatabase, getRepositories } from '../db';
 import { useT } from '../i18n';
 import { requestNotificationSync } from '../notifications/sync';
@@ -15,7 +16,9 @@ import { useTheme } from '../ui/theme';
 import { describeImportError } from './describeError';
 import {
   applyProgramImport,
+  computeImportImpact,
   previewProgramImport,
+  type ImportContext,
   type ImportMode,
   type ProgramImportError,
   type ProgramPreviewItem,
@@ -30,6 +33,7 @@ export function ProgramImportScreen() {
   const [busy, setBusy] = useState<'pick' | 'apply' | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
   const [items, setItems] = useState<ProgramPreviewItem[] | null>(null);
+  const [context, setContext] = useState<ImportContext | null>(null);
   const [mode, setMode] = useState<ImportMode>('replace');
   const [notice, setNotice] = useState<Notice | null>(null);
 
@@ -44,14 +48,26 @@ export function ProgramImportScreen() {
     setNotice(null);
     setProblems([]);
     setItems(null);
+    setContext(null);
     try {
-      const text = await pickTextFile();
+      const text = await pickTextFile(MAX_PROGRAM_BYTES);
       if (text === null) return;
-      const existing = new Set((await getRepositories().templates.listModules()).map((m) => m.id));
-      const preview = previewProgramImport(text, existing);
-      if (preview.ok) setItems(preview.items);
-      else setProblems(preview.errors.map(describe));
+      const repositories = getRepositories();
+      const modules = await repositories.templates.listModules();
+      const loggedStepIds = new Set(await repositories.workouts.loggedStepIds());
+      const preview = previewProgramImport(text, new Set(modules.map((m) => m.id)));
+      if (preview.ok) {
+        setContext({ modules, loggedStepIds });
+        setItems(preview.items);
+      } else setProblems(preview.errors.map(describe));
     } catch (error) {
+      if (error instanceof FileTooLargeError) {
+        setNotice({
+          tone: 'error',
+          text: t('programImport.tooLarge', { mb: toMegabytes(error.maxBytes) }),
+        });
+        return;
+      }
       if (__DEV__) console.error('Could not read the program file', error);
       setNotice({ tone: 'error', text: t('programImport.readFailed') });
     } finally {
@@ -81,6 +97,11 @@ export function ProgramImportScreen() {
       }
     },
     [mode, t],
+  );
+
+  const impact = useMemo(
+    () => (items && context ? computeImportImpact(items, mode, context) : null),
+    [items, context, mode],
   );
 
   return (
@@ -155,6 +176,20 @@ export function ProgramImportScreen() {
                   onPress={() => setMode('add')}
                 />
               </View>
+              {impact && impact.losingHistory.length > 0 ? (
+                <Text style={[theme.text('body'), { color: theme.color.text }]}>
+                  {t('programImport.losingHistory', {
+                    names: impact.losingHistory.map((step) => step.name).join(', '),
+                  })}
+                </Text>
+              ) : null}
+              {impact && impact.deactivated.length > 0 ? (
+                <Text style={[theme.text('body'), { color: theme.color.text }]}>
+                  {t('programImport.deactivated', {
+                    names: impact.deactivated.map((module) => module.name).join(', '),
+                  })}
+                </Text>
+              ) : null}
               <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
                 {t('programImport.note')}
               </Text>

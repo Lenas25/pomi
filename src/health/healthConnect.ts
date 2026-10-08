@@ -1,8 +1,8 @@
-import { addDays, format, parseISO, startOfDay } from 'date-fns';
 import { Platform } from 'react-native';
 import * as lib from 'react-native-health-connect';
 
 import type { DailySteps, HealthAdapter, HealthAvailability } from './types';
+import { stepsWindow } from './window';
 
 // Importing the library is safe on every platform: off Android its native module is a proxy that
 // only throws when used, and `getAvailability` checks the platform first.
@@ -60,33 +60,30 @@ export function createHealthConnectAdapter(): HealthAdapter {
 
     async readDailySteps(from: string, to: string): Promise<DailySteps[]> {
       await ready();
-      const first = startOfDay(parseISO(from));
-      const dayCount =
-        Math.round((startOfDay(parseISO(to)).getTime() - first.getTime()) / 86_400_000) + 1;
-      if (dayCount < 1) return [];
-      // The filter is converted to the device time zone natively, so local midnights slice local days.
-      const end = addDays(first, dayCount);
+      const window = stepsWindow(from, to);
+      if (!window) return [];
+      // A day is the logical one (04:00 -> 03:59, same as `dayKeyFor`), so the filter starts at
+      // 04:00 of the first day and the one-day slices follow it. The filter is converted to the
+      // device time zone natively, so these are local wall-clock times.
       const slices = await lib.aggregateGroupByPeriod({
         recordType: 'Steps',
         timeRangeFilter: {
           operator: 'between',
-          startTime: first.toISOString(),
-          endTime: new Date(Math.min(end.getTime(), Date.now())).toISOString(),
+          startTime: window.start.toISOString(),
+          endTime: new Date(Math.min(window.end.getTime(), Date.now())).toISOString(),
         },
         timeRangeSlicer: { period: 'DAYS', length: 1 },
       });
       // Slices are matched to days by their local start (`LocalDateTime.toString()`, e.g.
-      // `2026-10-05T00:00`), never by position: the library may omit or reorder slices.
+      // `2026-10-05T04:00` = the logical day 2026-10-05), never by position: the library may omit
+      // or reorder slices.
       const byDate = new Map<string, number>();
       for (const slice of slices) {
         const date = LOCAL_DATE.exec(slice.startTime)?.[0];
         if (date === undefined) continue;
         byDate.set(date, Math.max(byDate.get(date) ?? 0, slice.result.COUNT_TOTAL ?? 0));
       }
-      return Array.from({ length: dayCount }, (_unused, index) => {
-        const date = format(addDays(first, index), 'yyyy-MM-dd');
-        return { date, steps: byDate.get(date) ?? 0 };
-      });
+      return window.dates.map((date) => ({ date, steps: byDate.get(date) ?? 0 }));
     },
 
     openSettings(): void {
