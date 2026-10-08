@@ -225,7 +225,7 @@ Preguntas:
 Para cada ejercicio con `sets`, con la última sesión de ese ejercicio:
 
 1. **Todas las series en el tope del rango** y RIR ≥ 1 (o sin RIR registrado) → **subir `incrementKg`** y volver al mínimo del rango. Ejemplo: "Hip thrust: 45 kg × 8. La última vez: 40 kg × 10 en todas".
-2. **Alguna serie por debajo del tope** → **mismo peso, +1 repetición** en las primeras series que no llegaron al tope.
+2. **Alguna serie por debajo del tope** → **mismo peso, +1 repetición en TODAS las series que no llegaron al tope** (sin pasar del tope). Solo cuentan las series de trabajo (al peso más alto); el calentamiento y las series más ligeras se ignoran. Sin `incrementKg` (peso corporal), con todas en el tope la meta es la mejor serie + 1 repetición, aunque pase del rango.
 3. **Sin mejora en `stallSessions` sesiones seguidas** (por defecto 3), sin subir ni peso ni repeticiones → sugerencia: revisar sueño y descanso, o **semana de descarga** (−`deloadPct`% de peso, por defecto 10%).
 4. **RIR registrado como 3 o más** en todas las series durante 2 sesiones → sugerir subir peso aunque no se haya llegado al tope.
 5. **Sin historial:** mostrar `weightHint` y el texto "Elige un peso con el que te queden 1 o 2 repeticiones en reserva".

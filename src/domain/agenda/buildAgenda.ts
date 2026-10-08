@@ -13,7 +13,7 @@ import type {
 } from '../../templates/schema';
 import { waterGoal } from '../formulas/water';
 import { bedtimeFor } from '../formulas/sleep';
-import { MINUTES_PER_DAY, clockToMinutes } from '../time';
+import { MINUTES_PER_DAY, clockToMinutes, wrapMinutes } from '../time';
 import { evaluateOnlyIf, evaluateWhen, type Profile } from './conditions';
 
 export type AgendaKind =
@@ -31,7 +31,7 @@ export type AgendaLabel =
   | { type: 'template'; text: string };
 
 export type AgendaItem = {
-  /** Stable within a day, e.g. `water:agua`, `checkin:morning`. */
+  /** Stable within a day and unique across modules, e.g. `water:hidratacion:agua`, `checkin:morning`. */
   id: string;
   kind: AgendaKind;
   /**
@@ -69,6 +69,14 @@ export type AgendaState = {
 const CHECKIN_MORNING_OFFSET = 10;
 const CHECKIN_NIGHT_OFFSET = -30;
 const GYM_HOURS_PER_SESSION = 1;
+/**
+ * A derived bedtime whose clock is earlier than the wake clock belongs after midnight (end of
+ * today's timeline) ONLY when it falls before this hour. Supported shifts: wake times from the
+ * small hours up to ~14:00 with 6-10 h targets (e.g. wake 11:00, 8 h -> bed 03:00 = 27:00). For a
+ * shifted day (wake 15:00, 8 h -> bed 07:00) the bed clock is a daytime hour, so it is NOT pushed
+ * past midnight and stays 07:00.
+ */
+const NIGHT_WINDOW_END_MIN = 6 * 60;
 
 type AnchorMinutes = Partial<Record<'wake' | 'bed' | 'gymMorning' | 'gymEvening', number>>;
 
@@ -80,19 +88,34 @@ function resolveAnchors(anchors: Anchors): AnchorMinutes {
   if (anchors.gymEvening) result.gymEvening = clockToMinutes(anchors.gymEvening);
   if (anchors.wake && anchors.sleepTargetH) {
     let bed = clockToMinutes(bedtimeFor(anchors.wake, anchors.sleepTargetH));
-    // Bed earlier on the clock than wake (e.g. bed 00:30, wake 08:00) is after midnight, so it
-    // belongs at the end of today's timeline. Otherwise it is the same evening.
-    if (result.wake !== undefined && bed < result.wake) bed += MINUTES_PER_DAY;
+    // Bed earlier on the clock than wake AND in the night window (e.g. bed 00:30, wake 08:00) is
+    // after midnight, so it belongs at the end of today's timeline. Otherwise it is the same day.
+    if (result.wake !== undefined && bed < result.wake && bed < NIGHT_WINDOW_END_MIN) {
+      bed += MINUTES_PER_DAY;
+    }
     result.bed = bed;
   }
   return result;
+}
+
+/**
+ * Anchor + offset, kept inside the day consistently: a negative result wraps to the previous
+ * evening's clock (wake 00:30 - 60 -> 23:30) and an overflow past midnight wraps to the small
+ * hours. The ONLY value allowed to stay >= 1440 ("after midnight, end of today's timeline") is one
+ * derived from `bed`, whose own value may already be past midnight (bed 00:30 + 15 -> 1485).
+ */
+function offsetFrom(base: number, offset: number, anchor: keyof AnchorMinutes): number {
+  const raw = base + offset;
+  if (raw >= 0 && raw < MINUTES_PER_DAY) return raw;
+  if (anchor === 'bed' && raw >= MINUTES_PER_DAY && raw < 2 * MINUTES_PER_DAY) return raw;
+  return wrapMinutes(raw);
 }
 
 function startMinutes(schedule: Schedule, anchors: AnchorMinutes): number | null {
   if (schedule.time !== undefined) return clockToMinutes(schedule.time);
   if (schedule.relativeTo === undefined) return null;
   const base = anchors[schedule.relativeTo];
-  return base === undefined ? null : base + (schedule.offsetMin ?? 0);
+  return base === undefined ? null : offsetFrom(base, schedule.offsetMin ?? 0, schedule.relativeTo);
 }
 
 /** Expands a schedule for `weekday` into its occurrences (empty if it does not apply today). */
@@ -102,9 +125,13 @@ function occurrencesOf(schedule: Schedule, weekday: number, anchors: AnchorMinut
   if (start === null) return [];
   if (schedule.repeatEveryMin === undefined) return [start];
 
-  const limit = schedule.until !== undefined ? clockToMinutes(schedule.until) : start;
+  // `until` earlier than the start crosses midnight (22:00 -> 02:00 ends at 26:00).
+  const limit =
+    schedule.until !== undefined
+      ? start + wrapMinutes(clockToMinutes(schedule.until) - start)
+      : start;
   const times: number[] = [];
-  for (let minute = start; minute <= Math.max(limit, start); minute += schedule.repeatEveryMin) {
+  for (let minute = start; minute <= limit; minute += schedule.repeatEveryMin) {
     times.push(minute);
   }
   return times;
@@ -132,15 +159,23 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
   const items: AgendaItem[] = [];
 
   // Gym: days and anchors come from settings (onboarding), not from `program.schedules`.
-  const gymToday = state.gymDays.find((entry) => entry.days.includes(weekday));
-  if (gymToday) {
-    const minutes = anchors[gymToday.anchor] ?? null;
+  // Several entries may share a weekday (morning AND evening): one item with every occurrence.
+  const gymToday = state.gymDays.filter((entry) => entry.days.includes(weekday));
+  if (gymToday.length > 0) {
+    const occurrences = [
+      ...new Set(
+        gymToday.flatMap((entry) => {
+          const minutes = anchors[entry.anchor];
+          return minutes === undefined ? [] : [minutes];
+        }),
+      ),
+    ].sort((a, b) => a - b);
     const routine = state.todayRoutine;
     items.push({
       id: 'gym',
       kind: 'gym',
-      minutes,
-      occurrences: minutes === null ? [] : [minutes],
+      minutes: occurrences[0] ?? null,
+      occurrences,
       label: { type: 'key', key: 'agenda.gym' },
       ...(routine
         ? {
@@ -156,7 +191,7 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
   // Check-ins: morning at wake + 10, night at bed − 30 (bed is derived).
   const prefs = state.checkinPrefs ?? { morning: true, night: true };
   if (prefs.morning && anchors.wake !== undefined) {
-    const minutes = anchors.wake + CHECKIN_MORNING_OFFSET;
+    const minutes = offsetFrom(anchors.wake, CHECKIN_MORNING_OFFSET, 'wake');
     items.push({
       id: 'checkin:morning',
       kind: 'checkin',
@@ -166,7 +201,7 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
     });
   }
   if (prefs.night && anchors.bed !== undefined) {
-    const minutes = anchors.bed + CHECKIN_NIGHT_OFFSET;
+    const minutes = offsetFrom(anchors.bed, CHECKIN_NIGHT_OFFSET, 'bed');
     items.push({
       id: 'checkin:night',
       kind: 'checkin',
@@ -181,7 +216,7 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
       if (!evaluateOnlyIf(habit.onlyIf, state.profile)) continue;
       const kind = habitKind(habit);
       const base = {
-        id: `${kind}:${habit.id}`,
+        id: `${kind}:${module.id}:${habit.id}`,
         kind,
         label: { type: 'template' as const, text: habit.name },
         moduleId: module.id,
@@ -200,7 +235,7 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
           ? (() => {
               const goal = waterGoal({
                 weightKg: state.profile.weightKg,
-                gymHours: gymToday ? GYM_HOURS_PER_SESSION : 0,
+                gymHours: gymToday.length * GYM_HOURS_PER_SESSION,
                 glassMl: habit.type === 'counter' ? habit.glassMl : undefined,
               });
               return { glasses: goal.glasses, ml: goal.ml };
@@ -222,7 +257,7 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
       const times = occurrencesOf(reminder.schedule, weekday, anchors);
       if (times.length === 0) continue;
       items.push({
-        id: `reminder:${reminder.id}`,
+        id: `reminder:${module.id}:${reminder.id}`,
         kind: 'reminder',
         minutes: times[0] ?? null,
         occurrences: times,

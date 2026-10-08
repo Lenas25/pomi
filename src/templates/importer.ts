@@ -69,14 +69,24 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Removes author comment keys (`_note`, ...) at every depth, without mutating the input. */
+/**
+ * Fields whose value is an OPEN map (arbitrary author keys, `z.record` in the schema). A `_` key
+ * there is data, not a comment, so it is left alone and validated like any other key. Keep in sync
+ * with the `z.record` fields of `schema.ts` (a test fails if a record field is missing here).
+ */
+export const OPEN_MAP_FIELDS: ReadonlySet<string> = new Set(['onlyIf']);
+
+/**
+ * Removes author comment keys (`_note`, ...) from SCHEMA objects at every depth, without mutating
+ * the input. Open maps (see `OPEN_MAP_FIELDS`) are kept verbatim.
+ */
 function stripCommentKeys(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stripCommentKeys);
   if (!isPlainObject(value)) return value;
   return Object.fromEntries(
     Object.entries(value)
       .filter(([key]) => !key.startsWith('_'))
-      .map(([key, inner]) => [key, stripCommentKeys(inner)]),
+      .map(([key, inner]) => [key, OPEN_MAP_FIELDS.has(key) ? inner : stripCommentKeys(inner)]),
   );
 }
 

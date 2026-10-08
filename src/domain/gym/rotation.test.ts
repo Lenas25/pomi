@@ -75,3 +75,10 @@ describe('todaysRoutineId', () => {
     expect(todaysRoutineId(ids, [session('old', '2026-02-28')], '2026-03-02')).toBe('d1');
   });
 });
+
+describe('todaysRoutineId extras', () => {
+  it('does not treat a finished session without sets as completed', () => {
+    const history = [session('d1', '2026-02-26'), session('d2', '2026-02-28', { sets: 0 })];
+    expect(todaysRoutineId(ids, history, '2026-03-02')).toBe('d2');
+  });
+});

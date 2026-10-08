@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from '@jest/globals';
 
 import { en } from '../i18n/en';
@@ -12,6 +15,7 @@ import settingsJson from '../../templates/settings.json';
 import { loadDefaultTemplates } from './defaults';
 import { describeImportError, type Translate } from './describeError';
 import {
+  OPEN_MAP_FIELDS,
   importTemplate,
   importTemplateFromText,
   toModuleTemplates,
@@ -77,6 +81,47 @@ describe('unknown keys', () => {
       habits: [{ type: 'check', id: 'h', name: 'H', _why: 'because' }],
     });
     expect(importTemplate(json).ok).toBe(true);
+  });
+});
+
+describe('comment keys vs open maps', () => {
+  it('keeps "_" keys inside open maps (onlyIf is data, not a comment)', () => {
+    const result = importTemplate(
+      minimalModule({
+        habits: [
+          { type: 'check', id: 'h', name: 'H', _why: 'dropped', onlyIf: { _custom: true } },
+        ],
+      }),
+    );
+    if (!result.ok || result.template.kind !== 'module') throw new Error('expected a module');
+    const habit = result.template.habits?.[0];
+    expect(habit).not.toHaveProperty('_why');
+    expect(habit?.onlyIf).toEqual({ _custom: true });
+  });
+
+  it('lists every z.record field of the schema as an open map', () => {
+    const source = readFileSync(join(__dirname, 'schema.ts'), 'utf8');
+    const records = [...source.matchAll(/(\w+):\s*z\s*\.record\(/g)].map((m) => m[1]);
+    expect(records.length).toBeGreaterThan(0);
+    for (const name of records) expect(OPEN_MAP_FIELDS.has(name ?? '')).toBe(true);
+  });
+
+  it('rejects an empty `when` list (min 1)', () => {
+    const errors = errorsOf(
+      minimalModule({
+        programs: [
+          {
+            id: 'p',
+            name: 'P',
+            routines: [
+              { id: 'r', name: 'R', steps: [{ type: 'check', id: 's', name: 'S', when: [] }] },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]?.path).toContain('when');
   });
 });
 

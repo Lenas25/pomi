@@ -60,3 +60,10 @@ describe('evaluateOnlyIf', () => {
     expect(evaluateOnlyIf({ workType: 'sentada' }, profile)).toBe(false);
   });
 });
+
+describe('empty conditions', () => {
+  it('treats an empty list like an empty condition: no constraint (the schema rejects both)', () => {
+    expect(evaluateWhen([], { weekday: 3 })).toBe(true);
+    expect(evaluateWhen({}, { weekday: 3 })).toBe(true);
+  });
+});

@@ -202,3 +202,81 @@ describe('todayTarget edge cases', () => {
     }
   });
 });
+
+describe('todayTarget review fixes', () => {
+  it('keeps progressing a bodyweight exercise past the range (11 -> 12)', () => {
+    const bodyweight: TargetStep = { sets: 2, reps: '8–10' };
+    const first = todayTarget(bodyweight, [session('d1', [set(null, 10), set(null, 10)])], rules);
+    expect(first.reps).toEqual([11, 11]);
+    const second = todayTarget(
+      bodyweight,
+      [
+        session('d2', [set(null, 11), set(null, 11)]),
+        session('d1', [set(null, 10), set(null, 10)]),
+      ],
+      rules,
+    );
+    expect(second).toMatchObject({ kind: 'increase', reps: [12, 12] });
+    expect(second.reason?.params).toMatchObject({ reps: 12 });
+  });
+
+  it('does not shift per-set targets when a set was skipped', () => {
+    // set 2 skipped: set 3 (8 reps) must still map to index 2.
+    const target = todayTarget(
+      step,
+      [session('d', [set(40, 10), set(40, null), set(40, 8)])],
+      rules,
+    );
+    expect(target.reps).toEqual([10, 8, 9]);
+  });
+
+  it('adds +1 rep on every set below the top and reports the smallest raised target', () => {
+    const target = todayTarget(step, [session('d', [set(40, 8), set(40, 9), set(40, 10)])], rules);
+    expect(target.reps).toEqual([9, 10, 10]);
+    expect(target.reason).toEqual({
+      key: 'gym.target.addRep',
+      params: { weightKg: 40, reps: 9 },
+    });
+  });
+
+  it('evaluates the top of the range on working sets only (warm-up and drop sets ignored)', () => {
+    const target = todayTarget(
+      step,
+      [session('d', [set(20, 12), set(40, 10), set(40, 10), set(40, 10), set(30, 6)])],
+      rules,
+    );
+    expect(target).toMatchObject({ kind: 'increase', weightKg: 45, reps: [8, 8, 8] });
+    expect(target.reason?.params).toMatchObject({ lastWeightKg: 40, lastReps: 10 });
+  });
+
+  it('needs the planned number of WORKING sets, not warm-ups', () => {
+    const target = todayTarget(
+      step,
+      [session('d', [set(20, 12), set(40, 10), set(40, 10)])],
+      rules,
+    );
+    expect(target.kind).toBe('add-rep');
+  });
+
+  it('resets the stall window after a deload (no immediate re-fire)', () => {
+    const flat = (date: string, kg = 40) => session(date, [set(kg, 9), set(kg, 8), set(kg, 8)]);
+    const stalled = [flat('d4'), flat('d3'), flat('d2'), flat('d1')];
+    expect(keys(todayTarget(step, stalled, rules).suggestions)).toContain('gym.target.stalled');
+
+    // Took the suggested deload (36 kg): not stalled right after.
+    const afterDeload = [flat('d5', 36), ...stalled];
+    expect(keys(todayTarget(step, afterDeload, rules).suggestions)).not.toContain(
+      'gym.target.stalled',
+    );
+
+    // ... but three flat sessions at the new weight stall again.
+    const again = [flat('d8', 36), flat('d7', 36), flat('d6', 36), flat('d5', 36), ...stalled];
+    expect(keys(todayTarget(step, again, rules).suggestions)).toContain('gym.target.stalled');
+  });
+
+  it('does not treat an unrelated weight drop as a deload', () => {
+    const flat = (date: string, kg: number) => session(date, [set(kg, 9), set(kg, 8), set(kg, 8)]);
+    const history = [flat('d4', 30), flat('d3', 40), flat('d2', 40), flat('d1', 40)];
+    expect(keys(todayTarget(step, history, rules).suggestions)).toContain('gym.target.stalled');
+  });
+});

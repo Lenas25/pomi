@@ -115,3 +115,31 @@ describe('proposeStepsAdjustment', () => {
     ).toBe('keep');
   });
 });
+
+describe('steps edge cases', () => {
+  it('filters invalid values BEFORE taking the last 7 days', () => {
+    const data = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, Number.NaN];
+    // last 7 valid: 2000..8000 -> 5000
+    expect(stepsBaseline(data)).toBe(5000);
+    expect(stepsBaseline([...data, -5])).toBe(5000);
+  });
+
+  it('rounds the lowering floor UP to 500', () => {
+    expect(
+      proposeStepsAdjustment({
+        currentGoal: 6000,
+        baseline: 5120,
+        daysMetThisWeek: 1,
+        daysMetPreviousWeek: 1,
+      }),
+    ).toEqual({ kind: 'lower', newGoal: 5500 });
+    expect(
+      proposeStepsAdjustment({
+        currentGoal: 5500,
+        baseline: 5120,
+        daysMetThisWeek: 1,
+        daysMetPreviousWeek: 1,
+      }).kind,
+    ).toBe('keep');
+  });
+});

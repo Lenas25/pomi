@@ -10,11 +10,14 @@ export type ConditionContext = {
 
 /**
  * A single condition holds when EVERY field it declares holds (`days` AND `flag`).
- * A list of conditions holds when ANY of them does. An empty condition (`{}`) always holds.
+ * A list of conditions holds when ANY of them does. An empty condition (`{}`) and an empty list
+ * (`[]`) mean "no constraint" and always hold. The template schema rejects both (`min(1)`), so this
+ * only matters for hand-built input; a step must not silently vanish because of an empty list.
  */
 export function evaluateWhen(when: When | undefined, context: ConditionContext): boolean {
   if (when === undefined) return true;
   const conditions = Array.isArray(when) ? when : [when];
+  if (conditions.length === 0) return true;
   return conditions.some((condition) => {
     if (condition.days !== undefined && !condition.days.includes(context.weekday)) return false;
     if (condition.flag !== undefined) {

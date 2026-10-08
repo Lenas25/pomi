@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 
 import { describe, expect, it } from '@jest/globals';
 
@@ -19,12 +19,50 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
-describe('src/domain stays pure', () => {
-  const forbidden =
-    /from\s+['"](react|react-native|expo[^'"]*|drizzle-orm[^'"]*|@expo[^'"]*|\.\.\/db[^'"]*|\.\.\/\.\.\/db[^'"]*)['"]/;
+// Every module specifier in a file: `from 'x'`, bare `import 'x'`, `require('x')`, `import('x')`.
+const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g;
+const FORBIDDEN_BARE =
+  /^(react($|\/)|react-native|@react-native|react-[^/]+|expo($|[-/])|@expo|drizzle-orm|zustand|expo-)/;
+// Relative imports may only stay inside the domain (or take types from the template schema).
+const ALLOWED_RELATIVE_TARGET = /(^|\/)(domain|templates\/schema)(\/|$)/;
 
-  it.each(sourceFiles(__dirname))('has no React, Expo or database imports: %s', (file) => {
-    expect(readFileSync(file, 'utf8')).not.toMatch(forbidden);
+function specifiersOf(file: string): string[] {
+  return [...readFileSync(file, 'utf8').matchAll(SPECIFIER)].flatMap((m) => (m[1] ? [m[1]] : []));
+}
+
+function violation(file: string, specifier: string): string | null {
+  if (specifier.startsWith('.')) {
+    const target = relative(srcRoot, resolve(dirname(file), specifier))
+      .split(sep)
+      .join('/');
+    return ALLOWED_RELATIVE_TARGET.test(target) || target === 'templates/schema'
+      ? null
+      : `relative import leaves the domain: ${specifier}`;
+  }
+  if (FORBIDDEN_BARE.test(specifier)) return `forbidden package: ${specifier}`;
+  return null;
+}
+
+const srcRoot = join(__dirname, '..');
+
+describe('src/domain stays pure', () => {
+  it.each(sourceFiles(__dirname))('has no React, Expo, database or UI imports: %s', (file) => {
+    const problems = specifiersOf(file).flatMap((spec) => violation(file, spec) ?? []);
+    expect(problems).toEqual([]);
+  });
+
+  it('detects every import form', () => {
+    const forms = [
+      "import x from 'react-native-svg';",
+      "import 'expo-haptics';",
+      "const a = require('react');",
+      "const b = await import('../db/client');",
+      "export { y } from 'drizzle-orm/sqlite-core';",
+    ];
+    for (const form of forms) {
+      const spec = [...form.matchAll(SPECIFIER)][0]?.[1] ?? '';
+      expect(violation(join(__dirname, 'x.ts'), spec)).not.toBeNull();
+    }
   });
 });
 

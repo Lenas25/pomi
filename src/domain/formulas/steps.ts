@@ -20,7 +20,8 @@ export function stepsBaseline(
   dailySteps: readonly number[],
   onboardingAnswer?: number | null,
 ): number | null {
-  const recent = dailySteps.slice(-7).filter((steps) => Number.isFinite(steps) && steps >= 0);
+  // Drop invalid entries first so a bad day does not shrink the 7-day window.
+  const recent = dailySteps.filter((steps) => Number.isFinite(steps) && steps >= 0).slice(-7);
   const average = (values: readonly number[]) =>
     Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 
@@ -60,7 +61,7 @@ export type StepsAdjustment =
  * Weekly adjustment PROPOSAL. Pure: it never applies anything; the suggestions engine (v2) shows
  * it and the person must accept. Rules:
  *  - 5+ of 7 days met -> raise by 500 (up to the cap).
- *  - fewer than 3 days met two weeks in a row -> lower by 500, never below the baseline.
+ *  - fewer than 3 days met two weeks in a row -> lower by 500, never below the baseline rounded up to 500.
  */
 export function proposeStepsAdjustment({
   currentGoal,
@@ -74,7 +75,9 @@ export function proposeStepsAdjustment({
     return newGoal > currentGoal ? { kind: 'raise', newGoal } : { kind: 'keep' };
   }
   if (daysMetThisWeek < 3 && daysMetPreviousWeek !== undefined && daysMetPreviousWeek < 3) {
-    const newGoal = Math.max(currentGoal - STEPS_ADJUST, baseline);
+    // The floor is the baseline rounded UP to 500 so the goal stays on the 500 grid.
+    const floor = Math.ceil(baseline / STEPS_ROUNDING) * STEPS_ROUNDING;
+    const newGoal = Math.max(currentGoal - STEPS_ADJUST, floor);
     return newGoal < currentGoal ? { kind: 'lower', newGoal } : { kind: 'keep' };
   }
   return { kind: 'keep' };

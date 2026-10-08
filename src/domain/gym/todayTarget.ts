@@ -71,8 +71,12 @@ function roundHalf(value: number): number {
   return Math.round(value * 2) / 2;
 }
 
+function isDone(set: LoggedSet): boolean {
+  return set.reps !== null && set.reps > 0;
+}
+
 function doneSets(session: ExerciseSession): LoggedSet[] {
-  return session.sets.filter((s) => s.reps !== null && s.reps > 0);
+  return session.sets.filter(isDone);
 }
 
 /** Working weight of a session: the heaviest set (warm-up ramps would otherwise mislead). */
@@ -95,11 +99,34 @@ function improved(current: ExerciseSession, previous: ExerciseSession): boolean 
   return totalReps(current) > totalReps(previous);
 }
 
+/** Allowed distance (in percentage points) between an actual weight drop and `deloadPct`. */
+const DELOAD_TOLERANCE_PCT = 5;
+
+/** `current` is a deload of `previous`: the working weight dropped by about `deloadPct`. */
+function isDeload(current: ExerciseSession, previous: ExerciseSession, deloadPct: number): boolean {
+  const now = workingWeight(current);
+  const before = workingWeight(previous);
+  if (now === null || before === null || now >= before) return false;
+  const dropPct = (1 - now / before) * 100;
+  return Math.abs(dropPct - deloadPct) <= DELOAD_TOLERANCE_PCT;
+}
+
 /**
  * Stalled when each of the last `stallSessions` sessions failed to improve on the one before it
  * (so it needs `stallSessions + 1` sessions). `history` is ordered most recent FIRST.
+ * A deload (weight drop of about `deloadPct`) resets the window: the deload session becomes the new
+ * baseline, so the stall suggestion does not fire again right after taking the lighter week.
  */
-function isStalled(history: readonly ExerciseSession[], stallSessions: number): boolean {
+function isStalled(
+  fullHistory: readonly ExerciseSession[],
+  stallSessions: number,
+  deloadPct: number,
+): boolean {
+  const deloadIndex = fullHistory.findIndex((session, i) => {
+    const previous = fullHistory[i + 1];
+    return previous !== undefined && isDeload(session, previous, deloadPct);
+  });
+  const history = deloadIndex === -1 ? fullHistory : fullHistory.slice(0, deloadIndex + 1);
   if (history.length < stallSessions + 1) return false;
   for (let i = 0; i < stallSessions; i += 1) {
     const current = history[i];
@@ -156,12 +183,17 @@ export function todayTarget(
     };
   }
 
-  const lastSets = doneSets(last);
   const lastWeight = workingWeight(last);
+  // Working sets (case 1 and 2): lighter warm-up / drop sets are ignored, but skipped sets
+  // (no reps) keep their position so the per-set indices of the plan do not shift.
+  const lastSets = last.sets.filter(
+    (s) => !(isDone(s) && lastWeight !== null && s.weightKg !== null && s.weightKg < lastWeight),
+  );
+  const lastDone = lastSets.filter(isDone);
   const canAddWeight = step.incrementKg !== undefined && lastWeight !== null;
   const allAtTop =
-    lastSets.length >= step.sets &&
-    lastSets.every((s) => (s.reps ?? 0) >= max && (s.rir === null || s.rir >= 1));
+    lastDone.length >= step.sets &&
+    lastDone.every((s) => (s.reps ?? 0) >= max && (s.rir === null || s.rir >= 1));
 
   const suggestions: TargetMessage[] = [];
   let kind: TodayTargetKind;
@@ -180,30 +212,42 @@ export function todayTarget(
         weightKg,
         reps: min,
         lastWeightKg: lastWeight,
-        lastReps: Math.max(...lastSets.map((s) => s.reps ?? 0)),
+        lastReps: Math.max(...lastDone.map((s) => s.reps ?? 0)),
       },
     };
   } else if (allAtTop) {
-    // Bodyweight / no increment: the only progression is +1 rep, beyond the range if needed.
+    // Bodyweight / no increment: the only progression is +1 rep on top of the best set, beyond
+    // the range if needed (so 11 -> 12 in the next session too).
     kind = 'increase';
-    reps = Array.from({ length: step.sets }, () => max + 1);
-    reason = { key: 'gym.target.addRep', params: { weightKg: lastWeight ?? 0, reps: max + 1 } };
+    const next = Math.max(...lastDone.map((s) => s.reps ?? 0)) + 1;
+    reps = Array.from({ length: step.sets }, () => next);
+    reason = { key: 'gym.target.addRep', params: { weightKg: lastWeight ?? 0, reps: next } };
   } else {
-    // Case 2: same weight, +1 rep on the sets that did not reach the top (capped at the top).
+    // Case 2: same weight, +1 rep on EVERY set below the top (capped at the top, floored at the
+    // minimum). Indices follow the unfiltered last session so skipped sets do not shift them.
     kind = 'add-rep';
+    const raised: number[] = [];
     reps = Array.from({ length: step.sets }, (_, index) => {
-      const lastReps = lastSets[index]?.reps ?? null;
-      if (lastReps === null) return min;
-      return lastReps >= max ? max : Math.max(lastReps + 1, min);
+      const set = lastSets[index];
+      const lastReps = set !== undefined && isDone(set) ? (set.reps ?? 0) : null;
+      if (lastReps === null) {
+        raised.push(min);
+        return min;
+      }
+      if (lastReps >= max) return max;
+      const target = Math.max(lastReps + 1, min);
+      raised.push(target);
+      return target;
     });
     reason = {
       key: 'gym.target.addRep',
-      params: { weightKg: lastWeight ?? 0, reps: Math.max(...reps) },
+      // The smallest raised target: what the weakest set has to reach.
+      params: { weightKg: lastWeight ?? 0, reps: raised.length > 0 ? Math.min(...raised) : max },
     };
   }
 
   // Case 3: stalled -> review sleep/rest or take a lighter week.
-  if (isStalled(past, rules.stallSessions)) {
+  if (isStalled(past, rules.stallSessions, rules.deloadPct)) {
     suggestions.push({ key: 'gym.target.stalled', params: { sessions: rules.stallSessions } });
     if (lastWeight !== null) {
       suggestions.push({

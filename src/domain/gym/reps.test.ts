@@ -29,9 +29,14 @@ describe('parseReps', () => {
   });
 
   it('treats seconds as time, not reps', () => {
-    expect(parseReps('30–45 s')).toEqual({ kind: 'time', minSec: 30, maxSec: 45 });
-    expect(parseReps('30 s')).toEqual({ kind: 'time', minSec: 30, maxSec: 30 });
-    expect(parseReps('45 segundos')).toEqual({ kind: 'time', minSec: 45, maxSec: 45 });
+    expect(parseReps('30–45 s')).toEqual({ kind: 'time', minSec: 30, maxSec: 45, perSide: false });
+    expect(parseReps('30 s')).toEqual({ kind: 'time', minSec: 30, maxSec: 30, perSide: false });
+    expect(parseReps('45 segundos')).toEqual({
+      kind: 'time',
+      minSec: 45,
+      maxSec: 45,
+      perSide: false,
+    });
   });
 
   it('uses the first range of a compound description', () => {
@@ -58,5 +63,28 @@ describe('parseReps', () => {
     );
     expect(texts.length).toBeGreaterThan(10);
     for (const text of texts) expect(parseReps(text)).not.toBeNull();
+  });
+});
+
+describe('parseReps extras', () => {
+  it('converts minutes to seconds', () => {
+    expect(parseReps('1 min')).toEqual({ kind: 'time', minSec: 60, maxSec: 60, perSide: false });
+    expect(parseReps('1–2 min')).toEqual({ kind: 'time', minSec: 60, maxSec: 120, perSide: false });
+    expect(parseReps('2 minutos')).toMatchObject({ kind: 'time', minSec: 120 });
+  });
+
+  it('keeps perSide on time targets', () => {
+    expect(parseReps('30 s por lado')).toEqual({
+      kind: 'time',
+      minSec: 30,
+      maxSec: 30,
+      perSide: true,
+    });
+  });
+
+  it('ignores a leading set count ("3x8–10" -> reps 8..10)', () => {
+    expect(parseReps('3x8–10')).toEqual({ kind: 'reps', min: 8, max: 10, perSide: false });
+    expect(parseReps('3 × 12')).toEqual({ kind: 'reps', min: 12, max: 12, perSide: false });
+    expect(parseReps('4x30 s')).toMatchObject({ kind: 'time', minSec: 30 });
   });
 });

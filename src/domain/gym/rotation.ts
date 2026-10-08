@@ -14,7 +14,8 @@ export type RotationSession = {
 /**
  * Today's routine is, in order:
  *  1. the routine with sets logged today (if several, the most recently started);
- *  2. the next routine after the last COMPLETED session, wrapping around;
+ *  2. the next routine after the last COMPLETED session (finished AND with sets logged: an empty
+ *     finished session is not a workout), wrapping around;
  *  3. the first routine when there is no completed history (or its routine no longer exists).
  * `routineIds` is the program order. Returns `null` for a program without routines.
  */
@@ -32,7 +33,7 @@ export function todaysRoutineId(
   if (loggedToday) return loggedToday.routineId;
 
   const lastCompleted = sessions
-    .filter((s) => s.finishedAt !== null && routineIds.includes(s.routineId))
+    .filter((s) => s.finishedAt !== null && s.setCount > 0 && routineIds.includes(s.routineId))
     .sort((a, b) => b.startedAt - a.startedAt)[0];
   if (!lastCompleted) return first;
 
