@@ -795,6 +795,33 @@ export const en: Messages = {
     close: 'Close',
     loadFailed: 'We could not load the comparison.',
   },
+  sedentary: {
+    title: 'Active breaks',
+    intro:
+      'If you have not moved for a while, I suggest a 2 minute break. It uses your Health Connect steps.',
+    enable: 'Remind me if I have not moved for a while',
+    enableHint:
+      'When you turn it on I will ask you to connect Health Connect and allow background reads.',
+    unavailable: 'Health Connect is not available on this phone.',
+    denied:
+      'We could not turn it on: the Health Connect permission is missing. You can try again any time.',
+    saveFailed: 'We could not save the change.',
+    window: 'Look at the last',
+    windowOption: '{{min}} minutes',
+    threshold: 'Remind me if there are fewer than',
+    thresholdValue: '{{steps}} steps',
+    days: 'Days for the reminder',
+    maxPerDay: 'Most reminders per day',
+    maxPerDayValue: '{{count}}',
+    noPhone: 'I do not carry my phone when I walk',
+    noPhoneOn: 'Phone steps do not show your real movement, so the reminder stays off.',
+    honest:
+      'This is an approximate help. Android can delay or skip background tasks (battery saver, Doze mode) and this one needs an internet connection to run, so some reminders may not arrive. It only reminds between one hour after you wake up and two before bed, and it never insists.',
+    notification: {
+      title: 'Active break',
+      body: 'You have not moved for a while. Shall we stretch for 2 minutes?',
+    },
+  },
   companion: {
     title: 'Your rhythm',
     intro:

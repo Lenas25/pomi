@@ -36,7 +36,7 @@ export type NotificationKind =
 export type PlannedChannel = 'gym' | 'habits' | 'checkins' | 'reminders' | 'review';
 
 /** Interactive categories (ids avoid `:` and `-`, as the Expo docs ask). */
-export type CategoryId = 'pomi_habit' | 'pomi_water' | 'pomi_survey' | 'pomi_snooze';
+export type CategoryId = 'pomi_habit' | 'pomi_water' | 'pomi_survey' | 'pomi_snooze' | 'pomi_pause';
 
 /** i18n keys (under `notify.`) of the built-in texts. */
 export type NotifyTextKey =

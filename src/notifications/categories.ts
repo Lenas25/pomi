@@ -21,6 +21,8 @@ export function categoryDefinitions(t: Translate): Record<CategoryId, ActionDefi
       { identifier: ACTIONS.none, buttonTitle: t('notify.actions.none') },
     ],
     pomi_snooze: [snooze],
+    // The sedentary nudge never insists: one action, no snooze.
+    pomi_pause: [{ identifier: ACTIONS.done, buttonTitle: t('notify.actions.done') }],
   };
 }
 

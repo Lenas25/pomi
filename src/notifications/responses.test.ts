@@ -53,6 +53,25 @@ function input(actionIdentifier: string, data: Record<string, unknown> = {}): Re
   };
 }
 
+describe('the sedentary nudge notification', () => {
+  const nudge = { kind: 'sedentary', channel: 'habits', date: '2026-10-05' };
+
+  it('"Hecho" marks the pausa activa habit when the person has it', async () => {
+    const result = await applyResponse(
+      input(ACTIONS.done, { ...nudge, habitId: 'pausa-activa' }),
+      deps,
+    );
+    expect(result).toBe('handled');
+    expect(setHabitDone).toHaveBeenCalledWith('pausa-activa', '2026-10-05');
+  });
+
+  it('"Hecho" without the habit writes nothing, and there is no snooze to insist with', async () => {
+    expect(await applyResponse(input(ACTIONS.done, nudge), deps)).toBe('ignored');
+    expect(setHabitDone).not.toHaveBeenCalled();
+    expect(scheduleSnooze).not.toHaveBeenCalled();
+  });
+});
+
 describe('survey actions (work with the app closed)', () => {
   it.each<[string, string]>([
     [ACTIONS.gym, 'gym'],

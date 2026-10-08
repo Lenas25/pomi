@@ -25,6 +25,7 @@ export const CATEGORY_IDS: readonly CategoryId[] = [
   'pomi_water',
   'pomi_survey',
   'pomi_snooze',
+  'pomi_pause',
 ];
 
 export const SNOOZE_MINUTES = 10;

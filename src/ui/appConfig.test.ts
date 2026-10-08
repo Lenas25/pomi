@@ -32,6 +32,12 @@ describe('app.json colors match design tokens', () => {
 });
 
 describe('release configuration', () => {
+  it('declares the Health Connect permissions the sedentary nudge needs (steps, background read)', () => {
+    const permissions: string[] = appJson.expo.android.permissions;
+    expect(permissions).toContain('android.permission.health.READ_STEPS');
+    expect(permissions).toContain('android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND');
+  });
+
   it('turns Android auto backup off: the JSON backup is the only copy of the data', () => {
     expect((appJson.expo.android as { allowBackup?: boolean }).allowBackup).toBe(false);
   });

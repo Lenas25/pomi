@@ -459,7 +459,7 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 - [x] Compartir: texto y PDF (Entrenador, Nutricionista, IA).
 - [x] Acompañamiento (sección 14b), análisis de sueño e hidratación: deuda de sueño, jetlag social, curva de agua por hora, "Tu ritmo" y la calculadora de ciclos de sueño accesible desde Hoy, Progreso y Ajustes.
 - [x] Carta de Pomi del domingo.
-- [ ] Aviso de sedentarismo configurable (sección 14b).
+- [x] Aviso de sedentarismo configurable (sección 14b): tarea en segundo plano aproximada (cada ~15 min y solo con red), pasos de Health Connect por intervalos, `shouldNudge` puro, límites por día y enfriamiento, y la nota honesta de que Android puede retrasarlo u omitirlo.
 - [x] Generador de rutinas basado en evidencia (sección 14c): biblioteca de ejercicios, `generateProgram`, cribado PAR-Q+, vista previa editable y aceptación.
 
 ### v3: descubrirte

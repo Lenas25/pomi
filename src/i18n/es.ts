@@ -794,6 +794,33 @@ export const es = {
     close: 'Cerrar',
     loadFailed: 'No pudimos cargar la comparación.',
   },
+  sedentary: {
+    title: 'Pausas activas',
+    intro:
+      'Si llevas un rato sin moverte, te propongo una pausa de 2 minutos. Usa los pasos de Health Connect.',
+    enable: 'Avisarme si llevo un rato sin moverme',
+    enableHint: 'Al activarlo te pido conectar Health Connect y permitir leerlo en segundo plano.',
+    unavailable: 'Health Connect no está disponible en este teléfono.',
+    denied:
+      'No pudimos activarlo: falta el permiso de Health Connect. Puedes intentarlo cuando quieras.',
+    saveFailed: 'No pudimos guardar el cambio.',
+    window: 'Mirar los últimos',
+    windowOption: '{{min}} minutos',
+    threshold: 'Avisar si hay menos de',
+    thresholdValue: '{{steps}} pasos',
+    days: 'Días del aviso',
+    maxPerDay: 'Máximo de avisos al día',
+    maxPerDayValue: '{{count}}',
+    noPhone: 'No llevo el celular cuando camino',
+    noPhoneOn:
+      'Los pasos del celular no reflejan tu movimiento real, así que el aviso queda apagado.',
+    honest:
+      'Es una ayuda aproximada. Android puede retrasar o saltarse las tareas en segundo plano (ahorro de batería, modo Doze) y esta necesita conexión a internet para ejecutarse, así que algún aviso puede no llegar. Solo avisa entre una hora después de despertar y dos antes de dormir, y nunca insiste.',
+    notification: {
+      title: 'Pausa activa',
+      body: 'Llevas un rato sin moverte. ¿Estiramos 2 minutos?',
+    },
+  },
   companion: {
     title: 'Tu ritmo',
     intro:

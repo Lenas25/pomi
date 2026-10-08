@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as lib from 'react-native-health-connect';
 
-import type { DailySteps, HealthAdapter, HealthAvailability } from './types';
+import type { DailySteps, HealthAdapter, HealthAvailability, RecentSteps } from './types';
 import { stepsWindow } from './window';
 
 // Importing the library is safe on every platform: off Android its native module is a proxy that
@@ -23,6 +23,11 @@ async function ready(): Promise<void> {
 const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}/;
 
 const STEPS_READ = { accessType: 'read', recordType: 'Steps' } as const;
+const BACKGROUND_READ = { accessType: 'read', recordType: 'BackgroundAccessPermission' } as const;
+/** Slice of the sedentary reading: the aggregate by interval is approximate at this granularity. */
+const SLICE_MINUTES = 15;
+/** Step records from this long ago prove the step source is delivering data. */
+const DATA_LOOKBACK_MS = 6 * 60 * 60_000;
 
 /**
  * Health Connect (react-native-health-connect >= 4, Expo config plugin built in). Steps come from
@@ -84,6 +89,52 @@ export function createHealthConnectAdapter(): HealthAdapter {
         byDate.set(date, Math.max(byDate.get(date) ?? 0, slice.result.COUNT_TOTAL ?? 0));
       }
       return window.dates.map((date) => ({ date, steps: byDate.get(date) ?? 0 }));
+    },
+
+    async hasBackgroundPermission(): Promise<boolean> {
+      await ready();
+      const granted = await lib.getGrantedPermissions();
+      return granted.some(
+        (permission) =>
+          permission.accessType === 'read' &&
+          permission.recordType === 'BackgroundAccessPermission',
+      );
+    },
+
+    async requestBackgroundPermission(): Promise<boolean> {
+      await ready();
+      const granted = await lib.requestPermission([BACKGROUND_READ]);
+      return granted.some(
+        (permission) =>
+          permission.accessType === 'read' &&
+          permission.recordType === 'BackgroundAccessPermission',
+      );
+    },
+
+    async readRecentSteps(windowMin: number, nowMs: number): Promise<RecentSteps> {
+      await ready();
+      const end = new Date(nowMs).toISOString();
+      // Steps per 15-minute slice; summed, the slices give the window total.
+      const slices = await lib.aggregateGroupByDuration({
+        recordType: 'Steps',
+        timeRangeFilter: {
+          operator: 'between',
+          startTime: new Date(nowMs - windowMin * 60_000).toISOString(),
+          endTime: end,
+        },
+        timeRangeSlicer: { duration: 'MINUTES', length: SLICE_MINUTES },
+      });
+      const steps = slices.reduce((sum, slice) => sum + (slice.result.COUNT_TOTAL ?? 0), 0);
+      // Did the step source report anything lately? Without it a zero says nothing.
+      const recent = await lib.readRecords('Steps', {
+        timeRangeFilter: {
+          operator: 'between',
+          startTime: new Date(nowMs - DATA_LOOKBACK_MS).toISOString(),
+          endTime: end,
+        },
+        pageSize: 1,
+      });
+      return { steps: Math.round(steps), hasRecentData: recent.records.length > 0 };
     },
 
     openSettings(): void {

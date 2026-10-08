@@ -11,6 +11,9 @@ export function createManualAdapter(): HealthAdapter {
     hasPermission: async () => false,
     requestPermission: async () => false,
     readDailySteps: async () => [],
+    hasBackgroundPermission: async () => false,
+    requestBackgroundPermission: async () => false,
+    readRecentSteps: async () => ({ steps: 0, hasRecentData: false }),
     openSettings: () => undefined,
   };
 }

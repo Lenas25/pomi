@@ -42,6 +42,9 @@ function fakeAdapter(
       if (options.fail) throw new Error('boom');
       return options.days ?? [];
     },
+    hasBackgroundPermission: async () => false,
+    requestBackgroundPermission: async () => false,
+    readRecentSteps: async () => ({ steps: 0, hasRecentData: false }),
     openSettings: () => undefined,
   };
   return adapter;

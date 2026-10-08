@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Barbell, FloppyDisk, Images, Info, MoonStars, ShieldCheck } from 'phosphor-react-native';
 
 import { useT } from '../../src/i18n';
+import { SedentarySettings } from '../../src/sedentary/SedentarySettings';
 import { useNotificationPrefs } from '../../src/notifications/useNotificationPrefs';
 import { Card } from '../../src/ui/Card';
 import { OptionRow } from '../../src/ui/OptionRow';
@@ -151,6 +152,8 @@ export default function Ajustes() {
             </View>
           </View>
         </Card>
+
+        <SedentarySettings />
 
         {prefs === null ? null : (
           <Card>

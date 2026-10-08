@@ -64,6 +64,23 @@ export const deloadWeekSchema = z.strictObject({
   pct: z.number().int().min(5).max(20),
 });
 
+/** The sedentary nudge (PLAN §14b); every field defaults in `DEFAULT_SEDENTARY`. */
+export const sedentaryNudgeSchema = z.strictObject({
+  enabled: z.boolean().optional(),
+  windowMin: z.union([z.literal(60), z.literal(90), z.literal(120)]).optional(),
+  threshold: z.number().int().min(20).max(500).optional(),
+  days: z.array(z.number().int().min(0).max(6)).optional(),
+  maxPerDay: z.number().int().min(1).max(5).optional(),
+  noPhone: z.boolean().optional(),
+});
+
+/** Nudges sent so far (per logical day) and the last one, for the cap and the cooldown. */
+export const sedentaryHistorySchema = z.strictObject({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  count: z.number().int().min(0),
+  lastAt: z.number().optional(),
+});
+
 /** Every key the app stores, with the shape of its value. Values are validated on read. */
 export const settingsSchemas = {
   anchors: anchorsSchema,
@@ -90,6 +107,8 @@ export const settingsSchemas = {
   gymDaysChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Day the steps goal (`goals.stepsGoal`) last changed, whichever way it changed. */
   goalsChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  sedentaryNudge: sedentaryNudgeSchema,
+  sedentaryHistory: sedentaryHistorySchema,
   /** Day the person put away the one companion card of Hoy ("Tu ritmo"); it stays away that day. */
   companionCardDismissed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Last notification responses already applied (dedupes the background task vs the listener). */
