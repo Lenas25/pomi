@@ -10,24 +10,35 @@ type EmptyStateProps = {
   body: string;
   pose?: MascotPose;
   action?: { label: string; onPress: () => void };
+  /** For a section inside a scrolling screen: small mascot, no full-height centering. */
+  compact?: boolean;
 };
 
-export function EmptyState({ title, body, pose = 'vacio', action }: EmptyStateProps) {
+export function EmptyState({
+  title,
+  body,
+  pose = 'vacio',
+  action,
+  compact = false,
+}: EmptyStateProps) {
   const theme = useTheme();
   return (
     <View
       style={{
-        flex: 1,
+        ...(compact ? null : { flex: 1 }),
         alignItems: 'center',
         justifyContent: 'center',
-        gap: theme.space[4],
-        paddingVertical: theme.space[8],
+        gap: compact ? theme.space[2] : theme.space[4],
+        paddingVertical: compact ? theme.space[4] : theme.space[8],
       }}
     >
-      <Mascot pose={pose} size="md" />
+      <Mascot pose={pose} size={compact ? 'sm' : 'md'} />
       <Text
         accessibilityRole="header"
-        style={[theme.text('title-md'), { color: theme.color.text, textAlign: 'center' }]}
+        style={[
+          theme.text(compact ? 'title-sm' : 'title-md'),
+          { color: theme.color.text, textAlign: 'center' },
+        ]}
       >
         {title}
       </Text>

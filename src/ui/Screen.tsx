@@ -9,17 +9,24 @@ type ScreenProps = {
   scroll?: boolean;
   /** Tab screens leave `bottom` out because the tab bar already handles the inset. */
   edges?: readonly Edge[];
+  /** Wider content for screens with two columns on tablets (default: `layout.maxContentWidth`). */
+  wide?: boolean;
 };
 
 const DEFAULT_EDGES: readonly Edge[] = ['top', 'left', 'right'];
 
 /** Safe area + 20 dp side margin + content centered at max 560 dp (HANDOFF §2). */
-export function Screen({ children, scroll = false, edges = DEFAULT_EDGES }: ScreenProps) {
+export function Screen({
+  children,
+  scroll = false,
+  edges = DEFAULT_EDGES,
+  wide = false,
+}: ScreenProps) {
   const theme = useTheme();
   const content = {
     flexGrow: 1,
     width: '100%' as const,
-    maxWidth: theme.layout.maxContentWidth,
+    maxWidth: wide ? theme.layout.wideContentWidth : theme.layout.maxContentWidth,
     alignSelf: 'center' as const,
     paddingHorizontal: theme.space[5],
   };

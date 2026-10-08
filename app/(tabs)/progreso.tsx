@@ -1,5 +1,5 @@
-import { SectionPlaceholder } from '../../src/ui/SectionPlaceholder';
+import { ProgressScreen } from '../../src/progress/ProgressScreen';
 
 export default function Progreso() {
-  return <SectionPlaceholder section="progreso" />;
+  return <ProgressScreen />;
 }

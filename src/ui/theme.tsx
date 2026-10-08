@@ -89,6 +89,8 @@ export function makeTheme(mode: Mode) {
     layout: tokens.layout,
     icon: tokens.icon,
     ring: tokens.ring,
+    chart: tokens.chart,
+    photo: tokens.photo,
     stroke: tokens.stroke,
     opacity: tokens.opacity,
     motion: tokens.motion,

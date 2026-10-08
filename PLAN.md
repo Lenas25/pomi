@@ -454,7 +454,7 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 
 - [x] Motor de sugerencias (sección 11) con aceptar o rechazar.
 - [x] Revisión semanal.
-- [ ] Progreso: constancia, gráficos de fuerza y medidas.
+- [x] Progreso: constancia, gráficos de fuerza y medidas.
 - [ ] Revisión mensual con fotos y "Tú hace 30 días vs. hoy".
 - [ ] Compartir: texto y PDF (Entrenador, Nutricionista, IA).
 - [ ] Acompañamiento (sección 14b): deuda de sueño, jetlag social, curva de agua por hora, "Tu ritmo", Carta de Pomi del domingo y aviso de sedentarismo configurable.
