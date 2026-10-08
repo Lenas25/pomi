@@ -30,6 +30,17 @@ export const notificationPrefsSchema = z.strictObject({
   weeklyReview: z.boolean().optional(),
 });
 
+/** What the person did to the timeline of ONE day (`date`); a different day means a clean slate. */
+export const todayStateSchema = z.strictObject({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** "Omitir hoy". */
+  skipped: z.array(z.string()),
+  /** Items without real data behind them (reminders) that were acknowledged by hand. */
+  acked: z.array(z.string()),
+  /** "Posponer 10 min": agenda item id -> epoch ms it is postponed to. */
+  snoozed: z.record(z.string(), z.number()),
+});
+
 /** Every key the app stores, with the shape of its value. Values are validated on read. */
 export const settingsSchemas = {
   anchors: anchorsSchema,
@@ -47,6 +58,7 @@ export const settingsSchemas = {
   /** Day (`yyyy-MM-dd`) the person finished the onboarding: the start of the step baseline week. */
   startedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   notificationPrefs: notificationPrefsSchema,
+  todayState: todayStateSchema,
   /** Last notification responses already applied (dedupes the background task vs the listener). */
   handledNotificationResponses: z.array(z.string()),
   /** The person opened the system screen for exact alarms / battery (Android gives no way to read them). */

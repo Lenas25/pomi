@@ -1,5 +1,5 @@
-import { SectionPlaceholder } from '../../src/ui/SectionPlaceholder';
+import { TodayScreen } from '../../src/today/TodayScreen';
 
 export default function Hoy() {
-  return <SectionPlaceholder section="hoy" pose="hola" />;
+  return <TodayScreen />;
 }
