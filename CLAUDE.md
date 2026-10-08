@@ -85,6 +85,13 @@ Create other `src/` folders from PLAN §5 (`domain`, `db`, `notifications`, `tim
 - **v3:** optional on-device LLM ("Pomi conversa"): deterministic engines compute every number, the LLM only verbalizes via tool calls, strict healthy-life scope, no medical advice, template fallback.
 - Every number comes from a pure engine in `src/domain`; text generation never computes.
 
+### Routine generator, BYO AI and on-device LLM (PLAN §14c-§14f)
+
+- **v2 generator:** pure `generateProgram(input)` -> program in the existing template JSON, from a curated `templates/exercises.json` library (data, not code). Every rule cites an evidence id `E<n>` = section `<n>` of `docs/evidence/training.md`; `[DESIGN]` items there are documented defaults, never findings. PAR-Q+ screening (7 questions) comes first: any "yes" shows a professional-advice notice and requires acknowledgement (generation limited to the low-intensity beginner template), never medical advice. The result is a PROPOSAL (preview, edit, accept). Deload is reactive only. ACSM 2026 position stand supersedes 2009 (only its abstract was read).
+- **v3 "Conectar mi IA":** BYO provider via an OpenAI-compatible adapter (incl. custom base URL for Ollama / LM Studio / vLLM) and an Anthropic adapter; key in `expo-secure-store` (NEW dependency, approval pending, do not install yet); explicit opt-in; the exact outgoing payload (aggregates only, no photos/notes by default) is shown before every send; engines compute numbers, AI only verbalizes via tool calls; routine changes go through generator validation + user acceptance.
+- **v3+ on-device LLM:** `llama.rn` + Qwen3.5-2B Q4 (0.8B fallback, 4B for >= 8 GB), optional hashed download, ONLY after a real-device benchmark; no vector RAG (FTS5 for notes).
+- `pomi-server` (self-hosted learning companion) is an idea outside the roadmap: it breaks local-first, so it would be a separate repo.
+
 ### Timers and notifications
 
 - Timers store an `endsAt` timestamp. 3-2-1 beeps only in foreground; the end alarm is a scheduled local notification, so it works with the screen off.

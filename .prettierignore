@@ -9,3 +9,4 @@ design
 templates
 src/db/migrations.generated.ts
 drizzle
+docs/evidence
