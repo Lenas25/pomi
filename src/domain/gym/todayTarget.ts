@@ -9,6 +9,7 @@ export type TargetMessageKey =
   | 'gym.target.chooseWeight'
   | 'gym.target.stalled'
   | 'gym.target.deload'
+  | 'gym.target.deloadWeek'
   | 'gym.target.weightUpSuggested';
 
 export type TargetMessage = {
@@ -117,7 +118,7 @@ function isDeload(current: ExerciseSession, previous: ExerciseSession, deloadPct
  * A deload (weight drop of about `deloadPct`) resets the window: the deload session becomes the new
  * baseline, so the stall suggestion does not fire again right after taking the lighter week.
  */
-function isStalled(
+export function isStalled(
   fullHistory: readonly ExerciseSession[],
   stallSessions: number,
   deloadPct: number,
@@ -134,6 +135,20 @@ function isStalled(
     if (!current || !previous || improved(current, previous)) return false;
   }
   return true;
+}
+
+/**
+ * During an accepted deload week the working weight is lowered by `pct` (rounded to 0.5 kg).
+ * Bodyweight targets (no weight) are left alone.
+ */
+export function applyDeload(target: TodayTarget, pct: number): TodayTarget {
+  if (target.weightKg === null || target.kind === 'manual') return target;
+  const weightKg = roundHalf(target.weightKg * (1 - pct / 100));
+  return {
+    ...target,
+    weightKg,
+    reason: { key: 'gym.target.deloadWeek', params: { weightKg, pct } },
+  };
 }
 
 /** Every logged set had RIR >= 3 (sets without RIR disqualify the session). */

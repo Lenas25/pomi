@@ -320,3 +320,35 @@ describe('buildAgenda edge cases', () => {
     ]);
   });
 });
+
+describe('buildAgenda with accepted plan shifts (suggestions)', () => {
+  const plain = buildAgenda(TUESDAY, stateWith());
+  const bedOf = (items: readonly AgendaItem[]) => find(items, 'checkin:night').minutes;
+
+  it('moves the planned bedtime earlier and everything derived from it', () => {
+    const shifted = buildAgenda(TUESDAY, stateWith({ shifts: { bedMin: -15 } }));
+    expect((bedOf(shifted) ?? 0) + 15).toBe(bedOf(plain));
+    expect(find(shifted, 'reminder:sueno:dormir').minutes).toBe(
+      (find(plain, 'reminder:sueno:dormir').minutes ?? 0) - 15,
+    );
+    // The wake-relative items do not move.
+    expect(find(shifted, 'checkin:morning').minutes).toBe(find(plain, 'checkin:morning').minutes);
+  });
+
+  it('moves the water reminders earlier but never before wake + 10 min', () => {
+    const water = find(plain, 'water:agua:agua').occurrences;
+    const shifted = find(
+      buildAgenda(TUESDAY, stateWith({ shifts: { waterMin: -60 } })),
+      'water:agua:agua',
+    ).occurrences;
+    const wake = 5 * 60 + 10;
+    expect(shifted.every((minute) => minute >= wake + 10)).toBe(true);
+    expect(shifted.at(-1)).toBe((water.at(-1) ?? 0) - 60);
+    expect(shifted).toEqual([...shifted].sort((a, b) => a - b));
+    expect(new Set(shifted).size).toBe(shifted.length);
+  });
+
+  it('no shift, no change', () => {
+    expect(buildAgenda(TUESDAY, stateWith({ shifts: {} }))).toEqual(plain);
+  });
+});

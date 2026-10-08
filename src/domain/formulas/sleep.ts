@@ -45,7 +45,7 @@ export type SleepSummary = {
 };
 
 /** Smallest span of an arc on the 24 h circle that contains every point. */
-function circularRange(minutes: readonly number[]): number {
+export function circularRange(minutes: readonly number[]): number {
   const sorted = [...minutes].sort((a, b) => a - b);
   // The widest empty gap between neighbours is the part NOT covered; the rest is the range.
   let widestGap = 0;

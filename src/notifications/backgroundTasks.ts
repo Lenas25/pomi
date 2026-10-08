@@ -15,7 +15,9 @@ import * as BackgroundTask from 'expo-background-task';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 
+import { getDatabase, getRepositories } from '../db';
 import { bootstrapDatabase } from '../db/useDatabaseReady';
+import { runDailySuggestions } from '../suggestions/run';
 
 import { handleNotificationResponse } from './handleResponse';
 import { runNotificationSync } from './sync';
@@ -44,6 +46,8 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
 TaskManager.defineTask(NOTIFICATION_SYNC_TASK, async () => {
   try {
     await bootstrapDatabase();
+    // Once per day: look for suggestions while the app is closed (the card waits on Hoy).
+    await runDailySuggestions(getDatabase(), getRepositories()).catch(() => []);
     // Same mutex as the foreground triggers; a failure still answers Failed to WorkManager.
     await runNotificationSync();
     return BackgroundTask.BackgroundTaskResult.Success;

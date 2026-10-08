@@ -3,6 +3,7 @@
 import { DEFAULT_BED, DEFAULT_WAKE } from '../domain/onboarding/draft';
 import { bedtimeFor } from '../domain/formulas/sleep';
 import {
+  adjustClock,
   initialAnswers,
   validateAnswers,
   type AnswerValue,
@@ -48,7 +49,10 @@ export async function loadCheckin(
   const anchors = await repos.settings.get('anchors');
   const wake = anchors?.wake ?? DEFAULT_WAKE;
   // Last night's bedtime = the planned one (wake − sleep target); without a target, the default.
-  const bed = anchors?.sleepTargetH ? bedtimeFor(wake, anchors.sleepTargetH) : DEFAULT_BED;
+  const shifts = await repos.settings.get('planShifts');
+  const planned = anchors?.sleepTargetH ? bedtimeFor(wake, anchors.sleepTargetH) : undefined;
+  // An accepted "dormir antes" suggestion moves the planned bedtime earlier.
+  const bed = planned ? adjustClock(planned, shifts?.bedMin ?? 0) : DEFAULT_BED;
   const context: PrefillContext = { bed, wake };
 
   const saved = await repos.checkins.get(today, kind);

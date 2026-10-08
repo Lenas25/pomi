@@ -10,6 +10,8 @@ import { Card } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 import { MascotBubble } from '../ui/MascotBubble';
 import { Screen } from '../ui/Screen';
+import { SuggestionCard } from '../ui/SuggestionCard';
+import { Toast } from '../ui/Toast';
 import { TimelineItem } from '../ui/TimelineItem';
 import { useTheme } from '../ui/theme';
 
@@ -20,7 +22,7 @@ import {
   entryTime,
   entryTitle,
 } from './labels';
-import { InsightSlot, SuggestionSlot } from './slots';
+import { InsightSlot } from './slots';
 import { useToday } from './useToday';
 
 /** Hoy (PLAN §13, HANDOFF §5): greeting, identity phrase, the day's timeline and the closing message. */
@@ -76,7 +78,24 @@ export function TodayScreen() {
 
         {firstDay ? <MascotBubble pose="hola" message={t('today.firstBubble')} /> : null}
 
-        <SuggestionSlot />
+        {view.suggestion ? (
+          <SuggestionCard
+            key={view.suggestion.id}
+            text={view.suggestion.text}
+            reason={view.suggestion.reason}
+            evidence={view.suggestion.evidence}
+            whyLabel={t('suggestions.card.why')}
+            acceptLabel={t('suggestions.card.accept')}
+            declineLabel={t('suggestions.card.decline')}
+            busy={today.suggestionBusy}
+            onAccept={() => {
+              if (view.suggestion) void today.acceptSuggestion(view.suggestion.id);
+            }}
+            onDecline={() => {
+              if (view.suggestion) void today.declineSuggestion(view.suggestion.id);
+            }}
+          />
+        ) : null}
         <InsightSlot />
 
         {data.activityToday === undefined ? (
@@ -128,6 +147,18 @@ export function TodayScreen() {
 
         {view.allDone ? <MascotBubble pose="descansa" message={t('today.doneBubble')} /> : null}
       </ScrollView>
+
+      {today.notice ? (
+        <View style={{ position: 'absolute', top: theme.space[2], left: 0, right: 0 }}>
+          <Toast
+            key={today.notice.id}
+            variant={today.notice.variant}
+            title={today.notice.title}
+            subtitle={today.notice.subtitle}
+            onHide={today.clearNotice}
+          />
+        </View>
+      ) : null}
 
       <Modal
         transparent

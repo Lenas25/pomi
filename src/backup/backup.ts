@@ -6,6 +6,7 @@ import {
   activityLogs,
   checkins,
   foodNotes,
+  habitEvents,
   habitLogs,
   insights,
   metricEntries,
@@ -45,6 +46,7 @@ export async function createBackup(db: Db, options: ExportOptions): Promise<Back
       .select()
       .from(habitLogs)
       .orderBy(asc(habitLogs.date), asc(habitLogs.habitId)),
+    habitEvents: await db.select().from(habitEvents).orderBy(asc(habitEvents.id)),
     stepsDaily: await db.select().from(stepsDaily).orderBy(asc(stepsDaily.date)),
     activityLogs: await db.select().from(activityLogs).orderBy(asc(activityLogs.id)),
     checkins: await db.select().from(checkins).orderBy(asc(checkins.date), asc(checkins.kind)),
@@ -90,6 +92,7 @@ export async function restoreBackup(db: Db, backup: Backup): Promise<void> {
     await db.delete(setLogs);
     await db.delete(workoutSessions);
     await db.delete(habitLogs);
+    await db.delete(habitEvents);
     await db.delete(stepsDaily);
     await db.delete(activityLogs);
     await db.delete(checkins);
@@ -109,6 +112,7 @@ export async function restoreBackup(db: Db, backup: Backup): Promise<void> {
     await insertChunks(data.workoutSessions, (rows) => db.insert(workoutSessions).values(rows));
     await insertChunks(data.setLogs, (rows) => db.insert(setLogs).values(rows));
     await insertChunks(data.habitLogs, (rows) => db.insert(habitLogs).values(rows));
+    await insertChunks(data.habitEvents, (rows) => db.insert(habitEvents).values(rows));
     await insertChunks(data.stepsDaily, (rows) => db.insert(stepsDaily).values(rows));
     await insertChunks(data.activityLogs, (rows) => db.insert(activityLogs).values(rows));
     await insertChunks(data.checkins, (rows) => db.insert(checkins).values(rows));

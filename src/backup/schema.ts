@@ -71,6 +71,14 @@ export const habitLogRowSchema = z.strictObject({
   value: z.number(),
 });
 
+export const habitEventRowSchema = z.strictObject({
+  id: int,
+  habitId: z.string(),
+  date: dayKey,
+  at: int,
+  value: z.number(),
+});
+
 export const stepsRowSchema = z.strictObject({
   date: dayKey,
   steps: int,
@@ -145,6 +153,8 @@ export const backupDataSchema = z.strictObject({
   workoutSessions: z.array(workoutSessionRowSchema),
   setLogs: z.array(setLogRowSchema),
   habitLogs: z.array(habitLogRowSchema),
+  /** Added after the first v1 files: a file without it still restores (no events). */
+  habitEvents: z.array(habitEventRowSchema).default([]),
   stepsDaily: z.array(stepsRowSchema),
   activityLogs: z.array(activityRowSchema),
   checkins: z.array(checkinRowSchema),

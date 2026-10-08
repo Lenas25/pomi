@@ -9,6 +9,7 @@ import {
   themeModeSchema,
   timeSchema,
 } from '../../templates/schema';
+import { BED_SHIFT_LIMIT_MIN, WATER_SHIFT_LIMIT_MIN } from '../../domain/suggestions/limits';
 import { settings } from '../schema';
 import type { Db } from '../types';
 
@@ -41,6 +42,23 @@ export const todayStateSchema = z.strictObject({
   snoozed: z.record(z.string(), z.number()),
 });
 
+/**
+ * Plan adjustments the person accepted from a suggestion. Minutes are negative (EARLIER): the
+ * planned bedtime moves before `wake − sleepTargetH`, the water reminders move before the template
+ * schedule. Capped so a chain of suggestions can never drift far from the original plan.
+ */
+export const planShiftsSchema = z.strictObject({
+  bedMin: z.number().int().min(BED_SHIFT_LIMIT_MIN).max(0).optional(),
+  waterMin: z.number().int().min(WATER_SHIFT_LIMIT_MIN).max(0).optional(),
+});
+
+/** An accepted "semana de descarga": every working weight is lowered by `pct` until `endsOn`. */
+export const deloadWeekSchema = z.strictObject({
+  startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  pct: z.number().int().min(5).max(20),
+});
+
 /** Every key the app stores, with the shape of its value. Values are validated on read. */
 export const settingsSchemas = {
   anchors: anchorsSchema,
@@ -59,6 +77,10 @@ export const settingsSchemas = {
   startedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   notificationPrefs: notificationPrefsSchema,
   todayState: todayStateSchema,
+  planShifts: planShiftsSchema,
+  deloadWeek: deloadWeekSchema,
+  /** Last day (`yyyy-MM-dd`) the suggestions engine ran (it runs once per day). */
+  suggestionsLastRun: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Last notification responses already applied (dedupes the background task vs the listener). */
   handledNotificationResponses: z.array(z.string()),
   /** The person opened the system screen for exact alarms / battery (Android gives no way to read them). */

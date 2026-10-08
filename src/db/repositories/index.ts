@@ -8,6 +8,7 @@ import { createMetricsRepository } from './metrics';
 import { createProfileRepository } from './profile';
 import { createSettingsRepository } from './settings';
 import { createStepsRepository } from './steps';
+import { createSuggestionsRepository } from './suggestions';
 import { createTemplatesRepository } from './templates';
 import { createWorkoutsRepository } from './workouts';
 
@@ -18,12 +19,13 @@ export function createRepositories(db: Db, now: () => number = Date.now) {
     profile: createProfileRepository(db, now),
     templates: createTemplatesRepository(db, settings, now),
     workouts: createWorkoutsRepository(db),
-    habitLogs: createHabitLogsRepository(db),
+    habitLogs: createHabitLogsRepository(db, now),
     steps: createStepsRepository(db),
     checkins: createCheckinsRepository(db),
     activity: createActivityRepository(db, now),
     foodNotes: createFoodNotesRepository(db),
     metrics: createMetricsRepository(db),
+    suggestions: createSuggestionsRepository(db),
   };
 }
 

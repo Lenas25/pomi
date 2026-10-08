@@ -106,6 +106,7 @@ export const en: Messages = {
       stalled:
         "You've gone {{sessions}} sessions without improving. Check your sleep and rest, or try a lighter week.",
       deload: 'Lighter week: {{weightKg}} kg (−{{pct}}%).',
+      deloadWeek: 'Lighter week: {{weightKg}} kg (−{{pct}}%). Leave more reps in reserve.',
       weightUpSuggested: 'You had plenty of reps in reserve. Shall we try {{weightKg}} kg?',
     },
     tab: {
@@ -676,6 +677,71 @@ export const en: Messages = {
     sub: { goal: '{{exercise}}: {{goal}}', water: '{{done}} of {{total}} glasses' },
     loadError: "We couldn't load your day",
     retry: 'Try again',
+  },
+  suggestions: {
+    card: {
+      label: 'Suggestion from Pomi',
+      why: 'Why',
+      basedOn: 'Based on {{days}} days',
+      accept: 'Accept',
+      decline: 'Not now',
+      acceptedTitle: 'Plan updated',
+      accepted: 'The change is now in your plan.',
+      failedTitle: "Couldn't apply it",
+      failed: "We couldn't apply the change. Your plan is unchanged.",
+    },
+    weekday: {
+      name: {
+        sun: 'Sunday',
+        mon: 'Monday',
+        tue: 'Tuesday',
+        wed: 'Wednesday',
+        thu: 'Thursday',
+        fri: 'Friday',
+        sat: 'Saturday',
+      },
+      plural: {
+        sun: 'Sundays',
+        mon: 'Mondays',
+        tue: 'Tuesdays',
+        wed: 'Wednesdays',
+        thu: 'Thursdays',
+        fri: 'Fridays',
+        sat: 'Saturdays',
+      },
+    },
+    sleepEarlier: {
+      text: 'Shall we move your bedtime {{minutes}} minutes earlier?',
+      reason: 'This week you slept {{avg}} on average and your goal is {{target}}.',
+    },
+    wakeRegularity: {
+      text: 'Shall we fix {{time}} as your wake-up time every day?',
+      reason:
+        'Your wake-up time varied by {{range}} this week. Waking at the same time helps you feel sleepy earlier.',
+    },
+    stepsRaise: {
+      text: 'Shall we raise your goal to {{newGoal}} steps?',
+      reason: 'You reached your steps on {{met}} of {{total}} days.',
+    },
+    stepsLower: {
+      text: 'Shall we lower your goal to {{newGoal}} steps?',
+      reason:
+        'Two weeks in a row you reached {{goal}} steps fewer than 3 days. A closer goal helps the habit stick.',
+    },
+    waterEarlier: {
+      text: 'Shall we move the water reminders {{minutes}} minutes earlier?',
+      reason: 'At 18:00 you had under 60% of your goal on {{short}} of the last {{total}} days.',
+    },
+    gymDay: {
+      text: 'Shall we move your {{fromDayName}} workout to {{toDayName}}?',
+      reason:
+        '{{fromDayPlural}} got complicated {{missed}} of the last {{weeks}} weeks. A day that suits you helps keep the rhythm.',
+    },
+    deload: {
+      text: 'Shall we do a lighter week?',
+      reason:
+        "You've gone {{sessions}} sessions without improving on {{exercise}}. A week with {{pct}}% less weight may help you recover.",
+    },
   },
   database: {
     errorTitle: 'We could not open your data',

@@ -13,6 +13,7 @@ import { requestNotificationSync } from '../notifications/sync';
 import { getTimerStore } from '../timers/store';
 import type { Step } from '../templates/schema';
 
+import { activeDeloadPct } from './deload';
 import { pickProgram, toRotationSessions, type GymProgram } from './program';
 import {
   buildExerciseView,
@@ -160,6 +161,7 @@ export function useGymSession(routineId: string | undefined) {
         programRef.current = program;
 
         const today = dayKeyFor(new Date());
+        const deloadPct = activeDeloadPct(await repos.settings.get('deloadWeek'), today);
         await repos.workouts.finishStaleSessions(today);
         const weekday = getDay(parseISO(today));
         const steps = routine.steps.filter((step) => evaluateWhen(step.when, { weekday }));
@@ -183,6 +185,7 @@ export function useGymSession(routineId: string | undefined) {
                 step,
                 history.map(({ session, sets }) => ({ date: session.date, sets })),
                 program.rules,
+                deloadPct,
               ),
             };
           }),

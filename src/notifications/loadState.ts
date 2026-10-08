@@ -29,6 +29,7 @@ export async function loadNotificationPlan(
     night,
     habitLogs,
     todayState,
+    shifts,
   ] = await Promise.all([
     repos.templates.listModules(),
     repos.profile.get(),
@@ -44,6 +45,7 @@ export async function loadNotificationPlan(
     repos.checkins.get(today, 'night'),
     repos.habitLogs.forDate(today),
     repos.settings.get('todayState'),
+    repos.settings.get('planShifts'),
   ]);
 
   const active = modules.filter((module) => module.active).map((module) => module.template);
@@ -79,6 +81,7 @@ export async function loadNotificationPlan(
   const state: UpcomingState = {
     profile: { weightKg: profile?.weightKg ?? undefined, workType: profile?.workType ?? undefined },
     anchors: anchors ?? {},
+    ...(shifts ? { shifts } : {}),
     gymDays: gymDays ?? [],
     checkinPrefs: { morning: checkinPrefs?.morning ?? true, night: checkinPrefs?.night ?? true },
     modules: active as readonly ModuleBody[],

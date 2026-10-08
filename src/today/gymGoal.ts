@@ -34,6 +34,7 @@ export async function loadGymGoal(
   routine: GymProgram['routines'][number] | undefined,
   rules: TargetRules,
   weekday: number,
+  deloadPct?: number,
 ): Promise<GymGoal | undefined> {
   if (!routine) return undefined;
   const step = firstMainStep(routine.steps, weekday);
@@ -43,6 +44,7 @@ export async function loadGymGoal(
     step,
     history.map(({ session, sets }) => ({ date: session.date, sets })),
     rules,
+    deloadPct,
   );
   const message = goalMessage(view, step);
   return message ? { exercise: step.name, message } : undefined;

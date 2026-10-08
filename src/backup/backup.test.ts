@@ -95,6 +95,10 @@ describe('backup export / restore', () => {
     expect(original.data.setLogs).toHaveLength(2);
     expect(original.data.templates.length).toBeGreaterThan(0);
     expect(original.data.photos).toHaveLength(1);
+    // Every habit write leaves an event (the suggestions engine reads them).
+    expect(original.data.habitEvents).toEqual([
+      { id: 1, habitId: 'agua', date: '2026-10-05', at: 5_000, value: 7 },
+    ]);
 
     // The target already has unrelated data that must disappear.
     await target.repos.habitLogs.set('otro', '2026-01-01', 1);
@@ -105,6 +109,16 @@ describe('backup export / restore', () => {
     expect(restored).toEqual(original);
     expect(await target.repos.settings.get('userName')).toBeUndefined();
     expect((await target.repos.workouts.getSession(1))?.sets).toHaveLength(2);
+  });
+
+  it('restores a file written before habit events existed (no habitEvents key)', async () => {
+    const original = await createBackup(source.db, OPTIONS);
+    const { habitEvents: _omitted, ...dataWithout } = original.data;
+    const result = parseBackupText(JSON.stringify({ ...original, data: dataWithout }));
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    expect(result.backup.data.habitEvents).toEqual([]);
+    await restoreBackup(target.db, result.backup);
+    expect((await createBackup(target.db, OPTIONS)).data.habitEvents).toEqual([]);
   });
 
   it('leaves photos out unless asked, and keeps existing photo rows when the backup has none', async () => {

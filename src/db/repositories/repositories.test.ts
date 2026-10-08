@@ -362,6 +362,30 @@ describe('workouts', () => {
   });
 });
 
+describe('habit events', () => {
+  it('every write leaves the value it produced and when, in order', async () => {
+    clock = 100;
+    await repos.habitLogs.increment('agua', '2026-10-05');
+    clock = 200;
+    await repos.habitLogs.increment('agua', '2026-10-05', 2);
+    clock = 300;
+    await repos.habitLogs.decrement('agua', '2026-10-05');
+    clock = 400;
+    await repos.habitLogs.set('agua', '2026-10-05', 7);
+    clock = 500;
+    await repos.habitLogs.decrement('agua', '2026-10-09'); // nothing to decrement: no event
+    const events = await repos.habitLogs.eventsInRange('2026-10-01', '2026-10-31', 'agua');
+    expect(events.map(({ at, value }) => [at, value])).toEqual([
+      [100, 1],
+      [200, 3],
+      [300, 2],
+      [400, 7],
+    ]);
+    expect(events.every((event) => event.date === '2026-10-05')).toBe(true);
+    expect(await repos.habitLogs.eventsInRange('2026-10-06', '2026-10-31')).toEqual([]);
+  });
+});
+
 describe('habit logs', () => {
   it('increments, decrements without going below zero and sets', async () => {
     await repos.habitLogs.increment('agua', '2026-10-05');

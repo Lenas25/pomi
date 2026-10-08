@@ -114,6 +114,26 @@ describe('buildExerciseView', () => {
     expect(view.targetReps(0)).toBeNull();
   });
 
+  it('lowers the working weight during an accepted deload week and says why', () => {
+    const history = [
+      session('2026-10-01', [
+        stored('ht', 0, 40, 10),
+        stored('ht', 1, 40, 10),
+        stored('ht', 2, 40, 10),
+      ]),
+    ];
+    const normal = buildExerciseView(hipThrust, history);
+    expect(normal.target.weightKg).toBe(45);
+    const deload = buildExerciseView(hipThrust, history, undefined, 10);
+    expect(deload.target.weightKg).toBe(40.5);
+    expect(deload.target.reason).toEqual({
+      key: 'gym.target.deloadWeek',
+      params: { weightKg: 40.5, pct: 10 },
+    });
+    // Bodyweight / time based targets have nothing to lower.
+    expect(buildExerciseView(plank, [], undefined, 10).target.kind).toBe('manual');
+  });
+
   it('passes the program rules to the stall detection', () => {
     const flat = (date: string) =>
       session(date, [stored('ht', 0, 40, 9), stored('ht', 1, 40, 8), stored('ht', 2, 40, 8)]);

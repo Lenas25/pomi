@@ -65,6 +65,8 @@ export type AgendaState = {
   todayRoutine?: { id: string; steps: readonly Step[] };
   /** Current step goal (from the steps formulas), if any. */
   stepsGoal?: number;
+  /** Accepted suggestions that move the bedtime / water reminders. */
+  shifts?: PlanShifts;
   flags?: Readonly<Record<string, boolean>>;
 };
 
@@ -80,16 +82,24 @@ const GYM_HOURS_PER_SESSION = 1;
  */
 const NIGHT_WINDOW_END_MIN = 6 * 60;
 
+/**
+ * Plan adjustments accepted from suggestions (negative = EARLIER). `bedMin` moves the planned
+ * bedtime before `wake − sleepTargetH`; `waterMin` moves the water reminders earlier.
+ */
+export type PlanShifts = { bedMin?: number | undefined; waterMin?: number | undefined };
+
 export type AnchorMinutes = Partial<Record<'wake' | 'bed' | 'gymMorning' | 'gymEvening', number>>;
 
 /** Resolves anchors to minutes of the day; `bed` is derived (wake − sleepTargetH). */
-export function resolveAnchors(anchors: Anchors): AnchorMinutes {
+export function resolveAnchors(anchors: Anchors, shifts: PlanShifts = {}): AnchorMinutes {
   const result: AnchorMinutes = {};
   if (anchors.wake) result.wake = clockToMinutes(anchors.wake);
   if (anchors.gymMorning) result.gymMorning = clockToMinutes(anchors.gymMorning);
   if (anchors.gymEvening) result.gymEvening = clockToMinutes(anchors.gymEvening);
   if (anchors.wake && anchors.sleepTargetH) {
-    let bed = clockToMinutes(bedtimeFor(anchors.wake, anchors.sleepTargetH));
+    let bed = wrapMinutes(
+      clockToMinutes(bedtimeFor(anchors.wake, anchors.sleepTargetH)) + (shifts.bedMin ?? 0),
+    );
     // Bed earlier on the clock than wake AND in the night window (e.g. bed 00:30, wake 08:00) is
     // after midnight, so it belongs at the end of today's timeline. Otherwise it is the same day.
     if (result.wake !== undefined && bed < result.wake && bed < NIGHT_WINDOW_END_MIN) {
@@ -147,6 +157,27 @@ function habitKind(habit: Habit): AgendaKind {
   return 'habit';
 }
 
+/** Water reminders never move closer to the wake time than this (quiet hours end there). */
+const WATER_AFTER_WAKE_MIN = 10;
+
+/**
+ * Moves a series earlier by `shiftMin` (negative). Nothing goes before `floor` (the earliest
+ * sensible time) or before the series' own first occurrence when there is no floor; collisions
+ * collapse, so the series may lose its first entries but never gets later.
+ */
+export function shiftEarlier(
+  occurrences: readonly number[],
+  shiftMin: number,
+  floor?: number,
+): number[] {
+  if (shiftMin === 0 || occurrences.length === 0) return [...occurrences];
+  const first = occurrences[0] ?? 0;
+  const lowest = Math.min(first, floor ?? first);
+  return [...new Set(occurrences.map((minute) => Math.max(minute + shiftMin, lowest)))].sort(
+    (a, b) => a - b,
+  );
+}
+
 function byTime(a: AgendaItem, b: AgendaItem): number {
   // All-day items (no time) go last; ties keep a stable, readable order by id.
   const left = a.minutes ?? Number.POSITIVE_INFINITY;
@@ -157,7 +188,7 @@ function byTime(a: AgendaItem, b: AgendaItem): number {
 
 export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
   const weekday = getDay(date);
-  const anchors = resolveAnchors(state.anchors);
+  const anchors = resolveAnchors(state.anchors, state.shifts);
   const items: AgendaItem[] = [];
 
   // Gym: days and anchors come from settings (onboarding), not from `program.schedules`.
@@ -231,7 +262,11 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
       );
       // A habit that has schedules but none applies today is not part of today's timeline.
       if ((habit.schedules?.length ?? 0) > 0 && times.length === 0) continue;
-      const sorted = [...new Set(times)].sort((a, b) => a - b);
+      const sorted = shiftEarlier(
+        [...new Set(times)].sort((a, b) => a - b),
+        kind === 'water' ? (state.shifts?.waterMin ?? 0) : 0,
+        anchors.wake !== undefined ? anchors.wake + WATER_AFTER_WAKE_MIN : undefined,
+      );
 
       const target =
         kind === 'water' && state.profile.weightKg !== undefined

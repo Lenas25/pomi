@@ -174,7 +174,7 @@ export function buildUpcoming(
   from: Date,
   days: number = WINDOW_DAYS,
 ): PlannedNotification[] {
-  const anchors = resolveAnchors(state.anchors);
+  const anchors = resolveAnchors(state.anchors, state.shifts);
   const candidates: Candidate[] = [];
   // Day 0 is the logical day in progress (before 04:00 it is still yesterday).
   const first = dayStartFor(from);

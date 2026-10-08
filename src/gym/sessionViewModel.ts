@@ -3,6 +3,7 @@
 // summarizes the finished session. No React, no database: callers pass plain data.
 import {
   DEFAULT_TARGET_RULES,
+  applyDeload,
   todayTarget,
   type ExerciseSession,
   type LoggedSet,
@@ -62,9 +63,11 @@ export function buildExerciseView(
   step: SetsStep,
   history: readonly StoredSession[],
   rules: TargetRules = DEFAULT_TARGET_RULES,
+  /** Percentage to lower the weight by during an accepted deload week. */
+  deloadPct?: number,
 ): ExerciseView {
   const sessions = history.map(toExerciseSession);
-  const target = todayTarget(
+  const planned = todayTarget(
     {
       sets: step.sets,
       reps: step.reps,
@@ -74,6 +77,7 @@ export function buildExerciseView(
     sessions,
     rules,
   );
+  const target = deloadPct === undefined ? planned : applyDeload(planned, deloadPct);
   const latest = sessions.find((session) => session.sets.some((set) => (set.reps ?? 0) > 0));
   const previous: PreviousSet[] = Array.from({ length: step.sets }, (_, index) => {
     const set = latest?.sets[index];

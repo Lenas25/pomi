@@ -47,13 +47,20 @@ function dataWith(
     activityToday: activity,
     routineName: 'Día 1',
     gymGoal,
+    suggestion: undefined,
     identity: { gymDates: [], plannedGymDays: 4, waterDays: null, firstDay: false, ...overrides },
   };
 }
 
 function mockToday(
   data: TodayData,
-  options: { allDone?: boolean; status?: 'done' | 'upcoming'; empty?: boolean } = {},
+  options: {
+    allDone?: boolean;
+    status?: 'done' | 'upcoming';
+    empty?: boolean;
+    suggestion?: { id: number; text: string; reason: string; evidence: string };
+    notice?: { id: number; variant: 'info' | 'error'; title: string; subtitle: string };
+  } = {},
 ) {
   const progress = {
     doneIds: new Set(options.status === 'done' ? data.agenda.map((item) => item.id) : []),
@@ -70,6 +77,9 @@ function mockToday(
     open: jest.fn(),
     answerActivity: jest.fn(),
     reload: jest.fn(async () => undefined),
+    acceptSuggestion: jest.fn(async () => undefined),
+    declineSuggestion: jest.fn(async () => undefined),
+    clearNotice: jest.fn(),
   };
   mockedUseToday.mockReturnValue({
     load,
@@ -79,7 +89,10 @@ function mockToday(
       allDone: options.allDone ?? false,
       greeting: 'Buenos días',
       identity: 'Un paso a la vez. Hoy cuenta.',
+      suggestion: options.suggestion ?? null,
     },
+    suggestionBusy: false,
+    notice: options.notice ?? null,
     ...handlers,
   });
   return handlers;
@@ -101,8 +114,56 @@ describe('TodayScreen', () => {
     expect(screen.getByText('Un paso a la vez. Hoy cuenta.')).toBeTruthy();
     expect(screen.getByText('Tu día')).toBeTruthy();
     expect(screen.getByText('Día 1')).toBeTruthy();
-    // No fake suggestion / insight cards yet.
+    // No suggestion pending: no card.
     expect(screen.queryByText('Aceptar')).toBeNull();
+  });
+
+  it('shows one suggestion with its reason; "Aceptar" and "Ahora no" call the handlers', async () => {
+    const handlers = mockToday(dataWith(), {
+      suggestion: {
+        id: 7,
+        text: '¿Movemos tu hora de dormir 15 minutos antes?',
+        reason: 'Esta semana dormiste en promedio 6 h 40 min y tu meta es 8 h.',
+        evidence: 'Basado en 7 días',
+      },
+    });
+    await renderThemed(<TodayScreen />);
+    expect(screen.getByText('¿Movemos tu hora de dormir 15 minutos antes?')).toBeTruthy();
+    expect(screen.getByText(/dormiste en promedio 6 h 40 min/)).toBeTruthy();
+    expect(screen.getByText('Basado en 7 días')).toBeTruthy();
+    expect(screen.getAllByText('Aceptar')).toHaveLength(1);
+    await fireEvent.press(screen.getByRole('button', { name: 'Aceptar' }));
+    expect(handlers.acceptSuggestion).toHaveBeenCalledWith(7);
+    expect(handlers.declineSuggestion).not.toHaveBeenCalled();
+  });
+
+  it('"Ahora no" fades the card and then reports the rejection', async () => {
+    jest.useFakeTimers();
+    try {
+      const handlers = mockToday(dataWith(), {
+        suggestion: { id: 3, text: 'Texto', reason: 'Motivo', evidence: 'Basado en 7 días' },
+      });
+      await renderThemed(<TodayScreen />);
+      await fireEvent.press(screen.getByRole('button', { name: 'Ahora no' }));
+      expect(handlers.declineSuggestion).not.toHaveBeenCalled();
+      await jest.advanceTimersByTimeAsync(400);
+      expect(handlers.declineSuggestion).toHaveBeenCalledWith(3);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('announces the result of accepting through a toast', async () => {
+    mockToday(dataWith(), {
+      notice: {
+        id: 1,
+        variant: 'info',
+        title: 'Plan actualizado',
+        subtitle: 'El cambio ya está en tu plan.',
+      },
+    });
+    await renderThemed(<TodayScreen />);
+    expect(screen.getByText('Plan actualizado')).toBeTruthy();
   });
 
   it('highlights the goal of the first main exercise on the gym row', async () => {

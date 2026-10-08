@@ -93,6 +93,24 @@ export const habitLogs = sqliteTable(
   (table) => [primaryKey({ columns: [table.habitId, table.date] })],
 );
 
+/**
+ * Every write to `habit_logs` leaves one event with the value right AFTER it and the moment it
+ * happened, so engines can ask "how much water by 18:00?" (the daily total alone cannot tell).
+ */
+export const habitEvents = sqliteTable(
+  'habit_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    habitId: text('habit_id').notNull(),
+    /** Logical day (`yyyy-MM-dd`, 04:00 rollover) the write belongs to. */
+    date: text('date').notNull(),
+    /** Epoch ms of the write. */
+    at: integer('at').notNull(),
+    value: real('value').notNull(),
+  },
+  (table) => [index('habit_events_habit_date_idx').on(table.habitId, table.date)],
+);
+
 export const stepsDaily = sqliteTable(
   'steps_daily',
   {

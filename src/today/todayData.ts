@@ -2,16 +2,19 @@
 import { format, getDay, subDays } from 'date-fns';
 
 import type { Repositories } from '../db/repositories';
+import type { SuggestionRow } from '../db/repositories/suggestions';
 import { buildAgenda, type AgendaItem } from '../domain/agenda/buildAgenda';
 import { todaysRoutineId } from '../domain/gym/rotation';
 import { dayKeyFor, dayStartFor } from '../domain/time';
 import type { ActivityKind } from '../domain/habits/activity';
 import type { IdentityInput } from '../domain/today/identity';
+import { activeDeloadPct } from '../gym/deload';
 import { pickProgram, toRotationSessions } from '../gym/program';
 import { loadGymGoal, type GymGoal } from './gymGoal';
 import { loadHabitsData } from '../habits/habitsData';
 import { buildHabitsView } from '../habits/habitsView';
 
+import { parsePayload, type SuggestionPayload } from '../suggestions/payload';
 import { todayStateFor, type LiveFacts, type TodayState } from './todayView';
 
 const IDENTITY_LOOKBACK_DAYS = 56;
@@ -30,23 +33,36 @@ export type TodayData = {
   routineName: string | undefined;
   /** Target of the first main exercise of today's routine (the gym row highlight). */
   gymGoal: GymGoal | undefined;
+  /** The oldest pending suggestion (Hoy shows at most one card). */
+  suggestion: { id: number; payload: SuggestionPayload } | undefined;
   identity: Omit<IdentityInput, 'today'>;
 };
+
+function firstReadable(rows: readonly SuggestionRow[]): TodayData['suggestion'] {
+  for (const row of rows) {
+    const payload = parsePayload(row.payload);
+    if (payload) return { id: row.id, payload };
+  }
+  return undefined;
+}
 
 export async function loadTodayData(repos: Repositories, now: Date): Promise<TodayData> {
   const today = dayKeyFor(now);
   const midnight = dayStartFor(now);
   const lookbackFrom = format(subDays(midnight, IDENTITY_LOOKBACK_DAYS), 'yyyy-MM-dd');
 
-  const [habits, anchors, userName, stored, modules, sessions, recent] = await Promise.all([
-    loadHabitsData(repos, today),
-    repos.settings.get('anchors'),
-    repos.settings.get('userName'),
-    repos.settings.get('todayState'),
-    repos.templates.listModules(),
-    repos.workouts.sessionsInRange(lookbackFrom, today),
-    repos.workouts.recentSessions(ROTATION_LOOKBACK),
-  ]);
+  const [habits, anchors, shifts, userName, stored, modules, sessions, recent, pending] =
+    await Promise.all([
+      loadHabitsData(repos, today),
+      repos.settings.get('anchors'),
+      repos.settings.get('planShifts'),
+      repos.settings.get('userName'),
+      repos.settings.get('todayState'),
+      repos.templates.listModules(),
+      repos.workouts.sessionsInRange(lookbackFrom, today),
+      repos.workouts.recentSessions(ROTATION_LOOKBACK),
+      repos.suggestions.pending(),
+    ]);
   const view = buildHabitsView(habits, today);
 
   const finished = sessions.filter(
@@ -67,6 +83,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
   const agenda = buildAgenda(midnight, {
     profile: { weightKg: habits.profile.weightKg, workType: habits.profile.workType },
     anchors: anchors ?? {},
+    ...(shifts ? { shifts } : {}),
     gymDays: habits.gymDays,
     checkinPrefs: habits.checkinPrefs,
     modules: habits.modules.filter((module) => module.active).map((module) => module.template),
@@ -75,7 +92,13 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
   });
 
   const gymGoal = program
-    ? await loadGymGoal(repos, routine, program.rules, getDay(midnight))
+    ? await loadGymGoal(
+        repos,
+        routine,
+        program.rules,
+        getDay(midnight),
+        activeDeloadPct(await repos.settings.get('deloadWeek'), today),
+      )
     : undefined;
 
   return {
@@ -88,6 +111,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     activityToday: view.activityToday,
     routineName: routine?.name,
     gymGoal,
+    suggestion: firstReadable(pending),
     identity: {
       gymDates,
       plannedGymDays: new Set(habits.gymDays.flatMap((entry) => entry.days)).size,

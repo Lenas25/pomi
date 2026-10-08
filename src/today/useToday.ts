@@ -6,13 +6,19 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 
-import { getRepositories } from '../db';
+import { getDatabase, getRepositories } from '../db';
 import type { ActivityKind } from '../domain/habits/activity';
 import { type PlannedChannel } from '../domain/notifications/buildUpcoming';
 import { greetingKey, identityPhrase } from '../domain/today/identity';
 import { dayKeyFor, minutesIntoDay } from '../domain/time';
 import { buildTimeline, isAllDone, type TimelineEntry } from '../domain/today/timeline';
-import { useT } from '../i18n';
+import { useLocaleStore, useT } from '../i18n';
+import {
+  acceptSuggestion as acceptStored,
+  rejectSuggestion,
+  runDailySuggestions,
+} from '../suggestions/run';
+import { suggestionTexts } from '../suggestions/text';
 import { requestNotificationSync } from '../notifications/sync';
 
 import { snoozeContent } from './labels';
@@ -29,6 +35,14 @@ import { progressFrom, settledSnoozeIds, todayStateFor } from './todayView';
 const SNOOZE_PREFIX = 'snooze:timeline:';
 
 const CLOCK_TICK_MS = 30_000;
+
+/** Feedback after accepting a suggestion (an info or error toast). */
+export type SuggestionNotice = {
+  id: number;
+  variant: 'info' | 'error';
+  title: string;
+  subtitle: string;
+};
 
 export type TodayLoad =
   { status: 'loading' } | { status: 'error' } | { status: 'ready'; data: TodayData };
@@ -55,6 +69,9 @@ async function cancelTimelineSnoozes(entryId: string): Promise<void> {
 
 export function useToday() {
   const t = useT();
+  const language = useLocaleStore((state) => state.language);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<SuggestionNotice | null>(null);
   const [load, setLoad] = useState<TodayLoad>({ status: 'loading' });
   const [now, setNow] = useState(() => new Date());
   const generation = useRef(0);
@@ -63,6 +80,8 @@ export function useToday() {
   const reload = useCallback(async (): Promise<void> => {
     const ticket = (generation.current += 1);
     try {
+      // Once per day (guarded in the engine); a failure here must never block Hoy.
+      await runDailySuggestions(getDatabase(), getRepositories()).catch(() => []);
       const data = await loadTodayData(getRepositories(), new Date());
       if (ticket === generation.current) {
         setNow(new Date());
@@ -113,8 +132,11 @@ export function useToday() {
         hasName ? { name: data.userName ?? '' } : {},
       ),
       identity: t(phrase.key, phrase.params),
+      suggestion: data.suggestion
+        ? { id: data.suggestion.id, ...suggestionTexts(data.suggestion.payload, t, language) }
+        : null,
     };
-  }, [load, now, t]);
+  }, [load, now, t, language]);
 
   const deps = useCallback(
     (data: TodayData): TodayActionDeps => {
@@ -187,10 +209,57 @@ export function useToday() {
     [load, reload],
   );
 
+  const accept = async (id: number): Promise<void> => {
+    if (busy) return;
+    setBusy(true);
+    const failed = (): SuggestionNotice => ({
+      id: Date.now(),
+      variant: 'error',
+      title: t('suggestions.card.failedTitle'),
+      subtitle: t('suggestions.card.failed'),
+    });
+    try {
+      const result = await acceptStored(getDatabase(), getRepositories(), id);
+      if (result.status === 'applied') {
+        // The plan changed: reminders must follow (bedtime, water, gym day...).
+        void requestNotificationSync('suggestionAccepted');
+        setNotice({
+          id: Date.now(),
+          variant: 'info',
+          title: t('suggestions.card.acceptedTitle'),
+          subtitle: t('suggestions.card.accepted'),
+        });
+      } else {
+        setNotice(failed());
+      }
+    } catch (error) {
+      if (__DEV__) console.error('Could not accept the suggestion', error);
+      setNotice(failed());
+    } finally {
+      setBusy(false);
+      await reload();
+    }
+  };
+
+  const decline = async (id: number): Promise<void> => {
+    try {
+      await rejectSuggestion(getRepositories(), id);
+    } catch (error) {
+      if (__DEV__) console.error('Could not reject the suggestion', error);
+    } finally {
+      await reload();
+    }
+  };
+
   return {
     load,
     view,
     reload,
+    suggestionBusy: busy,
+    notice,
+    clearNotice: () => setNotice(null),
+    acceptSuggestion: accept,
+    declineSuggestion: decline,
     done: (entry: TimelineEntry) => run((data) => markDone(entry, deps(data))),
     postpone: (entry: TimelineEntry) => run((data) => postpone(entry, deps(data))),
     skip: (entry: TimelineEntry) => run((data) => skipToday(entry, deps(data))),

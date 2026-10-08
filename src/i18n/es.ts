@@ -104,6 +104,7 @@ export const es = {
       stalled:
         'Llevas {{sessions}} sesiones sin mejorar. Revisa tu sueño y descanso, o prueba una semana más ligera.',
       deload: 'Semana ligera: {{weightKg}} kg (−{{pct}}%).',
+      deloadWeek: 'Semana ligera: {{weightKg}} kg (−{{pct}}%). Deja más repeticiones en reserva.',
       weightUpSuggested:
         'Te quedaron muchas repeticiones en reserva. ¿Probamos con {{weightKg}} kg?',
     },
@@ -674,6 +675,72 @@ export const es = {
     sub: { water: '{{done}} de {{total}} vasos', goal: '{{exercise}}: {{goal}}' },
     loadError: 'No pudimos cargar tu día',
     retry: 'Reintentar',
+  },
+  suggestions: {
+    card: {
+      label: 'Sugerencia de Pomi',
+      why: 'Por qué',
+      basedOn: 'Basado en {{days}} días',
+      accept: 'Aceptar',
+      decline: 'Ahora no',
+      acceptedTitle: 'Plan actualizado',
+      accepted: 'El cambio ya está en tu plan.',
+      failedTitle: 'No pudimos aplicarlo',
+      failed: 'No pudimos aplicar el cambio. Tu plan sigue igual.',
+    },
+    weekday: {
+      name: {
+        sun: 'domingo',
+        mon: 'lunes',
+        tue: 'martes',
+        wed: 'miércoles',
+        thu: 'jueves',
+        fri: 'viernes',
+        sat: 'sábado',
+      },
+      plural: {
+        sun: 'domingos',
+        mon: 'lunes',
+        tue: 'martes',
+        wed: 'miércoles',
+        thu: 'jueves',
+        fri: 'viernes',
+        sat: 'sábados',
+      },
+    },
+    sleepEarlier: {
+      text: '¿Movemos tu hora de dormir {{minutes}} minutos antes?',
+      reason: 'Esta semana dormiste en promedio {{avg}} y tu meta es {{target}}.',
+    },
+    wakeRegularity: {
+      text: '¿Fijamos las {{time}} para despertar todos los días?',
+      reason:
+        'Tu hora de despertar varió {{range}} esta semana. Despertar a la misma hora ayuda a que te dé sueño temprano.',
+    },
+    stepsRaise: {
+      text: '¿Subimos tu meta a {{newGoal}} pasos?',
+      reason: 'Cumpliste tus pasos {{met}} de {{total}} días.',
+    },
+    stepsLower: {
+      text: '¿Bajamos tu meta a {{newGoal}} pasos?',
+      reason:
+        'En dos semanas seguidas llegaste a {{goal}} pasos menos de 3 días. Una meta más cercana ayuda a mantener el hábito.',
+    },
+    waterEarlier: {
+      text: '¿Adelantamos {{minutes}} minutos los avisos del agua?',
+      reason:
+        'A las 18:00 llevabas menos del 60% de tu meta en {{short}} de los últimos {{total}} días.',
+    },
+    gymDay: {
+      text: '¿Pasamos tu entrenamiento del {{fromDayName}} al {{toDayName}}?',
+      reason:
+        'Los {{fromDayPlural}} se complicaron {{missed}} de las últimas {{weeks}} semanas. Un día que te acomode ayuda a mantener el ritmo.',
+    },
+    deload: {
+      text: '¿Hacemos una semana más ligera?',
+      reason:
+        'Llevas {{sessions}} sesiones sin mejorar en {{exercise}}. Una semana con {{pct}}% menos de peso puede ayudarte a recuperar.',
+    },
   },
   database: {
     errorTitle: 'No pudimos abrir tus datos',
