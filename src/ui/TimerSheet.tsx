@@ -10,6 +10,7 @@ import { Pause, Play, Plus, SkipForward, X } from 'phosphor-react-native';
 
 import { useT } from '../i18n';
 import type { ActiveTimer } from '../timers/timerStore';
+import { useNow } from '../timers/useNow';
 
 import { Button } from './Button';
 import { bezierFromToken } from './easing';
@@ -18,7 +19,6 @@ import { useTheme } from './theme';
 
 type TimerSheetProps = {
   timer: ActiveTimer;
-  now: number;
   onPause: () => void;
   onResume: () => void;
   onAddTime: () => void;
@@ -33,7 +33,6 @@ type TimerSheetProps = {
  */
 export function TimerSheet({
   timer,
-  now,
   onPause,
   onResume,
   onAddTime,
@@ -45,6 +44,8 @@ export function TimerSheet({
   const t = useT();
   const reduceMotion = useReducedMotion();
   const entered = useSharedValue(0);
+  // The 250 ms clock lives HERE, so only the sheet re-renders on a tick (not the whole session).
+  const now = useNow(timer.state.status === 'running');
 
   useEffect(() => {
     entered.value = withTiming(1, {

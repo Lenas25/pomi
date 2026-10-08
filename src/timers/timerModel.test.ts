@@ -9,6 +9,7 @@ import {
   pauseTimer,
   progress,
   remainingMs,
+  segmentCue,
   remainingSec,
   resumeTimer,
   segmentChanged,
@@ -123,5 +124,29 @@ describe('formatClock', () => {
     expect(formatClock(80)).toBe('1:20');
     expect(formatClock(600)).toBe('10:00');
     expect(formatClock(-5)).toBe('0:00');
+  });
+});
+
+describe('segmentCue', () => {
+  const segments = [
+    { atSec: 0, label: 'Easy' },
+    { atSec: 300, label: 'Hard' },
+  ];
+
+  it('cues the segment at 0 s when the run is seen right after it started', () => {
+    expect(segmentCue(segments, null, 0.3)).toBe('Easy');
+  });
+
+  it('treats the first tick of a run seen mid-way as a silent baseline', () => {
+    expect(segmentCue(segments, null, 310)).toBeNull();
+  });
+
+  it('cues only when the segment changes afterwards', () => {
+    expect(segmentCue(segments, 100, 200)).toBeNull();
+    expect(segmentCue(segments, 299.8, 300.1)).toBe('Hard');
+  });
+
+  it('has nothing to cue before the first segment', () => {
+    expect(segmentCue([{ atSec: 60, label: 'Go' }], null, 0.2)).toBeNull();
   });
 });

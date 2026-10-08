@@ -128,6 +128,69 @@ describe('timer store notifications', () => {
   });
 });
 
+describe('timer store revisions and lapsed timers', () => {
+  it('never reuses a revision, even for the same owner after cancel + start', () => {
+    start('rest:ht:0');
+    const first = store.getState().active?.revision ?? 0;
+    store.getState().cancel();
+    start('rest:ht:0');
+    const second = store.getState().active?.revision ?? 0;
+    store.getState().pause();
+    const third = store.getState().active?.revision ?? 0;
+    expect(second).toBeGreaterThan(first);
+    expect(third).toBeGreaterThan(second);
+  });
+
+  it('a stale scheduling result of a cancelled run cannot attach to a new run of the same owner', async () => {
+    let resolveFirst: (id: string) => void = () => undefined;
+    (effects.schedule as jest.Mock<TimerEffects['schedule']>).mockImplementationOnce(
+      () => new Promise<string>((resolve) => (resolveFirst = resolve)),
+    );
+    start('rest:ht:0');
+    store.getState().cancel();
+    start('rest:ht:0');
+    await flush();
+    resolveFirst('stale');
+    await flush();
+    expect(cancelled).toContain('stale');
+    expect(store.getState().active?.notificationId).toBe('n1');
+  });
+
+  it('pausing a timer that already ran out finishes it as elapsed (alarm path)', async () => {
+    start('rest:ht:0', 60);
+    await flush();
+    clock += 120_000;
+    store.getState().pause();
+    expect(store.getState().active).toMatchObject({
+      finishedBy: 'elapsed',
+      state: { status: 'finished' },
+    });
+    expect(store.getState().active?.finishedAt).toBe(1_000_000 + 60_000);
+  });
+
+  it('+30 s on a lapsed timer finishes it as elapsed instead of reviving it', async () => {
+    start('rest:ht:0', 60);
+    await flush();
+    clock += 120_000;
+    store.getState().addTime(30);
+    expect(store.getState().active).toMatchObject({
+      finishedBy: 'elapsed',
+      state: { status: 'finished' },
+    });
+  });
+
+  it('records when the run began and keeps it across pause / resume / +30 s', () => {
+    start('rest:ht:0');
+    const startedAt = store.getState().active?.startedAt;
+    expect(startedAt).toBe(clock);
+    clock += 10_000;
+    store.getState().pause();
+    store.getState().resume();
+    store.getState().addTime(30);
+    expect(store.getState().active?.startedAt).toBe(startedAt);
+  });
+});
+
 describe('timer store clock sync', () => {
   it('finishes when the end passed (also after being in the background)', async () => {
     start('rest:ht:0', 60);

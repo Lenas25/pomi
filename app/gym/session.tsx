@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
+import { useStore } from 'zustand';
 
 import { ExerciseCard } from '../../src/gym/ExerciseCard';
 import {
@@ -10,10 +11,10 @@ import {
   WarmupSection,
   type NonSetsStep,
 } from '../../src/gym/StepBlocks';
-import type { SetsStep } from '../../src/gym/sessionViewModel';
+import type { SetsStep, StoredSet } from '../../src/gym/sessionViewModel';
 import { useGymSession } from '../../src/gym/useGym';
 import { useT } from '../../src/i18n';
-import { getTimerStore, useActiveTimer, useNow, useTimerFeedback } from '../../src/timers';
+import { getTimerStore, useActiveTimer, useTimerFeedback } from '../../src/timers';
 import { Button } from '../../src/ui/Button';
 import { Card } from '../../src/ui/Card';
 import { EmptyState } from '../../src/ui/EmptyState';
@@ -24,6 +25,28 @@ import { Toast } from '../../src/ui/Toast';
 import { useTheme } from '../../src/ui/theme';
 
 const FINISHED_SHEET_MS = 5000;
+const NO_LOGS: readonly StoredSet[] = [];
+
+/**
+ * Owns the timer subscription for the sheet, so the (busy) session screen does not re-render on
+ * timer transitions; the 250 ms clock itself lives inside `TimerSheet`.
+ */
+function TimerSheetHost({ onLayoutHeight }: { onLayoutHeight: (height: number) => void }) {
+  const timer = useActiveTimer();
+  if (!timer) return null;
+  const timers = getTimerStore().getState();
+  return (
+    <TimerSheet
+      timer={timer}
+      onPause={() => timers.pause()}
+      onResume={() => timers.resume()}
+      onAddTime={() => timers.addTime()}
+      onSkip={() => timers.skip()}
+      onClose={() => timers.dismiss()}
+      onLayoutHeight={onLayoutHeight}
+    />
+  );
+}
 
 function stepOwner(step: NonSetsStep): string {
   return `${step.type === 'wait' ? 'wait' : 'timed'}:${step.id}`;
@@ -34,8 +57,12 @@ export default function GymSession() {
   const t = useT();
   const { routineId } = useLocalSearchParams<{ routineId?: string }>();
   const session = useGymSession(routineId);
-  const timer = useActiveTimer();
-  const now = useNow(timer?.state.status === 'running');
+  // Primitive selectors only: the screen re-renders when the status / owner change, never per tick.
+  const store = getTimerStore();
+  const timerStatus = useStore(store, (state) => state.active?.state.status ?? null);
+  const activeOwner = useStore(store, (state) =>
+    state.active && state.active.state.status !== 'finished' ? state.active.owner : '',
+  );
   const [doneSteps, setDoneSteps] = useState<ReadonlySet<string>>(new Set());
   const [sheetHeight, setSheetHeight] = useState(0);
   const [finishing, setFinishing] = useState(false);
@@ -59,12 +86,15 @@ export default function GymSession() {
     [],
   );
 
-  // A finished sheet closes by itself after a few seconds.
+  // A finished sheet closes by itself after a few seconds (keyed by status, a new run re-arms it).
+  const finishedOwner = useStore(store, (state) =>
+    state.active?.state.status === 'finished' ? state.active.owner : null,
+  );
   useEffect(() => {
-    if (timer?.state.status !== 'finished') return;
+    if (finishedOwner === null) return;
     const id = setTimeout(() => getTimerStore().getState().dismiss(), FINISHED_SHEET_MS);
     return () => clearTimeout(id);
-  }, [timer?.state.status, timer?.owner]);
+  }, [finishedOwner]);
 
   const layout = useMemo(() => {
     if (session.state.status !== 'ready') return null;
@@ -96,9 +126,8 @@ export default function GymSession() {
 
   const { exercises, routineName } = session.state;
   const setsPlanned = exercises.reduce((sum, { step }) => sum + step.sets, 0);
-  const stepTimerOwner = timer && timer.state.status !== 'finished' ? timer.owner : '';
-  const runningStepId = /^(wait|timed):/.test(stepTimerOwner)
-    ? stepTimerOwner.slice(stepTimerOwner.indexOf(':') + 1)
+  const runningStepId = /^(wait|timed):/.test(activeOwner)
+    ? activeOwner.slice(activeOwner.indexOf(':') + 1)
     : null;
 
   const toggleDone = (step: NonSetsStep) =>
@@ -138,14 +167,15 @@ export default function GymSession() {
     setFinishing(true);
     try {
       const result = await session.finish();
-      if (result === null) router.back();
+      // No sets logged: nothing to summarize. An error keeps the session open (error toast).
+      if (result.status === 'empty') router.back();
     } finally {
       setFinishing(false);
     }
   };
 
   const summary = session.summary;
-  const bottomPadding = timer ? sheetHeight + theme.space[4] : theme.space[8];
+  const bottomPadding = timerStatus !== null ? sheetHeight + theme.space[4] : theme.space[8];
 
   return (
     <Screen edges={['top', 'bottom', 'left', 'right']}>
@@ -198,20 +228,17 @@ export default function GymSession() {
               if (step.type === 'sets') {
                 const exercise = exercises.find((candidate) => candidate.step.id === step.id);
                 if (!exercise) return null;
-                const logs = session.logs.filter((log) => log.stepId === step.id);
                 const setsStep: SetsStep = exercise.step;
                 return (
                   <ExerciseCard
                     key={step.id}
                     step={setsStep}
                     view={exercise.view}
-                    logs={logs}
-                    onSetDone={(index, values) => void session.setDone(setsStep, index, values)}
-                    onSetUndone={(index) => void session.setUndone(setsStep, index)}
-                    onRir={(index, rir) => void session.setRir(setsStep, index, rir)}
-                    {...(setsStep.holdSec !== undefined
-                      ? { onHold: (index: number) => session.startHold(setsStep, index) }
-                      : {})}
+                    logs={session.logsByStep.get(step.id) ?? NO_LOGS}
+                    onSetDone={session.setDone}
+                    onSetUndone={session.setUndone}
+                    onRir={session.setRir}
+                    {...(setsStep.holdSec !== undefined ? { onHold: session.startHold } : {})}
                   />
                 );
               }
@@ -251,18 +278,27 @@ export default function GymSession() {
         </View>
       ) : null}
 
-      {timer && !summary ? (
-        <TimerSheet
-          timer={timer}
-          now={now}
-          onPause={() => timers.pause()}
-          onResume={() => timers.resume()}
-          onAddTime={() => timers.addTime()}
-          onSkip={() => timers.skip()}
-          onClose={() => timers.dismiss()}
-          onLayoutHeight={setSheetHeight}
-        />
+      {session.error ? (
+        <View style={{ position: 'absolute', top: theme.space[2], left: 0, right: 0 }}>
+          <Toast
+            key={session.error.id}
+            variant="error"
+            title={t(
+              session.error.kind === 'finish'
+                ? 'gym.session.errorFinishTitle'
+                : 'gym.session.errorSaveTitle',
+            )}
+            subtitle={t(
+              session.error.kind === 'finish'
+                ? 'gym.session.errorFinishBody'
+                : 'gym.session.errorSaveBody',
+            )}
+            onHide={session.clearError}
+          />
+        </View>
       ) : null}
+
+      {timerStatus !== null && !summary ? <TimerSheetHost onLayoutHeight={setSheetHeight} /> : null}
     </Screen>
   );
 }

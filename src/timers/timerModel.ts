@@ -130,6 +130,29 @@ export function segmentChanged(
   return after !== null && before?.index !== after.index;
 }
 
+/** A run observed for the first time this early still counts as "just started". */
+export const SEGMENT_START_GRACE_SEC = 2;
+
+/**
+ * The label to cue (beep + announcement) for a tick, or `null`. `previousElapsed` is `null` on the
+ * FIRST tick of a run, which only sets the baseline: nothing is cued, except that a run seen right
+ * after it started cues the segment in effect (a segment at 0 s is the start of the block).
+ */
+export function segmentCue(
+  segments: readonly TimerSegment[],
+  previousElapsed: number | null,
+  elapsed: number,
+): string | null {
+  if (previousElapsed === null) {
+    return elapsed <= SEGMENT_START_GRACE_SEC
+      ? (currentSegment(segments, elapsed)?.label ?? null)
+      : null;
+  }
+  return segmentChanged(segments, previousElapsed, elapsed)
+    ? (currentSegment(segments, elapsed)?.label ?? null)
+    : null;
+}
+
 /** `m:ss` for the ring. */
 export function formatClock(totalSec: number): string {
   const sec = Math.max(0, Math.floor(totalSec));

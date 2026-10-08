@@ -56,20 +56,55 @@ function installForegroundHandler(): void {
   });
 }
 
-let permissionRequested = false;
+/** A trigger closer than this to "now" is not scheduled: it would fire late or be rejected. */
+export const MIN_LEAD_MS = 1000;
+
+/** Whether an end timestamp is still far enough in the future to schedule a notification. */
+export function isSchedulable(
+  endsAt: number,
+  now: number,
+  marginMs: number = MIN_LEAD_MS,
+): boolean {
+  return endsAt > now + marginMs;
+}
+
+type PermissionApi = {
+  /** Current state without prompting. */
+  status(): Promise<{ granted: boolean; canAskAgain: boolean }>;
+  request(): Promise<{ granted: boolean }>;
+};
 
 /**
- * Requests notification permission the first time a timer starts (the full permission onboarding
- * comes in M6). Asks at most once per process; a denial just means no background alarm.
+ * Asks for notification permission at most once per process and shares the IN-FLIGHT request:
+ * concurrent callers wait for the same dialog instead of getting an early "no".
  */
-export async function ensureNotificationPermission(): Promise<boolean> {
-  const current = await Notifications.getPermissionsAsync();
-  if (current.granted) return true;
-  if (!current.canAskAgain || permissionRequested) return false;
-  permissionRequested = true;
-  const asked = await Notifications.requestPermissionsAsync();
-  return asked.granted;
+export function createPermissionGate(api: PermissionApi): () => Promise<boolean> {
+  let inFlight: Promise<boolean> | undefined;
+  let asked = false;
+  return () => {
+    inFlight ??= (async () => {
+      try {
+        const current = await api.status();
+        if (current.granted) return true;
+        if (!current.canAskAgain || asked) return false;
+        asked = true;
+        return (await api.request()).granted;
+      } finally {
+        inFlight = undefined;
+      }
+    })();
+    return inFlight;
+  };
 }
+
+/**
+ * Requests notification permission the first time a timer starts (the full permission screen is
+ * `src/notifications/permissions`). A denial just means no background alarm.
+ */
+export const ensureNotificationPermission = createPermissionGate({
+  status: () => Notifications.getPermissionsAsync(),
+  request: () => Notifications.requestPermissionsAsync(),
+});
 
 /** Real effects for the timer store. `channelName` is the translated channel title. */
 export function createNotificationEffects(getChannelName: () => string): TimerEffects {
@@ -79,6 +114,8 @@ export function createNotificationEffects(getChannelName: () => string): TimerEf
       try {
         await ensureTimersChannel(getChannelName());
         if (!(await ensureNotificationPermission())) return null;
+        // The channel and the permission dialog can take a while: the end may be here already.
+        if (!isSchedulable(endsAt, Date.now())) return null;
         return await Notifications.scheduleNotificationAsync({
           content: { title: content.title, body: content.body, sound: true },
           trigger: {

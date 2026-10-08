@@ -10,6 +10,7 @@ import {
   type TodayTarget,
 } from '../domain/gym/todayTarget';
 import { parseReps } from '../domain/gym/reps';
+import type { Language } from '../i18n/types';
 import type { Step } from '../templates/schema';
 
 export type SetsStep = Extract<Step, { type: 'sets' }>;
@@ -99,20 +100,46 @@ export function buildExerciseView(
   };
 }
 
-/** Parses a typed number ("42.5" or "42,5"); empty or invalid text is `null`. */
-export function parseNumberInput(text: string): number | null {
-  const normalized = text.trim().replace(',', '.');
-  if (normalized === '') return null;
-  const value = Number(normalized);
-  return Number.isFinite(value) && value >= 0 ? value : null;
+/** Result of reading a typed number: `value: null` means the field was left empty. */
+export type ParsedInput = { ok: true; value: number | null } | { ok: false };
+
+const KG_PATTERN = /^\d{1,4}([.,]\d)?$/;
+const REPS_PATTERN = /^\d{1,3}$/;
+
+/** Kilograms: up to 4 digits and one decimal ("42.5" or "42,5"), rounded to 0.1. Empty is fine. */
+export function parseKgInput(text: string): ParsedInput {
+  const trimmed = text.trim();
+  if (trimmed === '') return { ok: true, value: null };
+  if (!KG_PATTERN.test(trimmed)) return { ok: false };
+  return { ok: true, value: Math.round(Number(trimmed.replace(',', '.')) * 10) / 10 };
+}
+
+/** Repetitions: 1 to 3 digits, at least 1. Empty is fine. */
+export function parseRepsInput(text: string): ParsedInput {
+  const trimmed = text.trim();
+  if (trimmed === '') return { ok: true, value: null };
+  if (!REPS_PATTERN.test(trimmed)) return { ok: false };
+  const value = Number(trimmed);
+  return value >= 1 ? { ok: true, value } : { ok: false };
 }
 
 export type SetInputs = { weightText: string; repsText: string };
 
 export type ResolvedSet = { weightKg: number | null; reps: number | null };
 
+export type InputErrors = { weight: boolean; reps: boolean };
+
+/** Which typed fields are invalid (never a silent fallback). Bodyweight sets have no kg input. */
+export function validateSetInputs(inputs: SetInputs, bodyweight: boolean): InputErrors {
+  return {
+    weight: !bodyweight && !parseKgInput(inputs.weightText).ok,
+    reps: !parseRepsInput(inputs.repsText).ok,
+  };
+}
+
 /**
- * What a ✓ logs. An empty input uses the "anterior" value of that set; with no previous value it
+ * What a ✓ logs for VALID inputs (see `validateSetInputs`; an invalid field reads as empty here).
+ * An empty input uses the "anterior" value of that set; with no previous value it
  * falls back to today's target. Bodyweight sets never log a weight.
  */
 export function resolveSetValues(
@@ -124,8 +151,10 @@ export function resolveSetValues(
     bodyweight: boolean;
   },
 ): ResolvedSet {
-  const typedWeight = parseNumberInput(inputs.weightText);
-  const typedReps = parseNumberInput(inputs.repsText);
+  const weight = parseKgInput(inputs.weightText);
+  const repsInput = parseRepsInput(inputs.repsText);
+  const typedWeight = weight.ok ? weight.value : null;
+  const typedReps = repsInput.ok ? repsInput.value : null;
   const reps = typedReps ?? context.previous.reps ?? context.targetReps;
   return {
     weightKg: context.bodyweight
@@ -185,7 +214,47 @@ export function summarizeSession(
   };
 }
 
-/** At most one decimal, no trailing ".0" ("42.5", "40"). */
-export function formatKg(value: number): string {
-  return String(Math.round(value * 10) / 10);
+/** At most one decimal, no trailing ".0", decimal comma in Spanish ("42,5", "40"). */
+export function formatKg(value: number, language: Language = 'en'): string {
+  const text = String(Math.round(value * 10) / 10);
+  return language === 'es' ? text.replace('.', ',') : text;
+}
+
+/** Target messages carry raw numbers; weights are shown with the locale's decimal separator. */
+export function localizeTargetParams(
+  params: Record<string, string | number>,
+  language: Language,
+): Record<string, string | number> {
+  const result: Record<string, string | number> = { ...params };
+  for (const key of ['weightKg', 'lastWeightKg']) {
+    const value = result[key];
+    if (typeof value === 'number') result[key] = formatKg(value, language);
+  }
+  return result;
+}
+
+/**
+ * Groups the logs by step, REUSING the previous array of a step whose logs did not change, so a
+ * memoized exercise card re-renders only when its own sets change.
+ */
+export function groupLogsByStep(
+  logs: readonly StoredSet[],
+  previous: ReadonlyMap<string, readonly StoredSet[]> = new Map(),
+): Map<string, readonly StoredSet[]> {
+  const fresh = new Map<string, StoredSet[]>();
+  for (const log of logs) {
+    const list = fresh.get(log.stepId);
+    if (list) list.push(log);
+    else fresh.set(log.stepId, [log]);
+  }
+  const result = new Map<string, readonly StoredSet[]>();
+  for (const [stepId, list] of fresh) {
+    const before = previous.get(stepId);
+    const same =
+      before !== undefined &&
+      before.length === list.length &&
+      before.every((log, index) => log === list[index]);
+    result.set(stepId, same ? before : list);
+  }
+  return result;
 }

@@ -11,7 +11,7 @@ import { useT } from '../i18n';
 
 import { setInAppTimerFeedback } from './notifications';
 import { getTimerStore } from './store';
-import { countdownCue, currentSegment, elapsedSec, segmentChanged } from './timerModel';
+import { countdownCue, elapsedSec, segmentCue } from './timerModel';
 
 const beepSource = require('../../assets/sounds/beep.wav') as number;
 const alarmSource = require('../../assets/sounds/alarm.wav') as number;
@@ -30,8 +30,9 @@ export function useTimerFeedback(): void {
   const beep = useAudioPlayer(beepSource);
   const alarm = useAudioPlayer(alarmSource);
   const running = useStore(store, (state) => state.active?.state.status === 'running');
+  // Both are keyed by RUN (`owner:startedAt`), which pause / resume / +30 s do not change.
   const lastCue = useRef<{ key: string; cue: number | null }>({ key: '', cue: null });
-  const lastElapsed = useRef<{ key: string; sec: number }>({ key: '', sec: 0 });
+  const lastElapsed = useRef<{ key: string; sec: number } | null>(null);
 
   useEffect(() => {
     setInAppTimerFeedback(true);
@@ -50,11 +51,12 @@ export function useTimerFeedback(): void {
       const active = store.getState().active;
       if (!active || active.state.status !== 'running') return;
       const now = Date.now();
-      // A new revision (e.g. +30 s) re-arms the countdown cues.
-      const key = `${active.owner}:${active.revision}`;
+      const key = `${active.owner}:${active.startedAt}`;
 
       const cue = countdownCue(active.state, now);
       if (lastCue.current.key !== key) lastCue.current = { key, cue: null };
+      // Outside the last 3 s the countdown re-arms (e.g. after +30 s at 3 s left).
+      if (cue === null) lastCue.current.cue = null;
       if (cue !== null && cue !== lastCue.current.cue) {
         lastCue.current.cue = cue;
         play(beep);
@@ -63,13 +65,13 @@ export function useTimerFeedback(): void {
 
       if (active.segments.length > 0) {
         const elapsed = elapsedSec(active.state, now);
-        const segmentKey = active.owner;
-        const previous = lastElapsed.current.key === segmentKey ? lastElapsed.current.sec : 0;
-        lastElapsed.current = { key: segmentKey, sec: elapsed };
-        if (previous > 0 && segmentChanged(active.segments, previous, elapsed)) {
+        // The first tick of a run is only a baseline (no spurious cue when coming back mid-run).
+        const previous = lastElapsed.current?.key === key ? lastElapsed.current.sec : null;
+        lastElapsed.current = { key, sec: elapsed };
+        const label = segmentCue(active.segments, previous, elapsed);
+        if (label !== null) {
           play(beep);
-          const label = currentSegment(active.segments, elapsed)?.label;
-          if (label) AccessibilityInfo.announceForAccessibility(label);
+          AccessibilityInfo.announceForAccessibility(label);
         }
       }
     };

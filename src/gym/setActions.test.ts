@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import type { Translate } from '../i18n';
 
+import { createKeyedQueue } from './asyncControl';
 import type { SetsStep } from './sessionViewModel';
 import {
   createSetActions,
@@ -44,6 +45,7 @@ let sessionId: number | null;
 let deps: SetActionsDeps;
 const logSet = jest.fn<SetActionsDeps['workouts']['logSet']>();
 const unlogSet = jest.fn<SetActionsDeps['workouts']['unlogSet']>();
+const updateRir = jest.fn<SetActionsDeps['workouts']['updateRir']>();
 const start = jest.fn<SetActionsDeps['timers']['start']>();
 const cancel = jest.fn<SetActionsDeps['timers']['cancel']>();
 const haptic = jest.fn<() => void>();
@@ -52,6 +54,7 @@ beforeEach(() => {
   jest.resetAllMocks();
   logSet.mockResolvedValue(undefined);
   unlogSet.mockResolvedValue(undefined);
+  updateRir.mockResolvedValue(undefined);
   sessionId = null;
   deps = {
     ensureSession: async () => {
@@ -59,7 +62,7 @@ beforeEach(() => {
       return sessionId;
     },
     currentSessionId: () => sessionId,
-    workouts: { logSet, unlogSet },
+    workouts: { logSet, unlogSet, updateRir },
     timers: { start, cancel },
     now: () => 5000,
     t,
@@ -131,14 +134,37 @@ describe('createSetActions', () => {
     expect(cancel).toHaveBeenCalledWith(restOwner('squat', 0));
   });
 
-  it('updates the RIR of a logged set keeping its numbers', async () => {
+  it('updates ONLY the RIR of a logged set (no rewrite of numbers or doneAt)', async () => {
     sessionId = 7;
-    const current = { stepId: 'squat', setIndex: 2, weightKg: 40, reps: 8, rir: null };
-    const updated = await createSetActions(deps).updateRir(squat, current, 2);
-    expect(updated.rir).toBe(2);
-    expect(logSet).toHaveBeenCalledWith(
-      expect.objectContaining({ setIndex: 2, weightKg: 40, reps: 8, rir: 2 }),
+    await createSetActions(deps).updateRir(squat, 2, 2);
+    expect(updateRir).toHaveBeenCalledWith(7, 'squat', 2, 2);
+    expect(logSet).not.toHaveBeenCalled();
+  });
+
+  it('serializes ✓ then un-✓ on the same set through the keyed queue (no ghost set)', async () => {
+    const queue = createKeyedQueue();
+    const log: string[] = [];
+    let releaseWrite!: () => void;
+    logSet.mockImplementationOnce(async () => {
+      await new Promise<void>((resolve) => {
+        releaseWrite = resolve;
+      });
+      log.push('logged');
+    });
+    unlogSet.mockImplementation(async () => {
+      log.push('unlogged');
+    });
+    const actions = createSetActions(deps);
+    const key = `${squat.id}:0`;
+    const done = queue.run(key, () =>
+      actions.markDone(squat, 0, { weightKg: 40, reps: 9, rir: null }, null),
     );
+    const undone = queue.run(key, () => actions.markUndone(squat, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(unlogSet).not.toHaveBeenCalled();
+    releaseWrite();
+    await Promise.all([done, undone]);
+    expect(log).toEqual(['logged', 'unlogged']);
   });
 
   it('starts a hold timer for holdSec exercises only', () => {

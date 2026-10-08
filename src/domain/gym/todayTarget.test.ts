@@ -258,6 +258,18 @@ describe('todayTarget review fixes', () => {
     expect(target.kind).toBe('add-rep');
   });
 
+  it('keeps per-set positions when a middle set was lighter from fatigue', () => {
+    // Set 2 dropped to 37.5 kg: it must not shift the targets of set 3 (index into the raw sets).
+    const target = todayTarget(
+      step,
+      [session('d', [set(40, 10), set(37.5, 8), set(40, 9)])],
+      rules,
+    );
+    expect(target.kind).toBe('add-rep');
+    expect(target.reps).toEqual([10, 9, 10]);
+    expect(target.reason?.params).toMatchObject({ reps: 9 });
+  });
+
   it('resets the stall window after a deload (no immediate re-fire)', () => {
     const flat = (date: string, kg = 40) => session(date, [set(kg, 9), set(kg, 8), set(kg, 8)]);
     const stalled = [flat('d4'), flat('d3'), flat('d2'), flat('d1')];

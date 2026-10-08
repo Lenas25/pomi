@@ -40,8 +40,10 @@ export type ActiveTimer = {
   finishedBy: 'elapsed' | 'skipped' | null;
   /** The end timestamp it reached when it ran out (to tell "just now" from "in the background"). */
   finishedAt: number | null;
-  /** Bumped on every (re)schedule so a late scheduling result can be told from a current one. */
+  /** Module-wide monotonic id of every (re)schedule, so a late scheduling result can be told apart. */
   revision: number;
+  /** When this run began (identifies the run together with `owner`; unchanged by pause/+30 s). */
+  startedAt: number;
 };
 
 export type StartTimerInput = {
@@ -69,6 +71,14 @@ export type TimerStoreState = {
 };
 
 export type TimerStore = StoreApi<TimerStoreState>;
+
+// Monotonic across ALL stores and runs: a revision is never reused, so a scheduling result from
+// an old run can never match a newer timer (even one with the same owner after cancel + start).
+let revisionCounter = 0;
+const nextRevision = (): number => {
+  revisionCounter += 1;
+  return revisionCounter;
+};
 
 export function createTimerStore(effects: TimerEffects, now: () => number = Date.now): TimerStore {
   return createStore<TimerStoreState>((set, get) => {
@@ -105,7 +115,7 @@ export function createTimerStore(effects: TimerEffects, now: () => number = Date
         ...current,
         ...update(current),
         notificationId: null,
-        revision: current.revision + 1,
+        revision: nextRevision(),
       };
       set({ active: next });
       schedule(next);
@@ -127,13 +137,17 @@ export function createTimerStore(effects: TimerEffects, now: () => number = Date
           notificationId: null,
           finishedBy: null,
           finishedAt: null,
-          revision: (previous?.revision ?? 0) + 1,
+          revision: nextRevision(),
+          startedAt: now(),
         };
         set({ active: timer });
         schedule(timer);
       },
 
       pause() {
+        // A timer that already ran out finishes through the normal "elapsed" path (alarm included).
+        get().sync();
+        if (get().active?.state.status !== 'running') return;
         transition((timer) => ({ state: pauseTimer(timer.state, now()) }));
       },
 
@@ -142,6 +156,9 @@ export function createTimerStore(effects: TimerEffects, now: () => number = Date
       },
 
       addTime(sec) {
+        get().sync();
+        const status = get().active?.state.status;
+        if (status === undefined || status === 'finished') return;
         transition((timer) => ({ state: addTime(timer.state, now(), sec) }));
       },
 
@@ -155,7 +172,7 @@ export function createTimerStore(effects: TimerEffects, now: () => number = Date
             state: skipTimer(current.state),
             notificationId: null,
             finishedBy: 'skipped',
-            revision: current.revision + 1,
+            revision: nextRevision(),
           },
         });
       },
@@ -181,7 +198,7 @@ export function createTimerStore(effects: TimerEffects, now: () => number = Date
             notificationId: null,
             finishedBy: 'elapsed',
             finishedAt: current.state.status === 'running' ? current.state.endsAt : now(),
-            revision: current.revision + 1,
+            revision: nextRevision(),
           },
         });
       },

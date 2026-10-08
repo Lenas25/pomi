@@ -14,12 +14,14 @@ import type { Step } from '../templates/schema';
 import { pickProgram, toRotationSessions, type GymProgram } from './program';
 import {
   buildExerciseView,
+  groupLogsByStep,
   summarizeSession,
   type ExerciseView,
   type SessionSummary,
   type SetsStep,
   type StoredSet,
 } from './sessionViewModel';
+import { createKeyedQueue, memoizeUntilFailure } from './asyncControl';
 import { createSetActions, nextLabelFor } from './setActions';
 
 const ROTATION_LOOKBACK = 40;
@@ -62,6 +64,8 @@ export function useGymTab(): GymTabState & { reload: () => void } {
           return;
         }
         const today = todayKey();
+        // A workout left open on an earlier day (app killed) is closed at its last set.
+        await repos.workouts.finishStaleSessions(today);
         const recent = await repos.workouts.recentSessions(ROTATION_LOOKBACK);
         const routineIds = program.routines.map((routine) => routine.id);
         const open = await repos.workouts.unfinishedSessionOn(today);
@@ -109,14 +113,40 @@ export type GymSessionState =
       exercises: readonly SessionExercise[];
     };
 
+export type GymSessionError = { kind: 'saveSet' | 'finish'; id: number };
+
+export type FinishResult =
+  { status: 'finished'; summary: SessionSummary } | { status: 'empty' } | { status: 'error' };
+
 export function useGymSession(routineId: string | undefined) {
   const t = useT();
   const [state, setState] = useState<GymSessionState>({ status: 'loading' });
-  const [logs, setLogs] = useState<readonly StoredSet[]>([]);
+  // The logs and their per-step grouping change together; the grouping reuses unchanged arrays so
+  // memoized exercise cards re-render only when their own sets change.
+  const [{ logs, logsByStep }, setLogState] = useState<{
+    logs: readonly StoredSet[];
+    logsByStep: ReadonlyMap<string, readonly StoredSet[]>;
+  }>({ logs: [], logsByStep: new Map() });
+  const setLogs = useCallback(
+    (update: (current: readonly StoredSet[]) => readonly StoredSet[]) =>
+      setLogState((previous) => {
+        const next = update(previous.logs);
+        return { logs: next, logsByStep: groupLogsByStep(next, previous.logsByStep) };
+      }),
+    [],
+  );
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const programRef = useRef<GymProgram | null>(null);
   const sessionIdRef = useRef<number | null>(null);
-  const creating = useRef<Promise<number> | null>(null);
+  const creating = useRef<(() => Promise<number>) | null>(null);
+  const logsRef = useRef<readonly StoredSet[]>([]);
+  // Writes to the same set run one after another (✓ then un-✓ must not interleave).
+  const [queue] = useState(createKeyedQueue);
+  const [error, setError] = useState<GymSessionError | null>(null);
+
+  useEffect(() => {
+    logsRef.current = logs;
+  }, [logs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,6 +162,7 @@ export function useGymSession(routineId: string | undefined) {
         programRef.current = program;
 
         const today = todayKey();
+        await repos.workouts.finishStaleSessions(today);
         const weekday = getDay(new Date());
         const steps = routine.steps.filter((step) => evaluateWhen(step.when, { weekday }));
 
@@ -159,7 +190,7 @@ export function useGymSession(routineId: string | undefined) {
           }),
         );
         if (cancelled) return;
-        setLogs(stored?.sets ?? []);
+        setLogs(() => stored?.sets ?? []);
         setState({ status: 'ready', routineName: routine.name, steps, exercises });
       } catch (error) {
         if (__DEV__) console.error('Could not load the gym session', error);
@@ -169,7 +200,7 @@ export function useGymSession(routineId: string | undefined) {
     return () => {
       cancelled = true;
     };
-  }, [routineId]);
+  }, [routineId, setLogs]);
 
   // Built per call (not memoized) because the deps read refs, which must not happen during render.
   const getActions = useCallback(
@@ -177,8 +208,8 @@ export function useGymSession(routineId: string | undefined) {
       createSetActions({
         ensureSession: async () => {
           if (sessionIdRef.current !== null) return sessionIdRef.current;
-          // Two quick ✓ must not create two sessions.
-          creating.current ??= (async () => {
+          // Two quick ✓ share one creation; a failed creation is retried by the next ✓.
+          creating.current ??= memoizeUntilFailure(async () => {
             const program = programRef.current;
             if (!program || !routineId) throw new Error('No routine to start');
             const id = await getRepositories().workouts.createSession({
@@ -189,8 +220,8 @@ export function useGymSession(routineId: string | undefined) {
             });
             sessionIdRef.current = id;
             return id;
-          })();
-          return creating.current;
+          });
+          return creating.current();
         },
         currentSessionId: () => sessionIdRef.current,
         workouts: getRepositories().workouts,
@@ -210,11 +241,11 @@ export function useGymSession(routineId: string | undefined) {
   );
 
   const setDone = useCallback(
-    async (
+    (
       step: SetsStep,
       setIndex: number,
       values: { weightKg: number | null; reps: number | null; rir: number | null },
-    ) => {
+    ): Promise<void> => {
       const exerciseIndex = exercises.findIndex((exercise) => exercise.step.id === step.id);
       const nextLabel = nextLabelFor(
         exercises.map((exercise) => exercise.step),
@@ -222,45 +253,56 @@ export function useGymSession(routineId: string | undefined) {
         setIndex,
         t,
       );
+      const matches = (log: StoredSet) => log.stepId === step.id && log.setIndex === setIndex;
       // Optimistic: the row flips to done immediately; a failed write puts it back.
       const optimistic: StoredSet = { stepId: step.id, setIndex, ...values };
-      setLogs((current) => [
-        ...current.filter((log) => !(log.stepId === step.id && log.setIndex === setIndex)),
-        optimistic,
-      ]);
-      try {
-        await getActions().markDone(step, setIndex, values, nextLabel);
-      } catch {
-        setLogs((current) =>
-          current.filter((log) => !(log.stepId === step.id && log.setIndex === setIndex)),
-        );
-      }
+      setLogs((current) => [...current.filter((log) => !matches(log)), optimistic]);
+      return queue.run(`${step.id}:${setIndex}`, async () => {
+        try {
+          await getActions().markDone(step, setIndex, values, nextLabel);
+        } catch {
+          setLogs((current) => current.filter((log) => !matches(log)));
+          setError({ kind: 'saveSet', id: Date.now() });
+        }
+      });
     },
-    [getActions, exercises, t],
+    [getActions, exercises, queue, setLogs, t],
   );
 
   const setUndone = useCallback(
-    async (step: SetsStep, setIndex: number) => {
+    (step: SetsStep, setIndex: number): Promise<void> => {
       setLogs((current) =>
         current.filter((log) => !(log.stepId === step.id && log.setIndex === setIndex)),
       );
-      await getActions()
-        .markUndone(step, setIndex)
-        .catch(() => undefined);
+      return queue.run(`${step.id}:${setIndex}`, () =>
+        getActions()
+          .markUndone(step, setIndex)
+          .catch(() => setError({ kind: 'saveSet', id: Date.now() })),
+      );
     },
-    [getActions],
+    [getActions, queue, setLogs],
   );
 
   const setRir = useCallback(
-    async (step: SetsStep, setIndex: number, rir: number | null) => {
-      const current = logs.find((log) => log.stepId === step.id && log.setIndex === setIndex);
-      if (!current) return;
-      const updated = await getActions()
-        .updateRir(step, current, rir)
-        .catch(() => current);
-      setLogs((all) => all.map((log) => (log === current ? updated : log)));
+    (step: SetsStep, setIndex: number, rir: number | null): Promise<void> => {
+      const exists = logsRef.current.some(
+        (log) => log.stepId === step.id && log.setIndex === setIndex,
+      );
+      if (!exists) return Promise.resolve();
+      return queue.run(`${step.id}:${setIndex}`, async () => {
+        try {
+          await getActions().updateRir(step, setIndex, rir);
+          setLogs((all) =>
+            all.map((log) =>
+              log.stepId === step.id && log.setIndex === setIndex ? { ...log, rir } : log,
+            ),
+          );
+        } catch {
+          setError({ kind: 'saveSet', id: Date.now() });
+        }
+      });
     },
-    [getActions, logs],
+    [getActions, queue, setLogs],
   );
 
   const startHold = useCallback(
@@ -268,19 +310,33 @@ export function useGymSession(routineId: string | undefined) {
     [getActions],
   );
 
-  /** Finishes the session (if any set was logged) and returns the summary, or `null` if none. */
-  const finish = useCallback(async (): Promise<SessionSummary | null> => {
-    getTimerStore().getState().cancel();
-    const sessionId = sessionIdRef.current;
-    if (sessionId === null) return null;
-    await getRepositories().workouts.finishSession(sessionId, Date.now());
-    const result = summarizeSession(
-      exercises.map(({ step, view }) => ({ step, target: view.target })),
-      logs,
-    );
-    setSummary(result);
-    return result;
-  }, [exercises, logs]);
+  /**
+   * Finishes the session (if any set was logged). A failure keeps the session open (and its
+   * timers running) and raises the error toast.
+   */
+  const finish = useCallback(async (): Promise<FinishResult> => {
+    try {
+      await queue.idle();
+      const sessionId = sessionIdRef.current;
+      if (sessionId === null) {
+        getTimerStore().getState().cancel();
+        return { status: 'empty' };
+      }
+      await getRepositories().workouts.finishSession(sessionId, Date.now());
+      getTimerStore().getState().cancel();
+      const result = summarizeSession(
+        exercises.map(({ step, view }) => ({ step, target: view.target })),
+        logs,
+      );
+      setSummary(result);
+      return { status: 'finished', summary: result };
+    } catch {
+      setError({ kind: 'finish', id: Date.now() });
+      return { status: 'error' };
+    }
+  }, [exercises, logs, queue]);
+
+  const clearError = useCallback(() => setError(null), []);
 
   const setsDone = useMemo(
     () =>
@@ -291,5 +347,18 @@ export function useGymSession(routineId: string | undefined) {
     [exercises, logs],
   );
 
-  return { state, logs, summary, setDone, setUndone, setRir, startHold, finish, setsDone };
+  return {
+    state,
+    logs,
+    logsByStep,
+    summary,
+    error,
+    clearError,
+    setDone,
+    setUndone,
+    setRir,
+    startHold,
+    finish,
+    setsDone,
+  };
 }

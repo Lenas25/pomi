@@ -6,7 +6,8 @@ import { Card } from './Card';
 import { MascotBubble } from './MascotBubble';
 import { EmptyState } from './EmptyState';
 import { ThemeProvider, makeTheme } from './theme';
-import { Text } from 'react-native';
+import { AccessibilityInfo, Text } from 'react-native';
+import { Toast } from './Toast';
 
 function renderThemed(ui: ReactElement) {
   return render(<ThemeProvider mode="light">{ui}</ThemeProvider>);
@@ -75,5 +76,16 @@ describe('EmptyState', () => {
     await renderThemed(<EmptyState title="Title" body="Body" />);
     expect(screen.getByText('Title')).toBeTruthy();
     expect(screen.getByText('Body')).toBeTruthy();
+  });
+});
+
+describe('Toast', () => {
+  it('announces itself exactly once (no live region on top of the explicit announcement)', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    await renderThemed(<Toast variant="error" title="Oops" subtitle="Try again" />);
+    expect(announce).toHaveBeenCalledTimes(1);
+    expect(announce).toHaveBeenCalledWith('Oops. Try again');
+    expect(screen.getByText('Oops').parent?.parent?.props.accessibilityLiveRegion).toBeUndefined();
+    announce.mockRestore();
   });
 });

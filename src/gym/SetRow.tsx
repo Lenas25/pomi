@@ -1,11 +1,18 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Check, Timer } from 'phosphor-react-native';
 
-import { useT } from '../i18n';
+import { useLocaleStore, useT } from '../i18n';
+import type { Language } from '../i18n/types';
 import { useTheme } from '../ui/theme';
 
-import { formatKg, type PreviousSet, type SetInputs } from './sessionViewModel';
+import {
+  formatKg,
+  validateSetInputs,
+  type InputErrors,
+  type PreviousSet,
+  type SetInputs,
+} from './sessionViewModel';
 
 export type SetRowStatus = 'pending' | 'current' | 'done';
 
@@ -23,27 +30,31 @@ type SetRowProps = {
   placeholder: PreviousSet;
   /** Present once the set is done. */
   logged: LoggedValues | null;
-  /** `holdSec` exercises: starts a hold timer for this set. */
-  hold?: { sec: number; onStart: () => void };
-  onToggle: (inputs: SetInputs & { rir: number | null }) => void;
-  onRir: (rir: number | null) => void;
+  /** `holdSec` exercises: seconds of the hold; `onHold` starts the hold timer of this set. */
+  holdSec?: number;
+  onHold?: (index: number) => void;
+  /** Callbacks receive the set `index` so one stable function serves every row (memoized rows). */
+  onToggle: (index: number, inputs: SetInputs & { rir: number | null }) => void;
+  onRir: (index: number, rir: number | null) => void;
 };
 
 const RIR_VALUES = [0, 1, 2, 3] as const;
 const NARROW_WIDTH = 360;
 
-function previousText(previous: PreviousSet, bodyweight: boolean): string {
+function previousText(previous: PreviousSet, bodyweight: boolean, language: Language): string {
   if (previous.reps === null) return '—';
   if (bodyweight || previous.weightKg === null) return String(previous.reps);
-  return `${formatKg(previous.weightKg)}×${previous.reps}`;
+  return `${formatKg(previous.weightKg, language)}×${previous.reps}`;
 }
+
+const NO_ERRORS: InputErrors = { weight: false, reps: false };
 
 /**
  * One set (HANDOFF §4): number, greyed previous value, kg and reps inputs, a 48 dp ✓ and, for the
  * current / done set, the RIR 0-3 selector. Empty inputs on ✓ use the previous value (see
  * `resolveSetValues`); the placeholders show which value that will be.
  */
-export function SetRow({
+function SetRowBase({
   index,
   exerciseName,
   status,
@@ -51,13 +62,16 @@ export function SetRow({
   previous,
   placeholder,
   logged,
-  hold,
+  holdSec,
+  onHold,
   onToggle,
   onRir,
 }: SetRowProps) {
   const theme = useTheme();
   const t = useT();
+  const language = useLocaleStore((state) => state.language);
   const { width } = useWindowDimensions();
+  const [errors, setErrors] = useState<InputErrors>(NO_ERRORS);
   const [weightText, setWeightText] = useState('');
   const [repsText, setRepsText] = useState('');
   const [rirChoice, setRirChoice] = useState<number | null>(null);
@@ -65,7 +79,7 @@ export function SetRow({
   const number = index + 1;
   const showPrevious = width >= NARROW_WIDTH;
 
-  const input = (editable: boolean) => ({
+  const input = (editable: boolean, invalid: boolean) => ({
     ...theme.text('body-strong'),
     minHeight: theme.touch.gym,
     flex: 1,
@@ -73,14 +87,18 @@ export function SetRow({
     color: theme.color.text,
     borderRadius: theme.radius.sm,
     borderWidth: theme.stroke.bold,
-    borderColor: status === 'current' ? theme.color.brand : theme.color.border,
+    borderColor: invalid
+      ? theme.color.error
+      : status === 'current'
+        ? theme.color.brand
+        : theme.color.border,
     backgroundColor: editable ? theme.color.surface : theme.color.brandSoft,
     paddingHorizontal: theme.space[1],
   });
 
   const weightValue = done
     ? logged?.weightKg != null
-      ? formatKg(logged.weightKg)
+      ? formatKg(logged.weightKg, language)
       : ''
     : weightText;
   const repsValue = done ? (logged?.reps != null ? String(logged.reps) : '') : repsText;
@@ -103,14 +121,14 @@ export function SetRow({
         {showPrevious ? (
           <Text
             accessibilityLabel={t('gym.session.previousLabel', {
-              value: previousText(previous, bodyweight),
+              value: previousText(previous, bodyweight, language),
             })}
             style={[
               theme.text('caption'),
               { width: theme.space[10] + theme.space[4], color: theme.color.textMuted },
             ]}
           >
-            {previousText(previous, bodyweight)}
+            {previousText(previous, bodyweight, language)}
           </Text>
         ) : null}
         {bodyweight ? null : (
@@ -121,10 +139,15 @@ export function SetRow({
             editable={!done}
             selectTextOnFocus
             value={weightValue}
-            onChangeText={setWeightText}
-            placeholder={placeholder.weightKg === null ? '' : formatKg(placeholder.weightKg)}
+            onChangeText={(text) => {
+              setWeightText(text);
+              if (errors.weight) setErrors((current) => ({ ...current, weight: false }));
+            }}
+            placeholder={
+              placeholder.weightKg === null ? '' : formatKg(placeholder.weightKg, language)
+            }
             placeholderTextColor={theme.color.textMuted}
-            style={input(!done)}
+            style={input(!done, errors.weight)}
           />
         )}
         <TextInput
@@ -134,16 +157,19 @@ export function SetRow({
           editable={!done}
           selectTextOnFocus
           value={repsValue}
-          onChangeText={setRepsText}
+          onChangeText={(text) => {
+            setRepsText(text);
+            if (errors.reps) setErrors((current) => ({ ...current, reps: false }));
+          }}
           placeholder={placeholder.reps === null ? '' : String(placeholder.reps)}
           placeholderTextColor={theme.color.textMuted}
-          style={input(!done)}
+          style={input(!done, errors.reps)}
         />
-        {hold && !done ? (
+        {holdSec !== undefined && onHold && !done ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t('gym.session.holdStart', { sec: hold.sec })}
-            onPress={hold.onStart}
+            accessibilityLabel={t('gym.session.holdStart', { sec: holdSec })}
+            onPress={() => onHold(index)}
             style={{
               width: theme.touch.gym,
               height: theme.touch.gym,
@@ -170,7 +196,16 @@ export function SetRow({
               setRepsText(repsValue);
               setRirChoice(logged?.rir ?? null);
             }
-            onToggle({ weightText, repsText, rir: rirChoice });
+            if (!done) {
+              // Invalid text is reported, never replaced silently by the previous value.
+              const found = validateSetInputs({ weightText, repsText }, bodyweight);
+              if (found.weight || found.reps) {
+                setErrors(found);
+                return;
+              }
+            }
+            setErrors(NO_ERRORS);
+            onToggle(index, { weightText, repsText, rir: rirChoice });
           }}
           style={({ pressed }) => ({
             width: theme.touch.gym,
@@ -188,6 +223,15 @@ export function SetRow({
           <Check weight="bold" color={done ? theme.color.onPrimary : theme.color.textMuted} />
         </Pressable>
       </View>
+
+      {errors.weight || errors.reps ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[theme.text('caption'), { color: theme.color.error }]}
+        >
+          {t(errors.weight ? 'gym.session.invalidWeight' : 'gym.session.invalidReps')}
+        </Text>
+      ) : null}
 
       {status === 'pending' ? null : (
         <View
@@ -209,7 +253,7 @@ export function SetRow({
                 // Before the ✓ the choice is kept locally and logged with it; afterwards it edits the log.
                 onPress={() => {
                   const next = selected ? null : value;
-                  if (done) onRir(next);
+                  if (done) onRir(index, next);
                   else setRirChoice(next);
                 }}
                 style={{
@@ -234,3 +278,6 @@ export function SetRow({
     </View>
   );
 }
+
+/** Memoized: a row re-renders only when its own props change (callbacks must be stable). */
+export const SetRow = memo(SetRowBase);

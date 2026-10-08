@@ -73,7 +73,7 @@ export function Toast({ variant, title, subtitle, pose, onHide }: ToastProps) {
 
   return (
     <Animated.View
-      accessibilityLiveRegion="polite"
+      // Announced once, explicitly (see the effect): a live region would announce it twice.
       style={[
         {
           flexDirection: 'row',

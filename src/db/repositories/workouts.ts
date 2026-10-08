@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, max, ne } from 'drizzle-orm';
 
 import { setLogs, workoutSessions } from '../schema';
 import type { Db } from '../types';
@@ -86,6 +86,49 @@ export function createWorkoutsRepository(db: Db) {
         });
     },
 
+    /** Changes ONLY the RIR of a logged set (its `doneAt` and numbers stay). */
+    async updateRir(
+      sessionId: number,
+      stepId: string,
+      setIndex: number,
+      rir: number | null,
+    ): Promise<void> {
+      await db
+        .update(setLogs)
+        .set({ rir })
+        .where(
+          and(
+            eq(setLogs.sessionId, sessionId),
+            eq(setLogs.stepId, stepId),
+            eq(setLogs.setIndex, setIndex),
+          ),
+        );
+    },
+
+    /**
+     * Closes sessions left open on a day BEFORE `today` (the app was killed mid-workout): they
+     * finish at their last set's `doneAt` (or at their start when nothing was logged). Idempotent.
+     * Returns how many were closed.
+     */
+    async finishStaleSessions(today: string): Promise<number> {
+      const stale = await db
+        .select()
+        .from(workoutSessions)
+        .where(and(isNull(workoutSessions.finishedAt), lt(workoutSessions.date, today)));
+      for (const session of stale) {
+        const rows = await db
+          .select({ last: max(setLogs.doneAt) })
+          .from(setLogs)
+          .where(eq(setLogs.sessionId, session.id));
+        const finishedAt = Math.max(rows[0]?.last ?? 0, session.startedAt);
+        await db
+          .update(workoutSessions)
+          .set({ finishedAt })
+          .where(eq(workoutSessions.id, session.id));
+      }
+      return stale.length;
+    },
+
     async unlogSet(sessionId: number, stepId: string, setIndex: number): Promise<void> {
       await db
         .delete(setLogs)
@@ -99,15 +142,15 @@ export function createWorkoutsRepository(db: Db) {
     },
 
     /**
-     * Most recent FINISHED session (by start time, then id) that has at least one set logged for
-     * `stepId`. Abandoned sessions (no `finishedAt`) never count as history. `excludeSessionId`
-     * skips the session in progress. `sets` holds only that step's sets.
+     * Most recent session (by start time, then id) that has at least one set logged for `stepId`,
+     * finished or not: what was logged counts as history. `excludeSessionId` skips the session in
+     * progress. `sets` holds only that step's sets.
      */
     async lastSessionForStep(
       stepId: string,
       excludeSessionId?: number,
     ): Promise<SessionWithSets | undefined> {
-      const conditions = [eq(setLogs.stepId, stepId), isNotNull(workoutSessions.finishedAt)];
+      const conditions = [eq(setLogs.stepId, stepId)];
       if (excludeSessionId !== undefined) conditions.push(ne(workoutSessions.id, excludeSessionId));
 
       const rows = await db
@@ -125,7 +168,7 @@ export function createWorkoutsRepository(db: Db) {
     },
 
     /**
-     * Same as `lastSessionForStep` but returns up to `limit` FINISHED sessions, most recent first
+     * Same as `lastSessionForStep` but returns up to `limit` sessions, most recent first
      * (the history `todayTarget` needs: stall detection looks at several sessions).
      */
     async recentSessionsForStep(
@@ -133,7 +176,7 @@ export function createWorkoutsRepository(db: Db) {
       limit: number,
       excludeSessionId?: number,
     ): Promise<SessionWithSets[]> {
-      const conditions = [eq(setLogs.stepId, stepId), isNotNull(workoutSessions.finishedAt)];
+      const conditions = [eq(setLogs.stepId, stepId)];
       if (excludeSessionId !== undefined) conditions.push(ne(workoutSessions.id, excludeSessionId));
 
       const rows = await db

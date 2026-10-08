@@ -54,6 +54,7 @@ function activeTimer(overrides: Partial<ActiveTimer> = {}): ActiveTimer {
     finishedBy: null,
     finishedAt: null,
     revision: 1,
+    startedAt: T0,
     ...overrides,
   };
 }
@@ -106,7 +107,7 @@ describe('TimerSheet', () => {
       onSkip: jest.fn(),
       onClose: jest.fn(),
     };
-    return { handlers, ui: <TimerSheet timer={timer} now={T0} {...handlers} /> };
+    return { handlers, ui: <TimerSheet timer={timer} {...handlers} /> };
   }
 
   it('shows what is next and Pausar / +30 s / Saltar', async () => {
@@ -219,5 +220,61 @@ describe('useTimerFeedback (foreground)', () => {
     await act(async () => store.getState().skip());
     expect(mockPlay).not.toHaveBeenCalled();
     expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  const segments = [
+    { atSec: 0, label: 'Easy' },
+    { atSec: 60, label: 'Hard' },
+  ];
+
+  function startCardio() {
+    store.getState().start({
+      owner: 'timed:run',
+      kind: 'cardio',
+      durationSec: 120,
+      segments,
+      notification: { title: 't', body: 'b' },
+    });
+  }
+
+  it('cues the segment at 0 s once at the start, then only on changes', async () => {
+    await renderHook(() => useTimerFeedback());
+    await act(async () => startCardio());
+    await tickTo(250);
+    expect(announce).toHaveBeenCalledWith('Easy');
+    expect(mockPlay).toHaveBeenCalledTimes(1);
+    await tickTo(1000);
+    expect(mockPlay).toHaveBeenCalledTimes(1);
+    await tickTo(60_500);
+    expect(announce).toHaveBeenCalledWith('Hard');
+    expect(mockPlay).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not repeat cues when +30 s bumps the revision of the same run', async () => {
+    await renderHook(() => useTimerFeedback());
+    await act(async () => startCardio());
+    await tickTo(250);
+    mockPlay.mockClear();
+    await act(async () => store.getState().addTime(30));
+    await tickTo(1000);
+    expect(mockPlay).not.toHaveBeenCalled();
+  });
+
+  it('re-arms the 3-2-1 countdown after +30 s at 3 s left', async () => {
+    await renderHook(() => useTimerFeedback());
+    await act(async () =>
+      store.getState().start({
+        owner: 'rest:ht:0',
+        kind: 'rest',
+        durationSec: 5,
+        notification: { title: 't', body: 'b' },
+      }),
+    );
+    await tickTo(2100); // 3 s left -> first beep
+    expect(mockPlay).toHaveBeenCalledTimes(1);
+    await act(async () => store.getState().addTime(30));
+    await tickTo(2400);
+    await tickTo(32_100); // 3 s left again -> beeps again
+    expect(mockPlay).toHaveBeenCalledTimes(2);
   });
 });

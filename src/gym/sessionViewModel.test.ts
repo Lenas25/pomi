@@ -2,7 +2,12 @@ import { describe, expect, it } from '@jest/globals';
 
 import {
   buildExerciseView,
-  parseNumberInput,
+  formatKg,
+  groupLogsByStep,
+  localizeTargetParams,
+  parseKgInput,
+  parseRepsInput,
+  validateSetInputs,
   plannedSetCount,
   resolveSetValues,
   summarizeSession,
@@ -120,13 +125,69 @@ describe('buildExerciseView', () => {
   });
 });
 
-describe('parseNumberInput', () => {
-  it('accepts dot and comma decimals and rejects junk', () => {
-    expect(parseNumberInput('42.5')).toBe(42.5);
-    expect(parseNumberInput(' 42,5 ')).toBe(42.5);
-    expect(parseNumberInput('')).toBeNull();
-    expect(parseNumberInput('abc')).toBeNull();
-    expect(parseNumberInput('-3')).toBeNull();
+describe('numeric input parsing', () => {
+  it('parses kg with one decimal (dot or comma), rounded to 0.1', () => {
+    expect(parseKgInput('42.5')).toEqual({ ok: true, value: 42.5 });
+    expect(parseKgInput(' 42,5 ')).toEqual({ ok: true, value: 42.5 });
+    expect(parseKgInput('9999.9')).toEqual({ ok: true, value: 9999.9 });
+    expect(parseKgInput('0')).toEqual({ ok: true, value: 0 });
+  });
+
+  it('treats empty text as "left empty" and everything else invalid', () => {
+    expect(parseKgInput('')).toEqual({ ok: true, value: null });
+    for (const bad of ['abc', '-3', '1e3', '42.55', '12345', '4.', '.5', '4 2', '42..5']) {
+      expect(parseKgInput(bad)).toEqual({ ok: false });
+    }
+  });
+
+  it('parses reps as 1-3 digit integers of at least 1', () => {
+    expect(parseRepsInput('12')).toEqual({ ok: true, value: 12 });
+    expect(parseRepsInput('')).toEqual({ ok: true, value: null });
+    for (const bad of ['0', '1.5', '1000', '-2', 'x', '8,5']) {
+      expect(parseRepsInput(bad)).toEqual({ ok: false });
+    }
+  });
+
+  it('reports invalid fields instead of falling back silently', () => {
+    expect(validateSetInputs({ weightText: '4x', repsText: '8' }, false)).toEqual({
+      weight: true,
+      reps: false,
+    });
+    expect(validateSetInputs({ weightText: '4x', repsText: '' }, true)).toEqual({
+      weight: false,
+      reps: false,
+    });
+    expect(validateSetInputs({ weightText: '', repsText: '1.5' }, false).reps).toBe(true);
+  });
+});
+
+describe('formatKg / localizeTargetParams', () => {
+  it('uses the locale decimal separator', () => {
+    expect(formatKg(42.5, 'es')).toBe('42,5');
+    expect(formatKg(42.5, 'en')).toBe('42.5');
+    expect(formatKg(40, 'es')).toBe('40');
+    expect(formatKg(42.54, 'es')).toBe('42,5');
+  });
+
+  it('formats only the weight params of a target message', () => {
+    expect(localizeTargetParams({ weightKg: 42.5, reps: 8, lastWeightKg: 40 }, 'es')).toEqual({
+      weightKg: '42,5',
+      reps: 8,
+      lastWeightKg: '40',
+    });
+  });
+});
+
+describe('groupLogsByStep', () => {
+  it('reuses the array of a step whose logs did not change', () => {
+    const a1 = stored('a', 0, 10, 8);
+    const b1 = stored('b', 0, 10, 8);
+    const first = groupLogsByStep([a1, b1]);
+    const b2 = stored('b', 1, 10, 8);
+    const second = groupLogsByStep([a1, b1, b2], first);
+    expect(second.get('a')).toBe(first.get('a'));
+    expect(second.get('b')).not.toBe(first.get('b'));
+    expect(second.get('b')).toEqual([b1, b2]);
   });
 });
 

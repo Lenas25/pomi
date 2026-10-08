@@ -184,12 +184,12 @@ export function todayTarget(
   }
 
   const lastWeight = workingWeight(last);
-  // Working sets (case 1 and 2): lighter warm-up / drop sets are ignored, but skipped sets
-  // (no reps) keep their position so the per-set indices of the plan do not shift.
-  const lastSets = last.sets.filter(
-    (s) => !(isDone(s) && lastWeight !== null && s.weightKg !== null && s.weightKg < lastWeight),
+  // Top-of-range check (case 1): lighter warm-up / drop sets (fatigue) are ignored here, and only
+  // here. The per-set targets of case 2 index the UNFILTERED last session, so neither skipped
+  // nor lighter sets shift the positions of the plan.
+  const lastDone = last.sets.filter(
+    (s) => isDone(s) && !(lastWeight !== null && s.weightKg !== null && s.weightKg < lastWeight),
   );
-  const lastDone = lastSets.filter(isDone);
   const canAddWeight = step.incrementKg !== undefined && lastWeight !== null;
   const allAtTop =
     lastDone.length >= step.sets &&
@@ -224,11 +224,11 @@ export function todayTarget(
     reason = { key: 'gym.target.addRep', params: { weightKg: lastWeight ?? 0, reps: next } };
   } else {
     // Case 2: same weight, +1 rep on EVERY set below the top (capped at the top, floored at the
-    // minimum). Indices follow the unfiltered last session so skipped sets do not shift them.
+    // minimum). Indices follow the unfiltered last session so skipped or lighter sets do not shift them.
     kind = 'add-rep';
     const raised: number[] = [];
     reps = Array.from({ length: step.sets }, (_, index) => {
-      const set = lastSets[index];
+      const set = last.sets[index];
       const lastReps = set !== undefined && isDone(set) ? (set.reps ?? 0) : null;
       if (lastReps === null) {
         raised.push(min);

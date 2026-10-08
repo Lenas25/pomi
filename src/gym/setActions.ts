@@ -35,7 +35,7 @@ export type SetActionsDeps = {
   ensureSession: () => Promise<number>;
   /** The session id if it exists already (nothing to unlog otherwise). */
   currentSessionId: () => number | null;
-  workouts: Pick<WorkoutsRepository, 'logSet' | 'unlogSet'>;
+  workouts: Pick<WorkoutsRepository, 'logSet' | 'unlogSet' | 'updateRir'>;
   timers: Pick<TimerStoreState, 'start' | 'cancel'>;
   now: () => number;
   t: Translate;
@@ -100,21 +100,10 @@ export function createSetActions(deps: SetActionsDeps) {
       if (sessionId !== null) await workouts.unlogSet(sessionId, step.id, setIndex);
     },
 
-    /** Changes the RIR of a set that is already logged. */
-    async updateRir(step: SetsStep, current: StoredSet, rir: number | null): Promise<StoredSet> {
+    /** Changes ONLY the RIR of a logged set (its numbers and `doneAt` stay as logged). */
+    async updateRir(step: SetsStep, setIndex: number, rir: number | null): Promise<void> {
       const sessionId = deps.currentSessionId();
-      if (sessionId !== null) {
-        await workouts.logSet({
-          sessionId,
-          stepId: step.id,
-          setIndex: current.setIndex,
-          weightKg: current.weightKg,
-          reps: current.reps,
-          rir,
-          doneAt: deps.now(),
-        });
-      }
-      return { ...current, rir };
+      if (sessionId !== null) await workouts.updateRir(sessionId, step.id, setIndex, rir);
     },
 
     /** `holdSec` exercises: a short timer for the hold (the ✓ then starts the real rest). */

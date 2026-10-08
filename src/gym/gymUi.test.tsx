@@ -45,7 +45,6 @@ describe('SetRow', () => {
     bodyweight: false,
     previous: { weightKg: 40, reps: 9 },
     placeholder: { weightKg: 40, reps: 9 },
-    hold: undefined,
     onToggle: jest.fn(),
     onRir: jest.fn(),
   };
@@ -58,14 +57,14 @@ describe('SetRow', () => {
     await fireEvent.press(
       screen.getByRole('checkbox', { name: 'Serie 2 de Hip thrust, marcar como hecha' }),
     );
-    expect(onToggle).toHaveBeenCalledWith({ weightText: '42,5', repsText: '8', rir: null });
+    expect(onToggle).toHaveBeenCalledWith(1, { weightText: '42,5', repsText: '8', rir: null });
   });
 
   it('sends empty inputs as they are (the default comes from the previous value)', async () => {
     const onToggle = jest.fn();
     await renderThemed(<SetRow {...base} status="current" logged={null} onToggle={onToggle} />);
     await fireEvent.press(screen.getByRole('checkbox'));
-    expect(onToggle).toHaveBeenCalledWith({ weightText: '', repsText: '', rir: null });
+    expect(onToggle).toHaveBeenCalledWith(1, { weightText: '', repsText: '', rir: null });
   });
 
   it('shows a done row as checked with the logged values and locked inputs', async () => {
@@ -76,7 +75,7 @@ describe('SetRow', () => {
       name: 'Serie 2 de Hip thrust, hecha, desmarcar',
     });
     expect(toggle.props.accessibilityState).toMatchObject({ checked: true });
-    expect(screen.getByLabelText(/Peso de la serie 2/).props.value).toBe('42.5');
+    expect(screen.getByLabelText(/Peso de la serie 2/).props.value).toBe('42,5');
     expect(screen.getByLabelText(/Peso de la serie 2/).props.editable).toBe(false);
     expect(
       screen.getByRole('radio', { name: 'Repeticiones en reserva: 1' }).props.accessibilityState,
@@ -88,7 +87,7 @@ describe('SetRow', () => {
     await renderThemed(<SetRow {...base} status="current" logged={null} onToggle={onToggle} />);
     await fireEvent.press(screen.getByRole('radio', { name: 'Repeticiones en reserva: 2' }));
     await fireEvent.press(screen.getByRole('checkbox'));
-    expect(onToggle).toHaveBeenCalledWith(expect.objectContaining({ rir: 2 }));
+    expect(onToggle).toHaveBeenCalledWith(1, expect.objectContaining({ rir: 2 }));
   });
 
   it('edits the RIR of a done set through onRir, and tapping it again clears it', async () => {
@@ -97,9 +96,9 @@ describe('SetRow', () => {
       <SetRow {...base} status="done" logged={{ weightKg: 40, reps: 9, rir: 1 }} onRir={onRir} />,
     );
     await fireEvent.press(screen.getByRole('radio', { name: 'Repeticiones en reserva: 3' }));
-    expect(onRir).toHaveBeenLastCalledWith(3);
+    expect(onRir).toHaveBeenLastCalledWith(1, 3);
     await fireEvent.press(screen.getByRole('radio', { name: 'Repeticiones en reserva: 1' }));
-    expect(onRir).toHaveBeenLastCalledWith(null);
+    expect(onRir).toHaveBeenLastCalledWith(1, null);
   });
 
   it('hides the kg input for bodyweight sets', async () => {
@@ -111,10 +110,34 @@ describe('SetRow', () => {
   it('shows a hold button that starts the hold timer', async () => {
     const onStart = jest.fn();
     await renderThemed(
-      <SetRow {...base} status="current" logged={null} hold={{ sec: 40, onStart }} />,
+      <SetRow {...base} status="current" logged={null} holdSec={40} onHold={onStart} />,
     );
     await fireEvent.press(screen.getByRole('button', { name: 'Aguantar 40 s' }));
-    expect(onStart).toHaveBeenCalledTimes(1);
+    expect(onStart).toHaveBeenCalledWith(1);
+  });
+
+  it('shows an inline error and does NOT log when a field is invalid (no silent fallback)', async () => {
+    const onToggle = jest.fn();
+    await renderThemed(<SetRow {...base} status="current" logged={null} onToggle={onToggle} />);
+    await fireEvent.changeText(screen.getByLabelText(/Peso de la serie 2/), '4x');
+    await fireEvent.press(screen.getByRole('checkbox'));
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(screen.getByText(/Peso no válido/)).toBeTruthy();
+
+    // Editing the field clears the error and a valid value goes through.
+    await fireEvent.changeText(screen.getByLabelText(/Peso de la serie 2/), '42,5');
+    expect(screen.queryByText(/Peso no válido/)).toBeNull();
+    await fireEvent.press(screen.getByRole('checkbox'));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects non-integer reps with its own message', async () => {
+    const onToggle = jest.fn();
+    await renderThemed(<SetRow {...base} status="current" logged={null} onToggle={onToggle} />);
+    await fireEvent.changeText(screen.getByLabelText(/Repeticiones de la serie 2/), '8,5');
+    await fireEvent.press(screen.getByRole('checkbox'));
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(screen.getByText(/Repeticiones no válidas/)).toBeTruthy();
   });
 });
 
@@ -144,7 +167,11 @@ describe('ExerciseCard', () => {
     await fireEvent.press(
       screen.getByRole('checkbox', { name: 'Serie 1 de Hip thrust, marcar como hecha' }),
     );
-    expect(handlers.onSetDone).toHaveBeenCalledWith(0, { weightKg: 40, reps: 10, rir: null });
+    expect(handlers.onSetDone).toHaveBeenCalledWith(step, 0, {
+      weightKg: 40,
+      reps: 10,
+      rir: null,
+    });
   });
 
   it('✓ on a done set unmarks it', async () => {
@@ -155,7 +182,7 @@ describe('ExerciseCard', () => {
     await fireEvent.press(
       screen.getByRole('checkbox', { name: 'Serie 1 de Hip thrust, hecha, desmarcar' }),
     );
-    expect(handlers.onSetUndone).toHaveBeenCalledWith(0);
+    expect(handlers.onSetUndone).toHaveBeenCalledWith(step, 0);
     expect(handlers.onSetDone).not.toHaveBeenCalled();
   });
 
