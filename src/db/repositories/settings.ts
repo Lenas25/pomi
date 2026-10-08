@@ -11,6 +11,13 @@ import {
 import { settings } from '../schema';
 import type { Db } from '../types';
 
+/** Goals accepted on the onboarding summary ("Tu punto de partida"); editable later in Settings. */
+export const goalsSchema = z.strictObject({
+  waterGlassesRest: z.number().int().positive().optional(),
+  waterGlassesGym: z.number().int().positive().optional(),
+  stepsGoal: z.number().int().positive().optional(),
+});
+
 /** Every key the app stores, with the shape of its value. Values are validated on read. */
 export const settingsSchemas = {
   anchors: anchorsSchema,
@@ -20,6 +27,11 @@ export const settingsSchemas = {
   activeModules: z.array(z.string()),
   checkinPrefs: checkinPrefsSchema,
   templatesSeeded: z.boolean(),
+  onboardingComplete: z.boolean(),
+  userName: z.string().min(1),
+  /** Rough "steps per day" answer from the onboarding, the baseline until real data exists. */
+  stepsEstimate: z.number().nonnegative(),
+  goals: goalsSchema,
 } as const;
 
 export type SettingsKey = keyof typeof settingsSchemas;

@@ -1,5 +1,5 @@
-import { SectionPlaceholder } from '../../src/ui/SectionPlaceholder';
+import { NameQuestion } from '../../src/onboarding/questions';
 
-export default function Onboarding() {
-  return <SectionPlaceholder section="onboarding" pose="hola" />;
+export default function OnboardingStart() {
+  return <NameQuestion />;
 }

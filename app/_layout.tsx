@@ -13,7 +13,9 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useDatabaseReady } from '../src/db/useDatabaseReady';
+import { routeGuards } from '../src/domain/onboarding/redirect';
 import { useT } from '../src/i18n';
+import { useOnboardingStatusStore } from '../src/onboarding/statusStore';
 import { EmptyState } from '../src/ui/EmptyState';
 import { Screen } from '../src/ui/Screen';
 import { IconProvider } from '../src/ui/icons';
@@ -25,12 +27,25 @@ void SplashScreen.preventAutoHideAsync();
 
 function RootStack() {
   const theme = useTheme();
+  const status = useOnboardingStatusStore((state) => state.status);
+  const guards = routeGuards(status);
   return (
     <>
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.bg } }}
-      />
+      >
+        {/* Until the onboarding is complete only its routes exist; afterwards only the app's. */}
+        <Stack.Protected guard={guards.onboarding}>
+          <Stack.Screen name="onboarding" />
+        </Stack.Protected>
+        <Stack.Protected guard={guards.app}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="gym/session" />
+          <Stack.Screen name="checkin/[tipo]" />
+          <Stack.Screen name="compartir" />
+        </Stack.Protected>
+      </Stack>
     </>
   );
 }

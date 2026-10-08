@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { migrate } from 'drizzle-orm/expo-sqlite/migrator';
 
+import { useOnboardingStatusStore } from '../onboarding/statusStore';
 import { setLanguagePersistence, useLocaleStore } from '../i18n';
 import { setThemeModePersistence, useThemeModeStore } from '../ui/themeModeStore';
 
@@ -18,6 +19,8 @@ async function runBootstrap(): Promise<void> {
   setThemeModePersistence((next) => repositories.settings.set('themeMode', next));
   const language = await repositories.settings.get('language');
   useLocaleStore.getState().hydrate(language ?? 'system');
+  const onboardingDone = await repositories.settings.get('onboardingComplete');
+  useOnboardingStatusStore.getState().setComplete(onboardingDone === true);
   // 'system' is stored as "no value", so the device language keeps being followed.
   setLanguagePersistence((next) =>
     next === 'system'

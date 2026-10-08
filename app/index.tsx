@@ -1,6 +1,11 @@
 import { Redirect } from 'expo-router';
 
-// Onboarding gating arrives with the database (M1); for now go straight to the tabs.
+import { entryHref } from '../src/domain/onboarding/redirect';
+import { useOnboardingStatusStore } from '../src/onboarding/statusStore';
+
+/** Entry route: first run goes to the onboarding, everyone else to Hoy. */
 export default function Index() {
-  return <Redirect href="/(tabs)/hoy" />;
+  const status = useOnboardingStatusStore((state) => state.status);
+  const href = entryHref(status);
+  return href === null ? null : <Redirect href={href} />;
 }
