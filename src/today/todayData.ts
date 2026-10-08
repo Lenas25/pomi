@@ -89,19 +89,31 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
   const midnight = dayStartFor(now);
   const lookbackFrom = format(subDays(midnight, IDENTITY_LOOKBACK_DAYS), 'yyyy-MM-dd');
 
-  const [habits, anchors, shifts, userName, stored, modules, sessions, recent, pending, prefs] =
-    await Promise.all([
-      loadHabitsData(repos, today),
-      repos.settings.get('anchors'),
-      repos.settings.get('planShifts'),
-      repos.settings.get('userName'),
-      repos.settings.get('todayState'),
-      repos.templates.listModules(),
-      repos.workouts.sessionsInRange(lookbackFrom, today),
-      repos.workouts.recentSessions(ROTATION_LOOKBACK),
-      repos.suggestions.pending(expiryCutoff(now)),
-      repos.settings.get('notificationPrefs'),
-    ]);
+  const [
+    habits,
+    anchors,
+    gymPlan,
+    shifts,
+    userName,
+    stored,
+    modules,
+    sessions,
+    recent,
+    pending,
+    prefs,
+  ] = await Promise.all([
+    loadHabitsData(repos, today),
+    repos.settings.get('anchors'),
+    repos.settings.get('gymPlan'),
+    repos.settings.get('planShifts'),
+    repos.settings.get('userName'),
+    repos.settings.get('todayState'),
+    repos.templates.listModules(),
+    repos.workouts.sessionsInRange(lookbackFrom, today),
+    repos.workouts.recentSessions(ROTATION_LOOKBACK),
+    repos.suggestions.pending(expiryCutoff(now)),
+    repos.settings.get('notificationPrefs'),
+  ]);
   const view = buildHabitsView(habits, today);
 
   const finished = sessions.filter(
@@ -124,6 +136,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     anchors: anchors ?? {},
     ...(shifts ? { shifts } : {}),
     gymDays: habits.gymDays,
+    ...(gymPlan ? { gymPlan } : {}),
     checkinPrefs: habits.checkinPrefs,
     modules: habits.modules.filter((module) => module.active).map((module) => module.template),
     ...(routine ? { todayRoutine: { id: routine.id, steps: routine.steps } } : {}),

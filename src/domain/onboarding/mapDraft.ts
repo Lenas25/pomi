@@ -1,4 +1,4 @@
-import type { Anchors, CheckinPrefs, GymDays } from '../../templates/schema';
+import type { Anchors, CheckinPrefs, GymDays, GymPlan } from '../../templates/schema';
 import {
   slotOf,
   type GymSlot,
@@ -30,6 +30,7 @@ export type SettingsPatch = {
   userName?: string;
   anchors: Anchors;
   gymDays: GymDays;
+  gymPlan: GymPlan;
   checkinPrefs: CheckinPrefs;
   stepsEstimate?: number;
   freeDays?: number[];
@@ -71,6 +72,11 @@ export function mapDraftToPersistence(draft: OnboardingDraft): OnboardingPersist
     anchors.gymEvening = draft.gymEvening;
   }
 
+  const gymPlan: GymPlan = days.map((weekday) => ({
+    weekday,
+    time: slotOf(draft, weekday) === 'gymMorning' ? draft.gymMorning : draft.gymEvening,
+  }));
+
   const point = buildStartingPoint({ ...draft, gymDays: days });
   const goals: StoredGoals = {};
   // Without a weight the water numbers are only a starting point: store them when edited.
@@ -87,6 +93,7 @@ export function mapDraftToPersistence(draft: OnboardingDraft): OnboardingPersist
   const settings: SettingsPatch = {
     anchors,
     gymDays,
+    gymPlan,
     checkinPrefs: {
       morning: draft.checkinMorning,
       night: draft.checkinNight,

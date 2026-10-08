@@ -339,6 +339,9 @@ export const gymDaysSchema = z.array(
   }),
 );
 
+/** One gym day with its approximate time (`HH:mm`): the per-day model behind Ajustes > "Horarios y gym". */
+export const gymPlanSchema = z.array(z.strictObject({ weekday: weekdaySchema, time: timeSchema }));
+
 export const checkinPrefsSchema = z.strictObject({
   morning: z.boolean(),
   night: z.boolean(),
@@ -384,4 +387,5 @@ export type LanguageSetting = z.infer<typeof languageSchema>;
 export type ProfileData = z.infer<typeof profileDataSchema>;
 export type Anchors = z.infer<typeof anchorsSchema>;
 export type GymDays = z.infer<typeof gymDaysSchema>;
+export type GymPlan = z.infer<typeof gymPlanSchema>;
 export type CheckinPrefs = z.infer<typeof checkinPrefsSchema>;

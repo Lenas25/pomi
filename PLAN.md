@@ -288,7 +288,7 @@ Función pura `buildInsights(data, today)`, ejecutada una vez por semana. Muestr
 | **Hábitos** | Agua (contador), pasos (automático o manual), pausas activas, caminar después de comer y notas de comida. Constancia como "X de los últimos 10 días". |
 | **Progreso** | Constancia por semana, fuerza por ejercicio (gráfico), medidas, fotos, "Tú hace 30 días vs. hoy" y lista de hallazgos. |
 | **Compartir** | Ver sección 14. |
-| **Ajustes** | Perfil, metas (editables), horarios, programa de gym (importar plantilla), avisos, tema (claro, oscuro o del sistema), idioma, permisos, respaldo e importación. |
+| **Ajustes** | Perfil, metas (editables), horarios, programa de gym (importar plantilla), avisos, tema (claro, oscuro o del sistema), idioma, permisos, respaldo e importación. La sección **Horarios y gym** edita la hora de despertar, las horas de sueño (muestra la hora de dormir derivada), los días de gym con una hora aproximada POR día y las metas de agua y pasos; cada cambio re-sincroniza los avisos. |
 
 **Diseño:** la identidad visual, la mascota y la voz están en `design/BRAND.md`; la especificación de componentes, estados y movimiento en `design/HANDOFF.md`; los tokens en `design/tokens.json` (implementados en `src/ui/theme.tsx`); los assets en `design/ASSETS.md`. Tema claro (fondo crema) y oscuro (navy), siguiendo el sistema.
 

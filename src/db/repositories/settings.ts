@@ -5,6 +5,7 @@ import {
   anchorsSchema,
   checkinPrefsSchema,
   gymDaysSchema,
+  gymPlanSchema,
   languageSchema,
   themeModeSchema,
   timeSchema,
@@ -85,6 +86,8 @@ export const sedentaryHistorySchema = z.strictObject({
 export const settingsSchemas = {
   anchors: anchorsSchema,
   gymDays: gymDaysSchema,
+  /** Per-day gym times; when absent the plan is derived from `gymDays` + anchors (`effectiveGymPlan`). */
+  gymPlan: gymPlanSchema,
   /** Weekdays (0 = Sunday) the person usually has free: the "free days" of social jetlag and "Tu ritmo". */
   freeDays: z.array(z.number().int().min(0).max(6)),
   themeMode: themeModeSchema,
@@ -180,6 +183,20 @@ export function createSettingsRepository(db: Db, now: () => number = Date.now) {
     }
   }
 
+  /** `gymPlan` as a canonical string (ordered by weekday, then time). */
+  function normalizedGymPlan(json: string | undefined): string | undefined {
+    if (json === undefined) return undefined;
+    try {
+      const parsed = gymPlanSchema.safeParse(JSON.parse(json));
+      if (!parsed.success) return json;
+      return JSON.stringify(
+        [...parsed.data].sort((a, b) => a.weekday - b.weekday || a.time.localeCompare(b.time)),
+      );
+    } catch {
+      return json;
+    }
+  }
+
   /** The steps goal inside a stored `goals` value (`undefined` when absent or unreadable). */
   function stepsGoalOf(json: string | undefined): number | undefined {
     if (json === undefined) return undefined;
@@ -196,7 +213,7 @@ export function createSettingsRepository(db: Db, now: () => number = Date.now) {
     value: SettingsValue<K>,
   ): Promise<void> {
     const json = JSON.stringify(value);
-    if (key !== 'gymDays' && key !== 'goals') {
+    if (key !== 'gymDays' && key !== 'gymPlan' && key !== 'goals') {
       await write(key, json);
       return;
     }
@@ -210,6 +227,9 @@ export function createSettingsRepository(db: Db, now: () => number = Date.now) {
       await write(key, json);
       const today = dayKeyFor(new Date(now()));
       if (key === 'gymDays' && normalizedGymDays(before) !== normalizedGymDays(json)) {
+        await write('gymDaysChangedOn', JSON.stringify(today));
+      }
+      if (key === 'gymPlan' && normalizedGymPlan(before) !== normalizedGymPlan(json)) {
         await write('gymDaysChangedOn', JSON.stringify(today));
       }
       if (key === 'goals' && stepsGoalOf(before) !== stepsGoalOf(json)) {

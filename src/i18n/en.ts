@@ -541,6 +541,23 @@ export const en: Messages = {
     back: 'Back',
   },
   settings: {
+    schedule: {
+      title: 'Schedule and gym',
+      hint: 'Your wake time, your sleep hours and your gym days with their approximate time. Reminders follow along.',
+      wake: 'Wake time',
+      sleepTarget: 'Sleep hours',
+      sleepTargetValue: '{{hours}} h',
+      bed: 'Bedtime: {{time}}',
+      gymDays: 'Gym days',
+      gymTime: 'Approximate time on {{day}}',
+      goalsTitle: 'Goals',
+      waterRest: 'Water on rest days',
+      waterGym: 'Water on gym days',
+      glassesValue: '{{count}} glasses',
+      steps: 'Steps per day',
+      stepsValue: '{{count}} steps',
+      saveFailed: 'We could not save the change.',
+    },
     freeDays: {
       title: 'My free days',
       hint: 'The days without a work schedule. They are used to compare your sleep on work days and free days.',

@@ -5,6 +5,7 @@ import type {
   Anchors,
   CheckinPrefs,
   GymDays,
+  GymPlan,
   Habit,
   ModuleBody,
   Reminder,
@@ -13,6 +14,7 @@ import type {
 } from '../../templates/schema';
 import { waterGoal } from '../formulas/water';
 import { bedtimeFor } from '../formulas/sleep';
+import { effectiveGymPlan } from '../gym/gymPlan';
 import { MINUTES_PER_DAY, clockToMinutes, wrapMinutes } from '../time';
 import { evaluateOnlyIf, evaluateWhen, type Profile } from './conditions';
 
@@ -58,6 +60,8 @@ export type AgendaState = {
   profile: Profile & { weightKg?: number };
   anchors: Anchors;
   gymDays: GymDays;
+  /** Per-day gym times (`gymPlan` setting); without it the times come from the slot anchors. */
+  gymPlan?: GymPlan;
   checkinPrefs?: Pick<CheckinPrefs, 'morning' | 'night'>;
   /** Active modules (installed + enabled). */
   modules: readonly ModuleBody[];
@@ -191,16 +195,18 @@ export function buildAgenda(date: Date, state: AgendaState): AgendaItem[] {
   const anchors = resolveAnchors(state.anchors, state.shifts);
   const items: AgendaItem[] = [];
 
-  // Gym: days and anchors come from settings (onboarding), not from `program.schedules`.
-  // Several entries may share a weekday (morning AND evening): one item with every occurrence.
-  const gymToday = state.gymDays.filter((entry) => entry.days.includes(weekday));
+  // Gym: weekdays and per-day times come from settings (`effectiveGymPlan`), not from
+  // `program.schedules`.
+  const gymToday = effectiveGymPlan({
+    gymPlan: state.gymPlan,
+    gymDays: state.gymDays,
+    anchors: state.anchors,
+  }).filter((entry) => entry.weekday === weekday);
   if (gymToday.length > 0) {
+    // A migrated day without its slot anchor keeps the item, without a time.
     const occurrences = [
       ...new Set(
-        gymToday.flatMap((entry) => {
-          const minutes = anchors[entry.anchor];
-          return minutes === undefined ? [] : [minutes];
-        }),
+        gymToday.flatMap((entry) => (entry.time === undefined ? [] : [clockToMinutes(entry.time)])),
       ),
     ].sort((a, b) => a - b);
     const routine = state.todayRoutine;

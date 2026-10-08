@@ -4,6 +4,7 @@ import { Barbell, FloppyDisk, Images, Info, MoonStars, ShieldCheck } from 'phosp
 
 import { useT } from '../../src/i18n';
 import { FreeDaysSettings } from '../../src/settings/FreeDaysSettings';
+import { ScheduleSettings } from '../../src/settings/ScheduleSettings';
 import { SedentarySettings } from '../../src/sedentary/SedentarySettings';
 import { useNotificationPrefs } from '../../src/notifications/useNotificationPrefs';
 import { Card } from '../../src/ui/Card';
@@ -153,6 +154,8 @@ export default function Ajustes() {
             </View>
           </View>
         </Card>
+
+        <ScheduleSettings />
 
         <FreeDaysSettings />
 

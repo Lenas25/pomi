@@ -20,6 +20,7 @@ export async function completeOnboarding(
     if (Object.keys(profile).length > 0) await repositories.profile.save(profile);
     await repositories.settings.set('anchors', settings.anchors);
     await repositories.settings.set('gymDays', settings.gymDays);
+    await repositories.settings.set('gymPlan', settings.gymPlan);
     await repositories.settings.set('checkinPrefs', settings.checkinPrefs);
     await repositories.settings.set('goals', settings.goals);
     if (settings.userName !== undefined)

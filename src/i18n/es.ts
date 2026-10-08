@@ -540,6 +540,23 @@ export const es = {
     back: 'Volver',
   },
   settings: {
+    schedule: {
+      title: 'Horarios y gym',
+      hint: 'Tu hora de despertar, tus horas de sueño y los días de gym con su hora aproximada. Los avisos se ajustan solos.',
+      wake: 'Hora de despertar',
+      sleepTarget: 'Horas de sueño',
+      sleepTargetValue: '{{hours}} h',
+      bed: 'Hora de dormir: {{time}}',
+      gymDays: 'Días de gym',
+      gymTime: 'Hora aproximada del {{day}}',
+      goalsTitle: 'Metas',
+      waterRest: 'Agua en días sin gym',
+      waterGym: 'Agua en días de gym',
+      glassesValue: '{{count}} vasos',
+      steps: 'Pasos al día',
+      stepsValue: '{{count}} pasos',
+      saveFailed: 'No pudimos guardar el cambio.',
+    },
     freeDays: {
       title: 'Mis días libres',
       hint: 'Los días sin horario de trabajo. Se usan para comparar tu sueño entre semana y el fin de semana.',

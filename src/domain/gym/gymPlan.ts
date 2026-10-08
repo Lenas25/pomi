@@ -1,0 +1,81 @@
+// The per-day gym model. Stored as `gymPlan` ({weekday, time}[]; a weekday may appear twice for a
+// morning AND evening session); stores written before it existed only have `gymDays` (weekdays
+// grouped by a morning/evening slot) + the slot anchors.
+import { clockToMinutes } from '../time';
+import type { Anchors, GymDays, GymPlan } from '../../templates/schema';
+
+type GymSlot = 'gymMorning' | 'gymEvening';
+
+const EVENING_FROM_MIN = 12 * 60;
+
+/** One planned session. `time` is absent only for a migrated day whose slot anchor is missing. */
+export type EffectiveGymDay = { weekday: number; time?: string };
+
+/** Slot a clock time belongs to when the plan is projected back onto `gymDays`. */
+export function slotForTime(time: string): GymSlot {
+  return clockToMinutes(time) < EVENING_FROM_MIN ? 'gymMorning' : 'gymEvening';
+}
+
+/** `gymDays` projected from a plan: the weekday sets the weekday-only readers use. */
+export function gymDaysFromPlan(plan: GymPlan): GymDays {
+  const days = (slot: GymSlot) =>
+    [
+      ...new Set(
+        plan.filter((entry) => slotForTime(entry.time) === slot).map((entry) => entry.weekday),
+      ),
+    ].sort((a, b) => a - b);
+  const result: GymDays = [];
+  const morning = days('gymMorning');
+  const evening = days('gymEvening');
+  if (morning.length > 0) result.push({ days: morning, anchor: 'gymMorning' });
+  if (evening.length > 0) result.push({ days: evening, anchor: 'gymEvening' });
+  return result;
+}
+
+/** Canonical order: weekday, then time. */
+export function sortGymPlan<T extends EffectiveGymDay>(plan: readonly T[]): T[] {
+  return [...plan].sort(
+    (a, b) => a.weekday - b.weekday || (a.time ?? '').localeCompare(b.time ?? ''),
+  );
+}
+
+/**
+ * The gym plan EVERY reader of gym times uses. `gymDays` stays the source of WHICH weekdays (an
+ * accepted suggestion edits it); times come from `gymPlan` where the weekday matches, a moved day
+ * inherits the time of the day it replaced, and anything else falls back to its slot anchor (the
+ * migration of old stores and backups).
+ */
+export function effectiveGymPlan(input: {
+  gymPlan?: GymPlan | undefined;
+  gymDays?: GymDays | undefined;
+  anchors?: Anchors | undefined;
+}): EffectiveGymDay[] {
+  const stored = new Map<number, string[]>();
+  for (const entry of input.gymPlan ?? []) {
+    stored.set(entry.weekday, [...(stored.get(entry.weekday) ?? []), entry.time]);
+  }
+  if (input.gymDays === undefined) return sortGymPlan(input.gymPlan ?? []);
+
+  const wanted = new Map<number, Set<GymSlot>>();
+  for (const entry of input.gymDays) {
+    for (const day of entry.days) wanted.set(day, (wanted.get(day) ?? new Set()).add(entry.anchor));
+  }
+  // Times of plan days that `gymDays` dropped: a moved day takes the first of them.
+  const freed = [...stored.keys()]
+    .filter((day) => !wanted.has(day))
+    .sort((a, b) => a - b)
+    .flatMap((day) => stored.get(day) ?? []);
+  const plan: EffectiveGymDay[] = [];
+  for (const [weekday, slots] of wanted) {
+    const times = stored.get(weekday);
+    if (times) {
+      for (const time of times) plan.push({ weekday, time });
+      continue;
+    }
+    for (const slot of slots) {
+      const time = freed.shift() ?? input.anchors?.[slot];
+      plan.push(time === undefined ? { weekday } : { weekday, time });
+    }
+  }
+  return sortGymPlan(plan);
+}
