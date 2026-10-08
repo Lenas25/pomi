@@ -1,6 +1,7 @@
 // Pure view model of the Progress tab: `ProgressData` in, charts' numbers out. No clock, no I/O.
 import { addDays, differenceInCalendarDays, format, parseISO } from 'date-fns';
 
+import { plannedGymWeekdays } from '../domain/gym/gymPlan';
 import {
   isEntryDue,
   latestEntry,
@@ -14,12 +15,7 @@ import {
   type SeriesSummary,
   type StrengthPoint,
 } from '../domain/progress/strength';
-import {
-  hasWeeklyData,
-  plannedPerWeek,
-  weeklyBuckets,
-  type WeekBucket,
-} from '../domain/progress/weekly';
+import { hasWeeklyData, weeklyBuckets, type WeekBucket } from '../domain/progress/weekly';
 
 import type { ProgressData } from './loadProgress';
 
@@ -62,11 +58,13 @@ export type ProgressView = {
 
 /** `selectedStepId` is the exercise picked in the chips; an unknown or missing one falls back to the first. */
 export function buildProgressView(data: ProgressData, selectedStepId?: string): ProgressView {
-  const planned = plannedPerWeek(data.gymDays);
+  // Each week follows its own plan ("Planifica tu semana" override or the usual plan).
+  const planned = plannedGymWeekdays(data, data.today).size;
   const buckets = weeklyBuckets({
     today: data.today,
     startedOn: data.startedOn,
     planned,
+    plannedFor: (weekStart) => plannedGymWeekdays(data, weekStart).size,
     sessionDates: data.sessions.map((session) => session.date),
     habitDates: data.habitDates,
   });

@@ -95,6 +95,7 @@ export async function loadSuggestionData(
     gymPlanChangedOn,
     goalsChangedOn,
     gymWeekPlans,
+    gymPlan,
   ] = await Promise.all([
     repos.templates.listModules(),
     repos.profile.get(),
@@ -109,6 +110,7 @@ export async function loadSuggestionData(
     repos.settings.get('gymDaysChangedOn'),
     repos.settings.get('goalsChangedOn'),
     repos.settings.get('gymWeekPlans'),
+    repos.settings.get('gymPlan'),
   ]);
   const active = modules.filter((module) => module.active);
 
@@ -147,6 +149,8 @@ export async function loadSuggestionData(
       const target = waterTargetFor(date, {
         weightKg: profile?.weightKg ?? undefined,
         gymDays: gymDays ?? [],
+        gymPlan,
+        gymWeekPlans,
         glassMl: habit.glassMl,
         goals: goals ?? {},
       });

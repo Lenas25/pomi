@@ -125,7 +125,7 @@ describe('per-day gym times reach the agenda and the notifications', () => {
   });
 
   it('a saved per-day time moves the agenda item and the gym notification', async () => {
-    await saveGymPlan(repos, [
+    await saveGymPlan(db, repos, [
       { weekday: 1, time: '07:15' },
       { weekday: 2, time: '19:40' },
     ]);
@@ -170,7 +170,7 @@ describe('week override (weekly review "Planifica tu semana")', () => {
   });
 
   it('moves the agenda item and the notifications for that week only', async () => {
-    await saveGymPlan(repos, [
+    await saveGymPlan(db, repos, [
       { weekday: 1, time: '07:15' },
       { weekday: 2, time: '19:40' },
     ]);
@@ -244,14 +244,32 @@ describe('week override (weekly review "Planifica tu semana")', () => {
 });
 
 describe('stamps', () => {
-  it('a changed gym plan stamps gymDaysChangedOn, an unchanged one does not', async () => {
-    await saveGymPlan(repos, [{ weekday: 1, time: '07:15' }]);
+  it('only a different weekday set stamps gymDaysChangedOn (time-only edits do not)', async () => {
+    await saveGymPlan(db, repos, [{ weekday: 1, time: '07:15' }]);
     expect(await repos.settings.get('gymDaysChangedOn')).toBe(MONDAY);
     clock += 2 * DAY_MS;
-    await saveGymPlan(repos, [{ weekday: 1, time: '07:15' }]);
+    await saveGymPlan(db, repos, [{ weekday: 1, time: '07:15' }]);
     expect(await repos.settings.get('gymDaysChangedOn')).toBe(MONDAY);
-    await saveGymPlan(repos, [{ weekday: 1, time: '07:30' }]);
+    await saveGymPlan(db, repos, [{ weekday: 1, time: '19:30' }]);
+    expect(await repos.settings.get('gymDaysChangedOn')).toBe(MONDAY);
+    await saveGymPlan(db, repos, [{ weekday: 2, time: '19:30' }]);
     expect(await repos.settings.get('gymDaysChangedOn')).toBe('2026-10-07');
+  });
+
+  it('saveGymPlan writes gymPlan and gymDays in one transaction', async () => {
+    await saveGymPlan(db, repos, [
+      { weekday: 3, time: '07:00' },
+      { weekday: 3, time: '09:00' },
+    ]);
+    expect(await repos.settings.get('gymPlan')).toEqual([
+      { weekday: 3, time: '07:00' },
+      { weekday: 3, time: '09:00' },
+    ]);
+    // Two morning sessions on Wednesday project to BOTH slots, so gymDays counts two sessions.
+    expect(await repos.settings.get('gymDays')).toEqual([
+      { days: [3], anchor: 'gymMorning' },
+      { days: [3], anchor: 'gymEvening' },
+    ]);
   });
 
   it('a changed steps goal stamps goalsChangedOn', async () => {
@@ -260,14 +278,16 @@ describe('stamps', () => {
     expect(await repos.settings.get('goals')).toEqual({ stepsGoal: 8000 });
   });
 
-  it('a changed water goal stamps goalsChangedOn too', async () => {
+  it('a changed water goal stamps waterGoalChangedOn, never the steps stamp', async () => {
     await saveGoals(repos, { waterGlassesRest: 9 });
-    expect(await repos.settings.get('goalsChangedOn')).toBe(MONDAY);
+    expect(await repos.settings.get('waterGoalChangedOn')).toBe(MONDAY);
+    expect(await repos.settings.get('goalsChangedOn')).toBeUndefined();
     clock += 2 * DAY_MS;
     await saveGoals(repos, { waterGlassesRest: 9 });
-    expect(await repos.settings.get('goalsChangedOn')).toBe(MONDAY);
+    expect(await repos.settings.get('waterGoalChangedOn')).toBe(MONDAY);
     await saveGoals(repos, { waterGlassesGym: 12 });
-    expect(await repos.settings.get('goalsChangedOn')).toBe('2026-10-07');
+    expect(await repos.settings.get('waterGoalChangedOn')).toBe('2026-10-07');
+    expect(await repos.settings.get('goalsChangedOn')).toBeUndefined();
   });
 });
 
@@ -294,7 +314,7 @@ describe('backups', () => {
 
   it('a new backup carries the per-day plan', async () => {
     const plan = [{ weekday: 5, time: '10:45' }];
-    await saveGymPlan(repos, plan);
+    await saveGymPlan(db, repos, plan);
     const backup = await createBackup(db, { appVersion: '1.0.0' });
     const target = await createTestDb();
     try {

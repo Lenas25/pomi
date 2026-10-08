@@ -1,8 +1,9 @@
 // Report model builder. PURE: data + selection in, `ReportModel` out. Only the selected sections
 // are built and only rows inside the period are read, so nothing else can leak into a report.
-import { eachDayOfInterval, getDay, parseISO } from 'date-fns';
+import { eachDayOfInterval, format, parseISO } from 'date-fns';
 
 import { circularRange, sleepDurationMin } from '../domain/formulas/sleep';
+import { isGymPlannedOn } from '../domain/gym/gymPlan';
 import { strengthSeries, type SessionSets } from '../domain/progress/strength';
 import { clockToMinutes, dayKeyFor } from '../domain/time';
 
@@ -28,14 +29,13 @@ const round1 = (value: number) => Math.round(value * 10) / 10;
 // --- Gym ----------------------------------------------------------------------------------------
 
 function plannedInPeriod(data: ReportData, period: ReportPeriod): number {
-  const weekdays = new Set(data.gymDays.flatMap((entry) => entry.days));
-  if (weekdays.size === 0) return 0;
+  // Each day follows its week's plan (a "Planifica tu semana" override or the usual plan).
   // Days before the start of use were never "planned".
   const from =
     data.startedOn !== undefined && data.startedOn > period.from ? data.startedOn : period.from;
   if (from > period.to) return 0;
   return eachDayOfInterval({ start: parseISO(from), end: parseISO(period.to) }).filter((date) =>
-    weekdays.has(getDay(date)),
+    isGymPlannedOn(data, format(date, 'yyyy-MM-dd')),
   ).length;
 }
 

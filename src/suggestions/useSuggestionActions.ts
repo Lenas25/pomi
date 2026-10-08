@@ -41,7 +41,11 @@ export function useSuggestionActions(onChanged: () => Promise<void>) {
           id: Date.now(),
           variant: 'info',
           title: t('suggestions.card.acceptedTitle'),
-          subtitle: t('suggestions.card.accepted'),
+          subtitle: t(
+            result.weekOverrideKept
+              ? 'suggestions.card.acceptedWeekKept'
+              : 'suggestions.card.accepted',
+          ),
         });
       } else {
         setNotice(failure());

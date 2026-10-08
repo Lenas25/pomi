@@ -3,6 +3,7 @@
 import { buildSuggestions } from '../domain/suggestions/buildSuggestions';
 import { applyChange, isChangeStale, type PlanPatch } from '../domain/suggestions/applyChange';
 import { expiryCutoff } from '../domain/suggestions/limits';
+import { gymWeekStart, usualGymPlan } from '../domain/gym/gymPlan';
 import { activeDeloadPct } from '../gym/deload';
 import { dayKeyFor } from '../domain/time';
 import type { Repositories } from '../db/repositories';
@@ -54,7 +55,14 @@ export async function runDailySuggestions(
   });
 }
 
-export type AcceptResult = { status: 'applied'; patch: PlanPatch } | { status: 'unavailable' };
+export type AcceptResult =
+  | {
+      status: 'applied';
+      patch: PlanPatch;
+      /** A gym-day move changed the usual plan while this week has its own override (kept). */
+      weekOverrideKept?: boolean;
+    }
+  | { status: 'unavailable' };
 
 /**
  * "Aceptar": applies the change through the repositories and marks the suggestion accepted, all in
@@ -75,14 +83,16 @@ export async function acceptSuggestion(
       return { status: 'unavailable' } as const;
 
     const today = dayKeyFor(now);
-    const [anchors, shifts, gymDays, goals, goalsChangedOn, deloadWeek] = await Promise.all([
-      repos.settings.get('anchors'),
-      repos.settings.get('planShifts'),
-      repos.settings.get('gymDays'),
-      repos.settings.get('goals'),
-      repos.settings.get('goalsChangedOn'),
-      repos.settings.get('deloadWeek'),
-    ]);
+    const [anchors, shifts, gymDays, goals, goalsChangedOn, deloadWeek, gymPlan] =
+      await Promise.all([
+        repos.settings.get('anchors'),
+        repos.settings.get('planShifts'),
+        repos.settings.get('gymDays'),
+        repos.settings.get('goals'),
+        repos.settings.get('goalsChangedOn'),
+        repos.settings.get('deloadWeek'),
+        repos.settings.get('gymPlan'),
+      ]);
     const plan = {
       today,
       anchors: anchors ?? {},
@@ -102,11 +112,23 @@ export async function acceptSuggestion(
     const patch = applyChange(payload.change, plan);
     if (patch.anchors) await repos.settings.set('anchors', patch.anchors);
     if (patch.shifts) await repos.settings.set('planShifts', patch.shifts);
-    if (patch.gymDays) await repos.settings.set('gymDays', patch.gymDays);
+    if (patch.gymDays) {
+      // Keep the per-day plan in step: the moved session keeps its time, a slot without one gets
+      // its anchor. A week override ("Planifica tu semana") is NOT touched.
+      const nextPlan = usualGymPlan({ gymPlan, gymDays: patch.gymDays, anchors }).flatMap(
+        (entry) => (entry.time === undefined ? [] : [{ weekday: entry.weekday, time: entry.time }]),
+      );
+      if (gymPlan !== undefined || nextPlan.length > 0)
+        await repos.settings.set('gymPlan', nextPlan);
+      await repos.settings.set('gymDays', patch.gymDays);
+    }
     if (patch.goals) await repos.settings.set('goals', patch.goals);
     if (patch.deloadWeek) await repos.settings.set('deloadWeek', patch.deloadWeek);
     await repos.suggestions.decide(id, 'accepted', now.getTime());
-    return { status: 'applied', patch } as const;
+    const weekOverrideKept =
+      patch.gymDays !== undefined &&
+      (await repos.settings.get('gymWeekPlans'))?.[gymWeekStart(today)] !== undefined;
+    return { status: 'applied', patch, ...(weekOverrideKept ? { weekOverrideKept } : {}) } as const;
   });
 }
 

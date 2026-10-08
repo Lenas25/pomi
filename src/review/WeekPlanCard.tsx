@@ -22,7 +22,7 @@ const LONG_DAY = [
   'weekdays.long.d6',
 ] as const;
 
-type Status = 'editing' | 'saving' | 'saved' | 'usual' | 'skipped' | 'failed';
+type Status = 'editing' | 'saving' | 'saved' | 'savedEmpty' | 'usual' | 'skipped' | 'failed';
 
 type WeekPlanCardProps = {
   step: WeekPlanStep;
@@ -46,7 +46,7 @@ export function WeekPlanCard({ step, onSave }: WeekPlanCardProps) {
     setStatus('saving');
     try {
       await onSave(next);
-      setStatus(next === null ? 'usual' : 'saved');
+      setStatus(next === null ? 'usual' : next.length === 0 ? 'savedEmpty' : 'saved');
     } catch {
       setStatus('failed');
     }
@@ -58,13 +58,22 @@ export function WeekPlanCard({ step, onSave }: WeekPlanCardProps) {
     </Text>
   );
 
-  if (status === 'saved' || status === 'usual') {
+  if (status === 'saved' || status === 'savedEmpty' || status === 'usual') {
+    const doneKey =
+      status === 'saved'
+        ? 'review.weekPlan.saved'
+        : status === 'savedEmpty'
+          ? 'review.weekPlan.savedEmpty'
+          : 'review.weekPlan.usual';
     return (
       <Card>
         <View style={{ gap: theme.space[3] }}>
           {title}
-          <Text style={[theme.text('body'), { color: theme.color.text }]}>
-            {t(status === 'saved' ? 'review.weekPlan.saved' : 'review.weekPlan.usual')}
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[theme.text('body'), { color: theme.color.text }]}
+          >
+            {t(doneKey)}
           </Text>
           <Button
             label={t('review.weekPlan.edit')}
@@ -98,6 +107,14 @@ export function WeekPlanCard({ step, onSave }: WeekPlanCardProps) {
           onChange={(days) => setPlan(planForDays(plan, days, step.anchors))}
           accessibilityLabel={t('review.weekPlan.days')}
         />
+        {plan.length === 0 ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[theme.text('caption'), { color: theme.color.textMuted }]}
+          >
+            {t('review.weekPlan.emptyHint')}
+          </Text>
+        ) : null}
         {ordered.map((entry) => (
           <TimeStepper
             key={`${entry.weekday}-${entry.index}`}

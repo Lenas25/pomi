@@ -1,7 +1,8 @@
 // Types of the "Compartir progreso" reports (PLAN §14). A report is a typed MODEL built from the
 // person's data and a selection; renderers (text, HTML for the PDF, later CSV / JSON) only turn the
 // model into a string. Nothing outside the selection ever reaches the model.
-import type { GymDays } from '../templates/schema';
+import type { GymWeekPlans } from '../domain/gym/gymPlan';
+import type { GymDays, GymPlan } from '../templates/schema';
 import type { MorningCheckin } from '../domain/formulas/sleep';
 import type { SessionSets } from '../domain/progress/strength';
 import type { MetricPoint } from '../domain/progress/metrics';
@@ -70,6 +71,9 @@ export type ReportData = {
   today: string;
   startedOn?: string | undefined;
   gymDays: GymDays;
+  /** Per-day plan and week overrides: planned sessions follow `effectiveGymPlan(date)`. */
+  gymPlan?: GymPlan | undefined;
+  gymWeekPlans?: GymWeekPlans | undefined;
   /** Finished sessions that have at least one set. */
   sessions: readonly SessionSets[];
   exerciseNames: Readonly<Record<string, string>>;

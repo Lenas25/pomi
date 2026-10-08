@@ -3,6 +3,8 @@
 // `gymDaysChangedOn` / `goalsChangedOn` themselves.
 import type { Repositories } from '../db/repositories';
 import type { SettingsValue } from '../db/repositories/settings';
+import { withTransaction } from '../db/transaction';
+import type { Db } from '../db/types';
 import {
   effectiveGymPlan,
   gymDaysFromPlan,
@@ -48,11 +50,17 @@ function withTimes(plan: readonly EffectiveGymDay[], anchors: Anchors): GymPlan 
   return plan.map((entry) => ({ weekday: entry.weekday, time: entry.time ?? fallback }));
 }
 
-/** Stores the plan AND its weekday projection (`gymDays`, what the weekday-only readers use). */
-export async function saveGymPlan(repos: Repositories, plan: GymPlan): Promise<void> {
+/**
+ * Stores the plan AND its weekday projection (`gymDays`, what the weekday-only readers use) in ONE
+ * transaction, so no reader (or crash) ever sees one without the other.
+ */
+export async function saveGymPlan(db: Db, repos: Repositories, plan: GymPlan): Promise<void> {
   const sorted = sortGymPlan(plan);
-  await repos.settings.set('gymPlan', sorted);
-  await repos.settings.set('gymDays', gymDaysFromPlan(sorted));
+  await withTransaction(db, async () => {
+    const anchors = await repos.settings.get('anchors');
+    await repos.settings.set('gymPlan', sorted);
+    await repos.settings.set('gymDays', gymDaysFromPlan(sorted, anchors));
+  });
 }
 
 export async function saveAnchors(repos: Repositories, patch: Partial<Anchors>): Promise<void> {

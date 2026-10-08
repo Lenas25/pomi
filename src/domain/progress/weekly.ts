@@ -10,7 +10,7 @@ export type WeekBucket = {
   weekStart: string;
   /** Finished gym sessions with at least one set. */
   sessionsDone: number;
-  /** Gym days planned per week (distinct weekdays in the settings). */
+  /** Gym days planned that week (distinct weekdays of its effective plan). */
   sessionsPlanned: number;
   /** Days of the week with any habit value logged (0..7). */
   habitDays: number;
@@ -36,6 +36,8 @@ export type WeeklyInput = {
   sessionDates: readonly string[];
   habitDates: readonly string[];
   planned: number;
+  /** Planned gym days of the week starting on `weekStart` (week overrides); `planned` otherwise. */
+  plannedFor?: ((weekStart: string) => number) | undefined;
 };
 
 /** Oldest first; the last bucket is the current week. */
@@ -65,7 +67,7 @@ export function weeklyBuckets(input: WeeklyInput): WeekBucket[] {
     buckets.push({
       weekStart,
       sessionsDone: sessionsByWeek.get(weekStart) ?? 0,
-      sessionsPlanned: planned,
+      sessionsPlanned: input.plannedFor ? input.plannedFor(weekStart) : planned,
       habitDays: habitDaysByWeek.get(weekStart)?.size ?? 0,
       isCurrent: back === 0,
     });

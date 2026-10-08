@@ -29,15 +29,18 @@ export async function loadCompanionData(
   const key = (offset: number) => format(subDays(parseISO(today), offset), 'yyyy-MM-dd');
   const from = key(RHYTHM_WINDOW_DAYS - 1);
 
-  const [modules, profile, anchors, shifts, gymDays, goals, freeDays] = await Promise.all([
-    repos.templates.listModules(),
-    repos.profile.get(),
-    repos.settings.get('anchors'),
-    repos.settings.get('planShifts'),
-    repos.settings.get('gymDays'),
-    repos.settings.get('goals'),
-    repos.settings.get('freeDays'),
-  ]);
+  const [modules, profile, anchors, shifts, gymDays, goals, freeDays, gymPlan, gymWeekPlans] =
+    await Promise.all([
+      repos.templates.listModules(),
+      repos.profile.get(),
+      repos.settings.get('anchors'),
+      repos.settings.get('planShifts'),
+      repos.settings.get('gymDays'),
+      repos.settings.get('goals'),
+      repos.settings.get('freeDays'),
+      repos.settings.get('gymPlan'),
+      repos.settings.get('gymWeekPlans'),
+    ]);
   const active = modules.filter((module) => module.active);
   const morningQuestions = active.find((module) => module.template.checkins?.morning)?.template
     .checkins?.morning;
@@ -94,6 +97,8 @@ export async function loadCompanionData(
       const target = waterTargetFor(date, {
         weightKg: profile?.weightKg ?? undefined,
         gymDays: gymDays ?? [],
+        gymPlan,
+        gymWeekPlans,
         glassMl: habit.glassMl,
         goals: goals ?? {},
       });

@@ -74,6 +74,8 @@ export async function loadNotificationPlan(
       const target = waterTargetFor(today, {
         weightKg: profile?.weightKg ?? undefined,
         gymDays: gymDays ?? [],
+        gymPlan,
+        gymWeekPlans,
         glassMl: habit.glassMl,
         goals: goals ?? {},
       });

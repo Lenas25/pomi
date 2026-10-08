@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { getRepositories } from '../db';
+import { getDatabase, getRepositories } from '../db';
 import { bedtimeFor } from '../domain/formulas/sleep';
 import { LIMITS } from '../domain/onboarding/draft';
 import { useT } from '../i18n';
@@ -44,6 +44,7 @@ export function ScheduleSettings() {
   const theme = useTheme();
   const [state, setState] = useState<Schedule | null>(null);
   const [failed, setFailed] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   // One write at a time; per key only the latest value is written (fast stepper taps never race).
   const pending = useRef(new Map<WriteKey, () => Promise<void>>());
   const writing = useRef(false);
@@ -55,14 +56,23 @@ export function ScheduleSettings() {
         if (!cancelled) setState(loaded);
       })
       .catch(() => {
-        if (!cancelled) setFailed(true);
+        if (!cancelled) setLoadFailed(true);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (state === null) return null;
+  if (state === null) {
+    if (!loadFailed) return null;
+    return (
+      <Card>
+        <Text accessibilityRole="alert" style={[theme.text('body'), { color: theme.color.error }]}>
+          {t('settings.schedule.loadFailed')}
+        </Text>
+      </Card>
+    );
+  }
 
   const flush = async () => {
     if (writing.current) return;
@@ -106,7 +116,7 @@ export function ScheduleSettings() {
 
   const setPlan = (plan: GymPlan) => {
     setState({ ...state, plan });
-    queue('gym', () => saveGymPlan(getRepositories(), plan));
+    queue('gym', () => saveGymPlan(getDatabase(), getRepositories(), plan));
   };
 
   const setGoal = (patch: Schedule['goals']) => {

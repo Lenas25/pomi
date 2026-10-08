@@ -557,6 +557,7 @@ export const en: Messages = {
       steps: 'Steps per day',
       stepsValue: '{{count}} steps',
       saveFailed: 'We could not save the change.',
+      loadFailed: 'We could not load your schedule. Open Settings again.',
     },
     freeDays: {
       title: 'My free days',
@@ -1116,6 +1117,7 @@ export const en: Messages = {
       decline: 'Not now',
       acceptedTitle: 'Plan updated',
       accepted: 'The change is now in your plan.',
+      acceptedWeekKept: 'I changed your usual plan. This week stays as you planned it.',
       failedTitle: "Couldn't apply it",
       failed: "We couldn't apply the change. Your plan is unchanged.",
     },
@@ -1200,6 +1202,8 @@ export const en: Messages = {
       usual: 'This week follows your usual plan.',
       edit: 'Change',
       saveFailed: 'Could not save. Please try again.',
+      savedEmpty: 'Done: no gym this week. Rest easy.',
+      emptyHint: 'No gym this week: I will not send gym reminders.',
     },
     entry: {
       title: 'Your week is ready',

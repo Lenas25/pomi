@@ -56,7 +56,17 @@ export async function loadReportData(repos: Repositories, now: Date): Promise<Re
   const today = dayKeyFor(now);
   const from = format(subDays(parseISO(today), REPORT_LOOKBACK_DAYS), 'yyyy-MM-dd');
 
-  const [modules, profile, startedOn, gymDays, goals, stepsEstimate, anchors] = await Promise.all([
+  const [
+    modules,
+    profile,
+    startedOn,
+    gymDays,
+    goals,
+    stepsEstimate,
+    anchors,
+    gymPlan,
+    gymWeekPlans,
+  ] = await Promise.all([
     repos.templates.listModules(),
     repos.profile.get(),
     repos.settings.get('startedOn'),
@@ -64,6 +74,8 @@ export async function loadReportData(repos: Repositories, now: Date): Promise<Re
     repos.settings.get('goals'),
     repos.settings.get('stepsEstimate'),
     repos.settings.get('anchors'),
+    repos.settings.get('gymPlan'),
+    repos.settings.get('gymWeekPlans'),
   ]);
   const active = modules.filter((module) => module.active);
   const stepsFrom = startedOn !== undefined && startedOn < from ? startedOn : from;
@@ -100,6 +112,8 @@ export async function loadReportData(repos: Repositories, now: Date): Promise<Re
               waterTargetFor(log.date, {
                 weightKg: profile?.weightKg ?? undefined,
                 gymDays: gymDays ?? [],
+                gymPlan,
+                gymWeekPlans,
                 glassMl: water.glassMl,
                 goals: goals ?? {},
               })?.glasses ?? null,
@@ -134,6 +148,8 @@ export async function loadReportData(repos: Repositories, now: Date): Promise<Re
     today,
     startedOn,
     gymDays: gymDays ?? [],
+    ...(gymPlan ? { gymPlan } : {}),
+    ...(gymWeekPlans ? { gymWeekPlans } : {}),
     sessions: sessionRows
       .filter(({ session, sets }) => session.finishedAt !== null && sets.length > 0)
       .map(({ session, sets }) => ({

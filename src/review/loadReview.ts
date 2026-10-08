@@ -87,6 +87,8 @@ export async function loadReview(repos: Repositories, now: Date): Promise<Review
             waterTargetFor(log.date, {
               weightKg: habits.profile.weightKg,
               gymDays: habits.gymDays,
+              gymPlan: habits.gymPlan,
+              gymWeekPlans: habits.gymWeekPlans,
               glassMl: habit.glassMl,
               goals: habits.goals,
             })?.glasses ?? null,

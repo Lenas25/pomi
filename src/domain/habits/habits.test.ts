@@ -114,6 +114,23 @@ describe('waterTargetFor', () => {
     expect(waterTargetFor('2026-10-06', { gymDays })).toBeNull();
   });
 
+  it('follows the week override: an extra day gets gym water, a dropped day does not', () => {
+    // Week of Monday 2026-10-05: gym moved to Tuesday only.
+    const gymWeekPlans = { '2026-10-05': [{ weekday: 2, time: '18:00' }] };
+    expect(waterTargetFor('2026-10-06', { weightKg: 60, gymDays, gymWeekPlans })?.gymDay).toBe(
+      true,
+    );
+    expect(waterTargetFor('2026-10-05', { weightKg: 60, gymDays, gymWeekPlans })?.gymDay).toBe(
+      false,
+    );
+    // The next week has no override: the usual Mon/Wed plan again.
+    expect(waterTargetFor('2026-10-12', { weightKg: 60, gymDays, gymWeekPlans })?.gymDay).toBe(
+      true,
+    );
+    // "No gym this week" = every day is a rest day.
+    expect(gymSessionsOn('2026-10-07', { gymDays, gymWeekPlans: { '2026-10-05': [] } })).toBe(0);
+  });
+
   it('honours a custom glass size', () => {
     expect(waterTargetFor('2026-10-06', { weightKg: 60, gymDays, glassMl: 500 })).toMatchObject({
       glasses: 4,

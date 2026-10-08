@@ -4,7 +4,8 @@ import { consistency, doneDates, type Consistency } from '../domain/habits/consi
 import { stepsPlan, type StepsPlan } from '../domain/habits/stepsPlan';
 import { waterTargetFor, type WaterTarget } from '../domain/habits/waterTarget';
 import { evaluateOnlyIf } from '../domain/agenda/conditions';
-import type { CheckinPrefs, GymDays, ModuleTemplate } from '../templates/schema';
+import type { GymWeekPlans } from '../domain/gym/gymPlan';
+import type { CheckinPrefs, GymDays, GymPlan, ModuleTemplate } from '../templates/schema';
 import type { StepsSourceId } from '../health/types';
 
 /** Rows loaded for the last `HISTORY_DAYS` days. */
@@ -14,6 +15,9 @@ export type HabitsData = {
   modules: readonly { active: boolean; template: ModuleTemplate }[];
   profile: { weightKg?: number | undefined; workType?: string | undefined };
   gymDays: GymDays;
+  /** Per-day plan and week overrides, so the water target follows `effectiveGymPlan(date)`. */
+  gymPlan?: GymPlan | undefined;
+  gymWeekPlans?: GymWeekPlans | undefined;
   goals: { waterGlassesRest?: number; waterGlassesGym?: number; stepsGoal?: number };
   startedOn?: string | undefined;
   stepsEstimate?: number | undefined;
@@ -94,6 +98,8 @@ export function buildHabitsView(data: HabitsData, today: string): HabitsView {
           waterTargetFor(date, {
             weightKg: data.profile.weightKg,
             gymDays: data.gymDays,
+            gymPlan: data.gymPlan,
+            gymWeekPlans: data.gymWeekPlans,
             glassMl,
             goals: data.goals,
           });

@@ -27,8 +27,23 @@ describe('buildProgressView', () => {
     const view = buildProgressView(base);
     expect(view.weekly.hasData).toBe(false);
     expect(view.weekly.planned).toBe(3);
+    expect(view.weekly.buckets.every((bucket) => bucket.sessionsPlanned === 3)).toBe(true);
     expect(view.strength).toEqual({ exercises: [], selectedId: null, points: [], summary: null });
     expect(view.measurements).toEqual([]);
+  });
+
+  it('plans each week with its own override', () => {
+    const view = buildProgressView({
+      ...base,
+      gymWeekPlans: { '2026-10-05': [{ weekday: 2, time: '18:00' }], '2026-09-28': [] },
+    });
+    const planned = Object.fromEntries(
+      view.weekly.buckets.map((bucket) => [bucket.weekStart, bucket.sessionsPlanned]),
+    );
+    expect(planned['2026-10-05']).toBe(1);
+    expect(planned['2026-09-28']).toBe(0);
+    expect(planned['2026-09-21']).toBe(3);
+    expect(view.weekly.planned).toBe(1);
   });
 
   it('builds the strength line of the selected exercise, falling back to the first', () => {

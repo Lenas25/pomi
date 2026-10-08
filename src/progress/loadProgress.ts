@@ -12,7 +12,8 @@ import type { SessionSets } from '../domain/progress/strength';
 import { DEFAULT_WEEKS } from '../domain/progress/weekly';
 import { pickProgram } from '../gym/program';
 import { loadVolumeData, type VolumeData } from '../volume/loadVolume';
-import type { GymDays } from '../templates/schema';
+import type { GymWeekPlans } from '../domain/gym/gymPlan';
+import type { GymDays, GymPlan } from '../templates/schema';
 
 /** How far back the strength history reaches (26 weeks). */
 export const STRENGTH_LOOKBACK_DAYS = 182;
@@ -31,6 +32,9 @@ export type ProgressData = {
   today: string;
   startedOn?: string | undefined;
   gymDays: GymDays;
+  /** Per-day plan and week overrides (planned sessions per week follow them). */
+  gymPlan?: GymPlan | undefined;
+  gymWeekPlans?: GymWeekPlans | undefined;
   /** Finished sessions that have at least one set. */
   sessions: SessionSets[];
   /** Days (any age inside the weekly window) with a habit value logged. */
@@ -63,6 +67,10 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
   const metricsFrom = key(subDays(now, METRIC_LOOKBACK_DAYS));
 
   const monthStart = key(startOfMonth(now));
+  const [gymPlan, gymWeekPlans] = await Promise.all([
+    repos.settings.get('gymPlan'),
+    repos.settings.get('gymWeekPlans'),
+  ]);
   const [modules, startedOn, gymDays, sessionRows, habitRows, photos, monthly] = await Promise.all([
     repos.templates.listModules(),
     repos.settings.get('startedOn'),
@@ -122,6 +130,8 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
     today,
     startedOn,
     gymDays: gymDays ?? [],
+    ...(gymPlan ? { gymPlan } : {}),
+    ...(gymWeekPlans ? { gymWeekPlans } : {}),
     sessions: sessionRows
       .filter(({ session, sets }) => session.finishedAt !== null && sets.length > 0)
       .map(({ session, sets }) => ({

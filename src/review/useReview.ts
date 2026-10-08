@@ -44,7 +44,8 @@ export function useReview() {
   /** "Planifica tu semana": stores the week override, then reschedules the reminders right away. */
   const saveWeek = useCallback(
     async (plan: GymPlan | null): Promise<void> => {
-      if (load.status !== 'ready') return;
+      // The card only renders once loaded; a call before that is a bug, so it must surface.
+      if (load.status !== 'ready') throw new Error('The weekly review is not loaded yet');
       await saveWeekPlan(
         getRepositories(),
         load.data.weekPlan.weekStart,

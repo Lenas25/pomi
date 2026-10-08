@@ -181,6 +181,34 @@ describe('acceptSuggestion', () => {
     expect((await repos.suggestions.get(id))?.status).toBe('accepted');
   });
 
+  it('a moved gym day also rewrites gymPlan, keeping the moved session time', async () => {
+    await repos.settings.set('anchors', { gymMorning: '07:00', gymEvening: '19:00' });
+    await repos.settings.set('gymDays', [{ days: [1, 3], anchor: 'gymMorning' }]);
+    await repos.settings.set('gymPlan', [
+      { weekday: 1, time: '07:00' },
+      { weekday: 3, time: '08:15' },
+    ]);
+    const id = await store({ type: 'moveGymDay', fromDay: 3, toDay: 4 });
+    const result = await acceptSuggestion(db, repos, id, NOW);
+    expect(result.status).toBe('applied');
+    expect(result.status === 'applied' && result.weekOverrideKept).toBeFalsy();
+    expect(await repos.settings.get('gymPlan')).toEqual([
+      { weekday: 1, time: '07:00' },
+      { weekday: 4, time: '08:15' },
+    ]);
+  });
+
+  it('a moved gym day leaves this week override alone and says so', async () => {
+    await repos.settings.set('gymDays', [{ days: [1, 3], anchor: 'gymMorning' }]);
+    await repos.settings.set('gymWeekPlans', { '2026-01-26': [{ weekday: 2, time: '18:00' }] });
+    const id = await store({ type: 'moveGymDay', fromDay: 3, toDay: 4 });
+    const result = await acceptSuggestion(db, repos, id, NOW);
+    expect(result.status === 'applied' && result.weekOverrideKept).toBe(true);
+    expect(await repos.settings.get('gymWeekPlans')).toEqual({
+      '2026-01-26': [{ weekday: 2, time: '18:00' }],
+    });
+  });
+
   it('keeps accepted shifts together and never touches the plan when the row is unreadable', async () => {
     await acceptSuggestion(
       db,

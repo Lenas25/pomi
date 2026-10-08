@@ -202,6 +202,28 @@ describe('buildReport', () => {
     });
     // Planned Mon/Wed/Fri inside 09-30 .. 10-06: Wed 9/30, Fri 10/2, Mon 10/5 = 3.
     expect(gym.sessionsPlanned).toBe(3);
+    // A week override for the week of Monday 10-05 (Tue + Thu): 9/30, 10/2 + Tue 10/6 = 3; with
+    // "no gym" that week only 9/30 and 10/2 stay planned.
+    const moved = buildReport(
+      {
+        ...data,
+        gymWeekPlans: {
+          '2026-10-05': [
+            { weekday: 2, time: '18:00' },
+            { weekday: 4, time: '18:00' },
+          ],
+        },
+      },
+      selection({ sections: ['gym'] }),
+      NOW,
+    ).sections[0];
+    expect(moved?.kind === 'gym' && moved.sessionsPlanned).toBe(3);
+    const off = buildReport(
+      { ...data, gymWeekPlans: { '2026-10-05': [] } },
+      selection({ sections: ['gym'] }),
+      NOW,
+    ).sections[0];
+    expect(off?.kind === 'gym' && off.sessionsPlanned).toBe(2);
     const plank = gym.exercises.find((exercise) => exercise.stepId === 'plank');
     expect(plank).toMatchObject({ topWeightKg: null, bestReps: 1, e1rmFrom: null });
 
