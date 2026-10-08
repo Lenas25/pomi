@@ -15,6 +15,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useDatabaseReady } from '../src/db/useDatabaseReady';
 import { routeGuards } from '../src/domain/onboarding/redirect';
 import { useT } from '../src/i18n';
+import { useNotificationSetup } from '../src/notifications/useNotificationSetup';
 import { useOnboardingStatusStore } from '../src/onboarding/statusStore';
 import { EmptyState } from '../src/ui/EmptyState';
 import { Screen } from '../src/ui/Screen';
@@ -29,6 +30,8 @@ function RootStack() {
   const theme = useTheme();
   const status = useOnboardingStatusStore((state) => state.status);
   const guards = routeGuards(status);
+  // Planned reminders, background tasks and action taps exist only once the person is onboarded.
+  useNotificationSetup(guards.app);
   return (
     <>
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
@@ -45,6 +48,8 @@ function RootStack() {
           {/* HANDOFF §5: the check-in is a bottom sheet over the app. */}
           <Stack.Screen name="checkin/[tipo]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="compartir" />
+          <Stack.Screen name="permisos" />
+          <Stack.Screen name="bateria" />
         </Stack.Protected>
       </Stack>
     </>

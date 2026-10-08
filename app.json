@@ -14,7 +14,10 @@
         "backgroundImage": "./assets/icons/adaptive-background.png",
         "monochromeImage": "./assets/icons/adaptive-monochrome.png"
       },
-      "permissions": ["android.permission.health.READ_STEPS"]
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -48,7 +51,8 @@
       ],
       "react-native-health-connect",
       "expo-sqlite",
-      "expo-audio"
+      "expo-audio",
+      "expo-background-task"
     ]
   }
 }

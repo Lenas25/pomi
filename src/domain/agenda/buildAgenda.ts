@@ -78,10 +78,10 @@ const GYM_HOURS_PER_SESSION = 1;
  */
 const NIGHT_WINDOW_END_MIN = 6 * 60;
 
-type AnchorMinutes = Partial<Record<'wake' | 'bed' | 'gymMorning' | 'gymEvening', number>>;
+export type AnchorMinutes = Partial<Record<'wake' | 'bed' | 'gymMorning' | 'gymEvening', number>>;
 
 /** Resolves anchors to minutes of the day; `bed` is derived (wake − sleepTargetH). */
-function resolveAnchors(anchors: Anchors): AnchorMinutes {
+export function resolveAnchors(anchors: Anchors): AnchorMinutes {
   const result: AnchorMinutes = {};
   if (anchors.wake) result.wake = clockToMinutes(anchors.wake);
   if (anchors.gymMorning) result.gymMorning = clockToMinutes(anchors.gymMorning);
@@ -104,7 +104,7 @@ function resolveAnchors(anchors: Anchors): AnchorMinutes {
  * hours. The ONLY value allowed to stay >= 1440 ("after midnight, end of today's timeline") is one
  * derived from `bed`, whose own value may already be past midnight (bed 00:30 + 15 -> 1485).
  */
-function offsetFrom(base: number, offset: number, anchor: keyof AnchorMinutes): number {
+export function offsetFrom(base: number, offset: number, anchor: keyof AnchorMinutes): number {
   const raw = base + offset;
   if (raw >= 0 && raw < MINUTES_PER_DAY) return raw;
   if (anchor === 'bed' && raw >= MINUTES_PER_DAY && raw < 2 * MINUTES_PER_DAY) return raw;

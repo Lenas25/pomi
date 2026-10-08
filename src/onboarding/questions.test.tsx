@@ -11,6 +11,8 @@ import { ThemeProvider } from '../ui/theme';
 import { useOnboardingDraft } from './draftStore';
 import { BodyQuestion, NameQuestion, WorkQuestion } from './questions';
 
+jest.mock('../notifications/PermissionsPanel', () => ({ PermissionsPanel: () => null }));
+
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 

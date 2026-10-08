@@ -7,6 +7,7 @@ import {
   gymDaysSchema,
   languageSchema,
   themeModeSchema,
+  timeSchema,
 } from '../../templates/schema';
 import { settings } from '../schema';
 import type { Db } from '../types';
@@ -16,6 +17,17 @@ export const goalsSchema = z.strictObject({
   waterGlassesRest: z.number().int().positive().optional(),
   waterGlassesGym: z.number().int().positive().optional(),
   stepsGoal: z.number().int().positive().optional(),
+});
+
+/** User choices for the planned notifications (everything defaults to on). */
+export const notificationPrefsSchema = z.strictObject({
+  /** Master switch: off cancels every planned notification. */
+  enabled: z.boolean().optional(),
+  /** "¿Te moviste hoy?" on/off. */
+  survey: z.boolean().optional(),
+  /** Fixed time for the survey; default is 90 minutes before bed. */
+  surveyTime: timeSchema.optional(),
+  weeklyReview: z.boolean().optional(),
 });
 
 /** Every key the app stores, with the shape of its value. Values are validated on read. */
@@ -34,6 +46,14 @@ export const settingsSchemas = {
   goals: goalsSchema,
   /** Day (`yyyy-MM-dd`) the person finished the onboarding: the start of the step baseline week. */
   startedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  notificationPrefs: notificationPrefsSchema,
+  /** Last notification responses already applied (dedupes the background task vs the listener). */
+  handledNotificationResponses: z.array(z.string()),
+  /** The person opened the system screen for exact alarms / battery (Android gives no way to read them). */
+  permissionHints: z.strictObject({
+    alarms: z.boolean().optional(),
+    battery: z.boolean().optional(),
+  }),
 } as const;
 
 export type SettingsKey = keyof typeof settingsSchemas;

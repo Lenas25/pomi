@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { format, parseISO, subDays } from 'date-fns';
 
+import { requestNotificationSync } from '../notifications/sync';
 import { getRepositories } from '../db';
 import type { ActivityKind } from '../domain/habits/activity';
 import type { SleepSummary } from '../domain/formulas/sleep';
@@ -87,6 +88,8 @@ export function useHabits() {
     async (action: () => Promise<void>): Promise<void> => {
       try {
         await action();
+        // A changed habit can change what is left to remind about (e.g. the water goal).
+        void requestNotificationSync('dataChanged');
       } catch (error) {
         if (__DEV__) console.error('Could not save', error);
       }

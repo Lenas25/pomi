@@ -314,11 +314,7 @@ export const en: Messages = {
     },
     permissions: {
       title: 'Permissions for reminders',
-      hint: 'We are not asking for anything yet. These are the permissions we will use later and why.',
-      notifications: 'Notifications: to remind you about water, the gym and check-ins.',
-      alarms: 'Exact alarms: so your rest between sets rings on time, even with the screen off.',
-      battery: 'Battery: so Android does not delay your reminders while the app is closed.',
-      later: 'We will ask calmly, one at a time, when you need them.',
+      hint: 'Each permission is requested only when you tap its button. You can decide now or later in Settings.',
     },
     summary: {
       title: 'Your starting point',
@@ -460,6 +456,93 @@ export const en: Messages = {
       walk: 'Walking counts!',
       none: 'No worries. We continue tomorrow',
     },
+  },
+  notify: {
+    gym: { title: 'Time to train', body: 'Gym day today. Go at your pace.' },
+    checkinMorning: { title: 'Good morning', body: 'Tell me how you slept.' },
+    checkinNight: { title: 'Wrap up the day', body: 'Tell me how today went.' },
+    review: { title: 'Your week', body: 'See how your week went.' },
+    survey: { title: 'Did you move today?', body: 'Tell me, no pressure.' },
+    habit: { title: '{{name}}', body: 'Good moment for it.' },
+    reminder: { title: 'A reminder', body: '{{text}}' },
+    actions: {
+      done: 'Done',
+      snooze: 'Snooze 10 min',
+      water: '+1 glass',
+      gym: 'I went to the gym',
+      walk: 'I walked',
+      none: 'Not today',
+    },
+    channels: {
+      gym: 'Gym',
+      habits: 'Habits',
+      checkins: 'Check-ins',
+      reminders: 'Reminders',
+    },
+  },
+  permissions: {
+    title: 'Permissions and alerts',
+    intro:
+      'Pomi works without permissions, but with these your alerts arrive on time, even with the app closed.',
+    notifications: {
+      title: 'Notifications',
+      body: 'To remind you about water, the gym, check-ins and bedtime.',
+      granted: 'Enabled',
+      denied: 'Disabled: turn them on in the system settings.',
+      undetermined: 'Not decided yet',
+      allow: 'Allow notifications',
+      openSettings: 'Open notification settings',
+    },
+    alarms: {
+      title: 'Exact alarms',
+      body: 'Without this permission, Android 12 or later may delay your alerts and the end of each rest. With it they ring on the dot.',
+      hint: 'Android does not let Pomi check it. Open the setting and turn on "Alarms & reminders".',
+      open: 'Open alarm setting',
+      unsupported: 'Your Android version does not need this permission.',
+    },
+    battery: {
+      title: 'Battery',
+      body: 'Some phones throttle closed apps to save battery and alerts arrive late. Remove the optimization for Pomi.',
+      open: 'Open battery settings',
+      guide: 'See steps by brand',
+    },
+    openFailed: "We couldn't open that setting. Look for it in the Android settings.",
+    done: 'Done',
+  },
+  battery: {
+    title: 'Battery and alerts',
+    intro:
+      'Each brand hides this setting somewhere different. Choose "Unrestricted" or "Don\'t optimize" for Pomi.',
+    yours: 'Your phone looks like a {{brand}}.',
+    open: 'Open battery settings',
+    samsung:
+      'Samsung: Settings > Battery > Background usage limits > Never sleeping apps > add Pomi.',
+    xiaomi:
+      'Xiaomi / Redmi / POCO: Settings > Apps > Pomi > Battery saver > No restrictions. Also turn on "Autostart".',
+    huawei:
+      'Huawei / Honor: Settings > Battery > App launch > Pomi > Manage manually and allow everything.',
+    oppo: 'OPPO / realme / OnePlus: Settings > Battery > App battery usage > Pomi > Allow background activity.',
+    google: 'Pixel and stock Android: Settings > Apps > Pomi > Battery > Unrestricted.',
+    other:
+      'Other brands: search "battery optimization" in the settings and choose "Don\'t optimize" for Pomi.',
+    back: 'Back',
+  },
+  settings: {
+    title: 'Settings',
+    permissions: {
+      title: 'Permissions and alerts',
+      body: 'Notifications, exact alarms and battery.',
+    },
+    notifications: {
+      title: 'Alerts',
+      master: 'Receive alerts',
+      survey: 'Ask me "Did you move today?"',
+      surveyTime: 'Time of the question',
+      surveyAuto: 'Automatic: 90 minutes before bed',
+      surveyFixed: 'At a fixed time',
+      weekly: 'Sunday summary',
+    },
+    saveFailed: "We couldn't save the change.",
   },
   database: {
     errorTitle: 'We could not open your data',

@@ -43,16 +43,28 @@ export function setInAppTimerFeedback(active: boolean): void {
 
 let handlerInstalled = false;
 
-function installForegroundHandler(): void {
+/** Planned notifications (see `src/notifications`) carry `data.source = 'pomi'`. */
+function isPlanned(data: unknown): boolean {
+  return typeof data === 'object' && data !== null && 'source' in data && data.source === 'pomi';
+}
+
+/**
+ * Foreground behavior of every notification: Pomi's planned reminders are always shown; a timer
+ * alarm is silent while the session screen rings by itself. Safe to call more than once.
+ */
+export function installNotificationHandler(): void {
   if (handlerInstalled) return;
   handlerInstalled = true;
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: !inAppFeedbackActive,
-      shouldShowList: !inAppFeedbackActive,
-      shouldPlaySound: !inAppFeedbackActive,
-      shouldSetBadge: false,
-    }),
+    handleNotification: async (notification) => {
+      const show = isPlanned(notification.request.content.data) || !inAppFeedbackActive;
+      return {
+        shouldShowBanner: show,
+        shouldShowList: show,
+        shouldPlaySound: show,
+        shouldSetBadge: false,
+      };
+    },
   });
 }
 
@@ -108,7 +120,7 @@ export const ensureNotificationPermission = createPermissionGate({
 
 /** Real effects for the timer store. `channelName` is the translated channel title. */
 export function createNotificationEffects(getChannelName: () => string): TimerEffects {
-  installForegroundHandler();
+  installNotificationHandler();
   return {
     async schedule(endsAt: number, content: TimerNotification): Promise<string | null> {
       try {

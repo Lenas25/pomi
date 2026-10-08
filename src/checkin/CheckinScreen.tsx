@@ -16,6 +16,7 @@ import { MascotBubble } from '../ui/MascotBubble';
 import { Screen } from '../ui/Screen';
 import { TextField } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
+import { requestNotificationSync } from '../notifications/sync';
 import { loadCheckin, saveCheckin, type CheckinPlan, type LoadedCheckin } from './checkinFlow';
 
 type Load = { status: 'loading' } | { status: 'error' } | LoadedCheckin;
@@ -75,6 +76,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
           return;
         }
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        void requestNotificationSync('dataChanged');
         setDone(true);
       } catch (failure) {
         if (__DEV__) console.error('Could not save the check-in', failure);

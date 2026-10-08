@@ -22,7 +22,7 @@ export const CUSTOM_CODES = {
 
 const idSchema = z.string().min(1);
 const nameSchema = z.string().min(1);
-const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, CUSTOM_CODES.time);
+export const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, CUSTOM_CODES.time);
 const weekdaySchema = z.number().int().min(0).max(6);
 const positiveInt = z.number().int().positive();
 const nonNegativeInt = z.number().int().nonnegative();

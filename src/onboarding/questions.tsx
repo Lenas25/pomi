@@ -28,6 +28,7 @@ import { OptionRow } from '../ui/OptionRow';
 import { TextField } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
 import { useOnboardingDraft } from './draftStore';
+import { PermissionsPanel } from '../notifications/PermissionsPanel';
 import { QuestionScreen, QuestionTextField } from './QuestionScreen';
 import type { QuestionId } from './flow';
 
@@ -548,31 +549,16 @@ export function CheckinsQuestion() {
   );
 }
 
-/** Q12: explains the permissions. Nothing is requested here; the requests come with the reminders. */
+/** Q12: the three permissions, each explained and requested only when the person taps its button. */
 export function PermissionsQuestion() {
   const t = useT();
-  const theme = useTheme();
-  const lines: TranslationKey[] = [
-    'onboarding.permissions.notifications',
-    'onboarding.permissions.alarms',
-    'onboarding.permissions.battery',
-  ];
   return (
     <QuestionScreen
       id="permissions"
       title={t('onboarding.permissions.title')}
       hint={t('onboarding.permissions.hint')}
     >
-      <View style={{ gap: theme.space[3] }}>
-        {lines.map((line) => (
-          <Card key={line}>
-            <Text style={[theme.text('body'), { color: theme.color.text }]}>{t(line)}</Text>
-          </Card>
-        ))}
-      </View>
-      <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
-        {t('onboarding.permissions.later')}
-      </Text>
+      <PermissionsPanel showBatteryGuide={false} />
     </QuestionScreen>
   );
 }

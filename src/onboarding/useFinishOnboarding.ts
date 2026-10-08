@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 
+import { requestNotificationSync } from '../notifications/sync';
 import { getDatabase, getRepositories } from '../db';
 import { completeOnboarding } from './complete';
 import { useOnboardingDraft } from './draftStore';
@@ -31,6 +32,7 @@ export function useFinishOnboarding() {
       // before the draft is cleared, so no screen renders against an emptied draft.
       useOnboardingStatusStore.getState().setComplete(true);
       useOnboardingDraft.getState().reset();
+      void requestNotificationSync('onboardingComplete');
     } catch (error) {
       if (__DEV__) console.error('Could not complete onboarding', error);
       setFailed(true);

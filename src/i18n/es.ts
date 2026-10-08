@@ -313,12 +313,7 @@ export const es = {
     },
     permissions: {
       title: 'Permisos para los avisos',
-      hint: 'Todavía no te pedimos nada. Estos son los permisos que usaremos más adelante y para qué sirven.',
-      notifications: 'Notificaciones: para recordarte el agua, el gym y los check-ins.',
-      alarms:
-        'Alarmas exactas: para que el descanso entre series suene a tiempo, incluso con la pantalla apagada.',
-      battery: 'Batería: para que Android no retrase tus avisos cuando la app está cerrada.',
-      later: 'Te los pediremos con calma, uno por uno, cuando los necesites.',
+      hint: 'Cada permiso se pide solo cuando tocas su botón. Puedes decidir ahora o más tarde en Ajustes.',
     },
     summary: {
       title: 'Tu punto de partida',
@@ -460,6 +455,90 @@ export const es = {
       walk: '¡Caminar suma!',
       none: 'Pasa. Mañana seguimos',
     },
+  },
+  notify: {
+    gym: { title: 'Hora de entrenar', body: 'Hoy toca gym. Ve a tu ritmo.' },
+    checkinMorning: { title: 'Buenos días', body: 'Cuéntame cómo dormiste.' },
+    checkinNight: { title: 'Cierre del día', body: 'Cuéntame cómo estuvo hoy.' },
+    review: { title: 'Tu semana', body: 'Mira cómo te fue esta semana.' },
+    survey: { title: '¿Te moviste hoy?', body: 'Cuéntame, sin presión.' },
+    habit: { title: '{{name}}', body: 'Es un buen momento.' },
+    reminder: { title: 'Un recordatorio', body: '{{text}}' },
+    actions: {
+      done: 'Hecho',
+      snooze: 'Posponer 10 min',
+      water: '+1 vaso',
+      gym: 'Fui al gym',
+      walk: 'Caminé',
+      none: 'Hoy no',
+    },
+    channels: {
+      gym: 'Gym',
+      habits: 'Hábitos',
+      checkins: 'Check-ins',
+      reminders: 'Recordatorios',
+    },
+  },
+  permissions: {
+    title: 'Permisos y avisos',
+    intro:
+      'Pomi funciona sin permisos, pero con estos tus avisos llegan a tiempo, incluso con la app cerrada.',
+    notifications: {
+      title: 'Notificaciones',
+      body: 'Para recordarte el agua, el gym, los check-ins y la hora de dormir.',
+      granted: 'Activadas',
+      denied: 'Desactivadas: actívalas en los ajustes del sistema.',
+      undetermined: 'Aún sin decidir',
+      allow: 'Permitir notificaciones',
+      openSettings: 'Abrir ajustes de notificaciones',
+    },
+    alarms: {
+      title: 'Alarmas exactas',
+      body: 'Sin este permiso, Android 12 o superior puede retrasar tus avisos y el fin de cada descanso. Con él suenan a la hora justa.',
+      hint: 'Android no deja que Pomi lo compruebe. Abre el ajuste y activa «Alarmas y recordatorios».',
+      open: 'Abrir ajuste de alarmas',
+      unsupported: 'Tu versión de Android no necesita este permiso.',
+    },
+    battery: {
+      title: 'Batería',
+      body: 'Algunos celulares frenan las apps cerradas para ahorrar batería y los avisos llegan tarde. Quita la optimización para Pomi.',
+      open: 'Abrir ajustes de batería',
+      guide: 'Ver pasos por marca',
+    },
+    openFailed: 'No pudimos abrir ese ajuste. Búscalo en los ajustes de Android.',
+    done: 'Listo',
+  },
+  battery: {
+    title: 'Batería y avisos',
+    intro:
+      'Cada marca esconde este ajuste en un lugar distinto. Elige «Sin restricciones» o «No optimizar» para Pomi.',
+    yours: 'Tu celular parece de la marca {{brand}}.',
+    open: 'Abrir ajustes de batería',
+    samsung:
+      'Samsung: Ajustes > Batería > Límites de uso en segundo plano > Apps que nunca se suspenden > agrega Pomi.',
+    xiaomi:
+      'Xiaomi / Redmi / POCO: Ajustes > Apps > Pomi > Ahorro de batería > Sin restricciones. Activa también «Inicio automático».',
+    huawei:
+      'Huawei / Honor: Ajustes > Batería > Inicio de apps > Pomi > Administrar manualmente y permite todo.',
+    oppo: 'OPPO / realme / OnePlus: Ajustes > Batería > Uso de batería de la app > Pomi > Permitir actividad en segundo plano.',
+    google: 'Pixel y Android puro: Ajustes > Apps > Pomi > Batería > Sin restricciones.',
+    other:
+      'Otras marcas: busca «optimización de batería» en los ajustes y elige «No optimizar» para Pomi.',
+    back: 'Volver',
+  },
+  settings: {
+    title: 'Ajustes',
+    permissions: { title: 'Permisos y avisos', body: 'Notificaciones, alarmas exactas y batería.' },
+    notifications: {
+      title: 'Avisos',
+      master: 'Recibir avisos',
+      survey: 'Preguntarme «¿Te moviste hoy?»',
+      surveyTime: 'Hora de la pregunta',
+      surveyAuto: 'Automática: 90 minutos antes de dormir',
+      surveyFixed: 'A una hora fija',
+      weekly: 'Resumen del domingo',
+    },
+    saveFailed: 'No pudimos guardar el cambio.',
   },
   database: {
     errorTitle: 'No pudimos abrir tus datos',

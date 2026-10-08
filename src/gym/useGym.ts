@@ -8,6 +8,7 @@ import { getRepositories } from '../db';
 import { todaysRoutineId } from '../domain/gym/rotation';
 import { evaluateWhen } from '../domain/agenda/conditions';
 import { useT } from '../i18n';
+import { requestNotificationSync } from '../notifications/sync';
 import { getTimerStore } from '../timers/store';
 import type { Step } from '../templates/schema';
 
@@ -329,6 +330,7 @@ export function useGymSession(routineId: string | undefined) {
         logs,
       );
       setSummary(result);
+      void requestNotificationSync('dataChanged');
       return { status: 'finished', summary: result };
     } catch {
       setError({ kind: 'finish', id: Date.now() });
