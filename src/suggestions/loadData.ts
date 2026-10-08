@@ -16,6 +16,8 @@ import {
   type SuggestionKind,
   type WaterDay,
 } from '../domain/suggestions/types';
+import { resolveAnchors } from '../domain/agenda/buildAgenda';
+import { WATER_CURVE_WINDOW_DAYS, waterCurve } from '../domain/companion';
 import { valueAt } from '../domain/suggestions/waterAt';
 import { WATER_HOUR, WATER_WINDOW_DAYS } from '../domain/suggestions/limits';
 import { activeDeloadPct } from '../gym/deload';
@@ -157,6 +159,17 @@ export async function loadSuggestionData(
     }
   }
 
+  // The afternoon gap of the water curve (PLAN §14b) only enriches the reason of that suggestion.
+  let waterGap: SuggestionData['waterGap'];
+  if (habit) {
+    const events = (
+      await repos.habitLogs.eventsInRange(key(WATER_CURVE_WINDOW_DAYS), key(1), habit.id)
+    ).map(({ date, at, value }) => ({ date, at, value }));
+    const resolved = resolveAnchors(anchors ?? {}, shifts ?? {});
+    waterGap =
+      waterCurve({ events, today, wakeMin: resolved.wake, bedMin: resolved.bed })?.gap ?? undefined;
+  }
+
   // Gym: finished sessions with sets, plus "Fui al gym" answers.
   const from = key(GYM_LOOKBACK_DAYS);
   const [sessions, activity] = await Promise.all([
@@ -203,6 +216,7 @@ export async function loadSuggestionData(
     sleep,
     steps: { history: stepRows, plan },
     water,
+    waterGap,
     gymDates,
     lifts,
     rules,

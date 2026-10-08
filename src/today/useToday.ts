@@ -18,7 +18,7 @@ import { useSuggestionActions } from '../suggestions/useSuggestionActions';
 import { suggestionTexts } from '../suggestions/text';
 import { requestNotificationSync } from '../notifications/sync';
 
-import { snoozeContent } from './labels';
+import { isBedtimeEntry, snoozeContent } from './labels';
 import {
   markDone,
   postpone,
@@ -211,7 +211,11 @@ export function useToday() {
     postpone: (entry: TimelineEntry) => run((data) => postpone(entry, deps(data))),
     skip: (entry: TimelineEntry) => run((data) => skipToday(entry, deps(data))),
     open: (entry: TimelineEntry) => {
-      // A reminder has no screen behind it.
+      // The bedtime reminder opens the sleep-cycle calculator; any other reminder has no screen.
+      if (isBedtimeEntry(entry)) {
+        router.push('/ciclos-sueno');
+        return;
+      }
       if (entry.kind === 'reminder') return;
       const target =
         entry.kind === 'gym'
@@ -222,6 +226,14 @@ export function useToday() {
               : 'checkin:night'
             : 'habits';
       navigate({ type: 'navigate', target });
+    },
+    dismissCompanionCard: async (): Promise<void> => {
+      if (load.status !== 'ready') return;
+      try {
+        await getRepositories().settings.set('companionCardDismissed', load.data.today);
+      } finally {
+        await reload();
+      }
     },
     answerActivity: async (kind: ActivityKind): Promise<void> => {
       if (load.status !== 'ready') return;

@@ -51,6 +51,7 @@ function dataWith(
     gymGoal,
     reviewEntry: false,
     suggestion: undefined,
+    companionCard: undefined,
     identity: { gymDates: [], plannedGymDays: 4, waterDays: null, firstDay: false, ...overrides },
   };
 }
@@ -83,6 +84,7 @@ function mockToday(
     acceptSuggestion: jest.fn(async () => undefined),
     declineSuggestion: jest.fn(async () => undefined),
     clearNotice: jest.fn(),
+    dismissCompanionCard: jest.fn(async () => undefined),
   };
   mockedUseToday.mockReturnValue({
     load,
@@ -235,6 +237,34 @@ describe('TodayScreen', () => {
     await fireEvent(screen.getAllByRole('button', { name: /Gym/ })[0]!, 'longPress');
     await fireEvent.press(screen.getByRole('button', { name: 'Omitir hoy' }));
     expect(handlers.skip).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the one companion card, opens Tu ritmo and can be put away', async () => {
+    const handlers = mockToday({
+      ...dataWith(),
+      companionCard: { kind: 'sleepDebt', debtMin: 150 },
+    });
+    await renderThemed(<TodayScreen />);
+    expect(screen.getByText('≈ 2,5 h de sueño pendiente')).toBeTruthy();
+    expect(screen.queryByText(/racha|falta/i)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver Tu ritmo' }));
+    expect(jest.mocked(router.push)).toHaveBeenCalledWith('/progreso');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ahora no' }));
+    expect(handlers.dismissCompanionCard).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows no companion card by default', async () => {
+    mockToday(dataWith());
+    await renderThemed(<TodayScreen />);
+    expect(screen.queryByRole('button', { name: 'Ver Tu ritmo' })).toBeNull();
+  });
+
+  it('the bedtime row offers the sleep-cycle calculator', async () => {
+    mockToday(dataWith());
+    await renderThemed(<TodayScreen />);
+    await fireEvent(screen.getAllByRole('button', { name: /Hora de dormir/ })[0]!, 'longPress');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver horas para dormir' }));
+    expect(jest.mocked(router.push)).toHaveBeenCalledWith('/ciclos-sueno');
   });
 
   it('shows the empty state for a day without agenda', async () => {

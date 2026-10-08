@@ -2,8 +2,10 @@
 // `src/domain/progress` and `progressView.ts`; this file only reads.
 import { format, parseISO, startOfMonth, subDays } from 'date-fns';
 
+import { loadCompanion } from '../companion/loadCompanion';
 import type { Repositories } from '../db/repositories';
 import type { PhotoRow } from '../db/repositories/photos';
+import type { Companion } from '../domain/companion';
 import type { MetricFrequency, MetricPoint } from '../domain/progress/metrics';
 import type { SessionSets } from '../domain/progress/strength';
 import { DEFAULT_WEEKS } from '../domain/progress/weekly';
@@ -42,6 +44,8 @@ export type ProgressData = {
   photoGuide?: string | undefined;
   /** A monthly review already exists for the current month. */
   monthlyDone: boolean;
+  /** "Tu ritmo" (PLAN §14b); `null` when it could not be computed (it never blocks Progreso). */
+  companion?: Companion | null | undefined;
 };
 
 const key = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -90,6 +94,11 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
     })),
   );
 
+  const companion = await loadCompanion(repos, today).catch((error: unknown) => {
+    if (__DEV__) console.warn('Could not compute Tu ritmo', error);
+    return null;
+  });
+
   return {
     today,
     startedOn,
@@ -107,5 +116,6 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
     poses: photoSpec?.poses ?? [],
     photoGuide: photoSpec?.guide,
     monthlyDone: monthly.length > 0,
+    companion,
   };
 }

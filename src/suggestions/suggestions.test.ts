@@ -307,6 +307,12 @@ describe('suggestion texts', () => {
       evidence: { days: 7 },
     },
     {
+      variant: 'waterEarlier',
+      change: { type: 'waterShift', fromMin: 0, toMin: -30 },
+      params: { short: 5, total: 7, minutes: 30, gapFrom: '14:00', gapTo: '17:00' },
+      evidence: { days: 7 },
+    },
+    {
       variant: 'gymDay',
       change: { type: 'moveGymDay', fromDay: 4, toDay: 5 },
       params: { fromDay: 4, toDay: 5, missed: 3, weeks: 4 },

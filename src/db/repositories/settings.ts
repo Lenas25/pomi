@@ -90,6 +90,8 @@ export const settingsSchemas = {
   gymDaysChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Day the steps goal (`goals.stepsGoal`) last changed, whichever way it changed. */
   goalsChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** Day the person put away the one companion card of Hoy ("Tu ritmo"); it stays away that day. */
+  companionCardDismissed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Last notification responses already applied (dedupes the background task vs the listener). */
   handledNotificationResponses: z.array(z.string()),
   /** The person opened the system screen for exact alarms / battery (Android gives no way to read them). */

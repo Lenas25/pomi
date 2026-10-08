@@ -41,7 +41,10 @@ export function suggestionTexts(
   language: Language,
 ): SuggestionTexts {
   const params = localizeParams(payload.params, t, language);
-  const key = (part: 'text' | 'reason'): TranslationKey => `suggestions.${payload.variant}.${part}`;
+  const key = (part: 'text' | 'reason'): TranslationKey =>
+    part === 'reason' && payload.variant === 'waterEarlier' && params.gapFrom !== undefined
+      ? 'suggestions.waterEarlier.reasonGap'
+      : `suggestions.${payload.variant}.${part}`;
   return {
     text: t(key('text'), params),
     reason: t(key('reason'), params),

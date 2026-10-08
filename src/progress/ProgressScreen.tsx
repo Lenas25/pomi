@@ -5,6 +5,7 @@ import { format, parseISO } from 'date-fns';
 
 import { useLocaleStore, useT } from '../i18n';
 import { formatKg } from '../gym/sessionViewModel';
+import { CompanionSection } from '../companion/CompanionSection';
 import { StoredPhoto } from '../photos/StoredPhoto';
 import { BarChart } from '../ui/BarChart';
 import { Button } from '../ui/Button';
@@ -432,6 +433,10 @@ export function ProgressScreen() {
               photos={state.status === 'ready' ? state.data.photos : []}
               onDelete={removePhoto}
             />
+
+            {state.status === 'ready' && state.data.companion ? (
+              <CompanionSection companion={state.data.companion} />
+            ) : null}
 
             <View style={{ gap: theme.space[3] }}>
               <SectionTitle>{t('progress.insights.title')}</SectionTitle>

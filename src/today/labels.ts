@@ -7,6 +7,13 @@ import { localizeTargetParams } from '../gym/sessionViewModel';
 import type { GymGoal } from './gymGoal';
 import { waterProgress, type LiveFacts } from './todayView';
 
+/** The "Hora de dormir" reminder row (template `sueno` / `dormir`): it opens the bedtime calculator. */
+export const BEDTIME_ENTRY_ID = 'reminder:sueno:dormir';
+
+export function isBedtimeEntry(entry: TimelineEntry): boolean {
+  return entry.id === BEDTIME_ENTRY_ID;
+}
+
 export function entryTitle(entry: TimelineEntry, t: Translate): string {
   return entry.label.type === 'key' ? t(entry.label.key) : entry.label.text;
 }

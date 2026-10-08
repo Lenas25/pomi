@@ -1,6 +1,6 @@
 import { ScrollView, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Barbell, FloppyDisk, Images, Info, ShieldCheck } from 'phosphor-react-native';
+import { Barbell, FloppyDisk, Images, Info, MoonStars, ShieldCheck } from 'phosphor-react-native';
 
 import { useT } from '../../src/i18n';
 import { useNotificationPrefs } from '../../src/notifications/useNotificationPrefs';
@@ -102,6 +102,23 @@ export default function Ajustes() {
               </Text>
               <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
                 {t('settings.backup.body')}
+              </Text>
+            </View>
+          </View>
+        </Card>
+
+        <Card
+          onPress={() => router.push('/ciclos-sueno')}
+          accessibilityLabel={t('sleepCalc.entry.title')}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
+            <MoonStars color={theme.color.text} />
+            <View style={{ flex: 1 }}>
+              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
+                {t('sleepCalc.entry.title')}
+              </Text>
+              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+                {t('sleepCalc.entry.body')}
               </Text>
             </View>
           </View>

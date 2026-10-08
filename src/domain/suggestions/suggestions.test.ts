@@ -229,6 +229,20 @@ describe('waterEarlierRule', () => {
     expect(waterEarlierRule(data({ water: water([5, 5, 5, 5, 8, 8, 8]) }), TODAY)).toBeNull();
   });
 
+  it('adds the afternoon gap of the water curve to the reason, never to the decision', () => {
+    const gap = { fromHour: 14, toHour: 17 };
+    const fired = waterEarlierRule(
+      data({ water: water([5, 5, 5, 5, 5, 8, 8]), waterGap: gap }),
+      TODAY,
+    );
+    expect(fired?.reasonKey).toBe('suggestions.waterEarlier.reasonGap');
+    expect(fired?.params).toMatchObject({ gapFrom: '14:00', gapTo: '17:00', short: 5 });
+    // A gap alone does not fire anything: the 18:00 rule still decides.
+    expect(
+      waterEarlierRule(data({ water: water([8, 8, 8, 8, 8, 8, 8]), waterGap: gap }), TODAY),
+    ).toBeNull();
+  });
+
   it('60% exactly is not short, 62.5% neither, 50% is', () => {
     expect(waterEarlierRule(data({ water: water([6, 6, 6, 6, 6, 6, 6]) }), TODAY)).toBeNull();
     expect(waterEarlierRule(data({ water: water([5, 5, 5, 5, 5, 5, 5], 8) }), TODAY)).toBeNull();

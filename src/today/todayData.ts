@@ -4,11 +4,13 @@ import { format, getDay, subDays } from 'date-fns';
 
 import type { Repositories } from '../db/repositories';
 import type { SuggestionRow } from '../db/repositories/suggestions';
+import { pickTodayCard, type TodayCard } from '../domain/companion';
 import { buildAgenda, type AgendaItem } from '../domain/agenda/buildAgenda';
 import { todaysRoutineId } from '../domain/gym/rotation';
 import { dayKeyFor, dayStartFor } from '../domain/time';
 import type { ActivityKind } from '../domain/habits/activity';
 import type { IdentityInput } from '../domain/today/identity';
+import { loadCompanion } from '../companion/loadCompanion';
 import { activeDeloadPct } from '../gym/deload';
 import { pickProgram, toRotationSessions } from '../gym/program';
 import { loadGymGoal, type GymGoal } from './gymGoal';
@@ -38,6 +40,11 @@ export type TodayData = {
   reviewEntry: boolean;
   /** The oldest pending suggestion (Hoy shows at most one card). */
   suggestion: { id: number; payload: SuggestionPayload } | undefined;
+  /**
+   * The ONE companion card of Hoy ("Tu ritmo": sleep debt, social jetlag or an afternoon water gap),
+   * only when no suggestion is pending and it was not put away today. HANDOFF §8: one insight card.
+   */
+  companionCard: TodayCard | undefined;
   identity: Omit<IdentityInput, 'today'>;
 };
 
@@ -47,6 +54,20 @@ function firstReadable(rows: readonly SuggestionRow[]): TodayData['suggestion'] 
     if (payload) return { id: row.id, payload };
   }
   return undefined;
+}
+
+/** A companion card must never block Hoy: any failure is "no card". */
+async function loadCompanionCard(
+  repos: Repositories,
+  today: string,
+): Promise<TodayCard | undefined> {
+  try {
+    if ((await repos.settings.get('companionCardDismissed')) === today) return undefined;
+    return pickTodayCard(await loadCompanion(repos, today)) ?? undefined;
+  } catch (error) {
+    if (__DEV__) console.warn('Could not compute the companion card', error);
+    return undefined;
+  }
 }
 
 export async function loadTodayData(repos: Repositories, now: Date): Promise<TodayData> {
@@ -105,6 +126,9 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
       )
     : undefined;
 
+  const suggestion = firstReadable(pending);
+  const companionCard = suggestion ? undefined : await loadCompanionCard(repos, today);
+
   return {
     today,
     midnight,
@@ -116,7 +140,8 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     routineName: routine?.name,
     gymGoal,
     reviewEntry: getDay(midnight) === 0 && (prefs?.weeklyReview ?? true),
-    suggestion: firstReadable(pending),
+    suggestion,
+    companionCard,
     identity: {
       gymDates,
       plannedGymDays: new Set(habits.gymDays.flatMap((entry) => entry.days)).size,

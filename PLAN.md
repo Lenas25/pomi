@@ -457,7 +457,9 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 - [x] Progreso: constancia, gráficos de fuerza y medidas.
 - [x] Revisión mensual con fotos y "Tú hace 30 días vs. hoy".
 - [x] Compartir: texto y PDF (Entrenador, Nutricionista, IA).
-- [ ] Acompañamiento (sección 14b): deuda de sueño, jetlag social, curva de agua por hora, "Tu ritmo", Carta de Pomi del domingo y aviso de sedentarismo configurable.
+- [x] Acompañamiento (sección 14b), análisis de sueño e hidratación: deuda de sueño, jetlag social, curva de agua por hora, "Tu ritmo" y la calculadora de ciclos de sueño accesible desde Hoy, Progreso y Ajustes.
+- [x] Carta de Pomi del domingo.
+- [ ] Aviso de sedentarismo configurable (sección 14b).
 - [x] Generador de rutinas basado en evidencia (sección 14c): biblioteca de ejercicios, `generateProgram`, cribado PAR-Q+, vista previa editable y aceptación.
 
 ### v3: descubrirte

@@ -795,6 +795,93 @@ export const en: Messages = {
     close: 'Close',
     loadFailed: 'We could not load the comparison.',
   },
+  companion: {
+    title: 'Your rhythm',
+    intro:
+      'What we notice in your records. These are tendencies, not diagnoses, and they are computed on your phone.',
+    sleepDebt: {
+      title: 'Your sleep this week',
+      some: '≈ {{hours}} of sleep owed this week',
+      little: 'You owe almost no sleep this week.',
+      none: 'This week your sleep is on track with your goal.',
+      basis: 'Based on {{count}} nights of the last 7 days. A long night gives back up to 1 h.',
+      notEnough: 'With 4 morning check-ins in the week I can tell you how much sleep you owe.',
+    },
+    jetlag: {
+      title: 'Weekdays and weekends',
+      notable: 'We notice your weekend sleep shifts by almost {{time}} compared with weekdays.',
+      small: 'Your sleep schedule is similar on weekdays and weekends (it shifts {{time}}).',
+      basis: 'Based on {{free}} weekend nights and {{work}} weekday nights.',
+      notEnough: 'I need 2 weekend nights and 3 weekday nights to compare them.',
+    },
+    water: {
+      title: 'Your water through the day',
+      summary:
+        'Average glasses so far: {{morning}} by 12:00, {{afternoon}} by 18:00 and {{night}} by 22:00.',
+      hourLabel: '{{hour}} h',
+      glassesLabel: '{{value}}',
+      gap: 'We notice you usually log little water between {{from}} and {{to}}. If you like, I can suggest moving your water reminders earlier.',
+      steady: 'Your water is spread well through the day.',
+      basis: 'Based on {{count}} days with records out of the last 14.',
+      notEnough: 'With 7 days of logged water I can draw your curve for the day.',
+    },
+    rhythm: {
+      title: 'Your profile',
+      learning: 'I am still getting to know you ({{days}}/{{needed}} days)',
+      learningBody:
+        'With a few more days of check-ins I can tell you what I notice about your rhythm.',
+      basis: 'Based on {{days}} days with check-ins.',
+      chronotype: {
+        morning:
+          'You tend toward a morning rhythm: on weekends your sleep is centred around {{time}}.',
+        intermediate:
+          'You tend toward an in-between rhythm: on weekends your sleep is centred around {{time}}.',
+        evening:
+          'You tend toward an evening rhythm: on weekends your sleep is centred around {{time}}.',
+        note: 'It is a tendency from your last weeks, not a label.',
+      },
+      activeDays: 'The days you move the most tend to be {{days}}.',
+      activeDaysAnd: ' and ',
+      energy: {
+        higher:
+          'We notice that on days after sleeping 7 h or more your energy was {{diff}} points higher on average (out of 5) than after shorter nights.',
+        lower:
+          'We notice that on days after sleeping 7 h or more your energy was {{diff}} points lower on average (out of 5) than after shorter nights.',
+        none: 'For now we do not see a clear difference between your energy and your hours of sleep.',
+        insufficient: 'To compare your energy with your sleep I need 7 days of each kind of night.',
+        basis: 'Based on {{enough}} days with 7 h or more and {{short}} with less.',
+      },
+    },
+    card: {
+      label: 'Your rhythm',
+      open: 'See Your rhythm',
+      dismiss: 'Not now',
+      sleepDebt: {
+        title: '≈ {{hours}} of sleep owed',
+        body: 'This week you owe a little sleep. A slightly earlier night may help.',
+      },
+      jetlag: {
+        title: 'Your sleep shifts on weekends',
+        body: 'We notice it shifts by almost {{time}} compared with weekdays.',
+      },
+      waterGap: {
+        title: 'Your water in the afternoon',
+        body: 'Between {{from}} and {{to}} you usually log little water. See it in Your rhythm.',
+      },
+    },
+  },
+  sleepCalc: {
+    title: 'Bedtimes',
+    intro: 'If you wake up at…, try to fall asleep at…',
+    wakeLabel: 'I wake up at',
+    option: '{{bedtime}}',
+    optionLabel: 'Sleep at {{bedtime}}: {{cycles}} cycles, {{duration}} of sleep',
+    cycles: '{{cycles}} cycles · {{duration}}',
+    goal: 'Your sleep goal is {{hours}} h.',
+    note: 'Each cycle lasts about 90 minutes and I count 15 minutes for you to fall asleep. It is a guide: your hours goal still comes first.',
+    entry: { title: 'Bedtimes', body: 'Work out when to go to bed from when you wake up.' },
+    back: 'Back',
+  },
   maintenance: {
     title: 'Restoring your data',
     body: 'One moment, please keep the app open.',
@@ -887,6 +974,7 @@ export const en: Messages = {
       snooze: 'Snooze 10 min',
       skip: 'Skip today',
       cancel: 'Cancel',
+      sleepCycles: 'See bedtimes',
     },
     sub: { goal: '{{exercise}}: {{goal}}', water: '{{done}} of {{total}} glasses' },
     loadError: "We couldn't load your day",
@@ -947,6 +1035,8 @@ export const en: Messages = {
       text: 'Shall we move the water reminders {{minutes}} minutes earlier?',
       reason:
         'At 18:00 you had under 60% of your goal on {{short}} of the {{total}} days you logged.',
+      reasonGap:
+        'Between {{gapFrom}} and {{gapTo}} you usually log little water, and at 18:00 you had under 60% of your goal on {{short}} of the {{total}} days you logged.',
     },
     gymDay: {
       text: 'Shall we move your {{fromDayName}} workout to {{toDayName}}?',

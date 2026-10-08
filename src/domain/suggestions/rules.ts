@@ -193,6 +193,8 @@ export const stepsGoalRule: Rule = (data, today) => {
 
 // --- Agua --------------------------------------------------------------------------------------
 
+const hourClock = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
+
 export const waterEarlierRule: Rule = (data, today) => {
   // `data.water` only holds days WITH at least one water write: a day without any log is "no
   // data", not a short day, so unlogged days are skipped rather than counted as 0%.
@@ -211,13 +213,20 @@ export const waterEarlierRule: Rule = (data, today) => {
   const toMin = fromMin - WATER_STEP_MIN;
   if (toMin < WATER_SHIFT_LIMIT_MIN) return null;
 
+  const gap = data.waterGap;
   return {
     kind: 'waterEarlier',
     variant: 'waterEarlier',
     change: { type: 'waterShift', fromMin, toMin },
     textKey: 'suggestions.waterEarlier.text',
-    reasonKey: 'suggestions.waterEarlier.reason',
-    params: { short: short.length, total: days.length, minutes: WATER_STEP_MIN },
+    // The water curve's afternoon gap (when found) goes into the reason; it never decides.
+    reasonKey: gap ? 'suggestions.waterEarlier.reasonGap' : 'suggestions.waterEarlier.reason',
+    params: {
+      short: short.length,
+      total: days.length,
+      minutes: WATER_STEP_MIN,
+      ...(gap ? { gapFrom: hourClock(gap.fromHour), gapTo: hourClock(gap.toHour) } : {}),
+    },
     evidence: { days: days.length, unit: 'days', shortDays: short.length },
   };
 };

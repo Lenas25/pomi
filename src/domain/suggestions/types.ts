@@ -31,7 +31,10 @@ export type SuggestionVariant =
   | 'waterEarlier';
 
 export type SuggestionTextKey = `suggestions.${SuggestionVariant}.text`;
-export type SuggestionReasonKey = `suggestions.${SuggestionVariant}.reason`;
+export type SuggestionReasonKey =
+  | `suggestions.${SuggestionVariant}.reason`
+  /** The water suggestion with the afternoon gap of the water curve in its reason. */
+  | 'suggestions.waterEarlier.reasonGap';
 
 /** The change the person accepts. Nothing is applied until "Aceptar". */
 export type SuggestionChange =
@@ -116,6 +119,8 @@ export type SuggestionData = {
   };
   /** Days that have at least one water log (days without any are "no data"). */
   water: readonly WaterDay[];
+  /** Afternoon water gap from the water curve (PLAN §14b), when there is one: only adds a reason. */
+  waterGap?: { fromHour: number; toHour: number } | undefined;
   /** Days (`yyyy-MM-dd`) the person trained: a finished session or a "Fui al gym" answer. */
   gymDates: readonly string[];
   lifts: readonly LiftHistory[];

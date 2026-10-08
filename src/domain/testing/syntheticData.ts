@@ -33,6 +33,8 @@ export type SyntheticOptions = {
   wakeMin?: number;
   /** Probability of attending a planned gym day. Default 0.85. */
   gymAttendance?: number;
+  /** No water at all between 14:00 and 16:59 (a clear afternoon gap for the water curve). Default false. */
+  afternoonGap?: boolean;
 };
 
 /** Small seeded PRNG (mulberry32): returns floats in [0, 1). */
@@ -61,6 +63,7 @@ export function generateSyntheticDays(options: SyntheticOptions = {}): Synthetic
     gymSleepBonusMin = 35,
     wakeMin = 5 * 60 + 10,
     gymAttendance = 0.85,
+    afternoonGap = false,
   } = options;
   const rng = createRng(seed);
   const jitter = (spread: number) => (rng() * 2 - 1) * spread;
@@ -92,7 +95,9 @@ export function generateSyntheticDays(options: SyntheticOptions = {}): Synthetic
     const waterByHour = Array.from({ length: 24 }, () => 0);
     for (const hour of WATER_HOURS) {
       const dip = hour >= 14 && hour <= 17 ? 0.35 : 1;
-      const glasses = rng() < 0.75 * dip ? 1 : 0;
+      const drawn = rng() < 0.75 * dip ? 1 : 0;
+      // The draw above always happens, so the same seed gives the same days with or without the gap.
+      const glasses = afternoonGap && hour >= 14 && hour <= 16 ? 0 : drawn;
       waterByHour[hour] = glasses * 250;
     }
     const waterMl = waterByHour.reduce((sum, ml) => sum + ml, 0);

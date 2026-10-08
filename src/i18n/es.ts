@@ -794,6 +794,98 @@ export const es = {
     close: 'Cerrar',
     loadFailed: 'No pudimos cargar la comparación.',
   },
+  companion: {
+    title: 'Tu ritmo',
+    intro:
+      'Lo que notamos en tus registros. Son tendencias, no diagnósticos, y se calculan en tu teléfono.',
+    sleepDebt: {
+      title: 'Tu sueño de esta semana',
+      some: '≈ {{hours}} de sueño pendiente esta semana',
+      little: 'Casi no tienes sueño pendiente esta semana.',
+      none: 'Esta semana tu sueño va al día con tu meta.',
+      basis:
+        'Basado en {{count}} noches de los últimos 7 días. Una noche larga recupera hasta 1 h.',
+      notEnough: 'Con 4 check-ins de mañana en la semana te cuento cuánto sueño llevas.',
+    },
+    jetlag: {
+      title: 'Entre semana y fin de semana',
+      notable:
+        'Notamos que tu sueño del fin de semana se corre casi {{time}} respecto al de entre semana.',
+      small: 'Tu horario de sueño es parecido entre semana y fin de semana (se corre {{time}}).',
+      basis: 'Basado en {{free}} noches de fin de semana y {{work}} de entre semana.',
+      notEnough: 'Necesito 2 noches de fin de semana y 3 de entre semana para compararlas.',
+    },
+    water: {
+      title: 'Tu agua durante el día',
+      summary:
+        'Vasos acumulados en promedio: {{morning}} a las 12:00, {{afternoon}} a las 18:00 y {{night}} a las 22:00.',
+      hourLabel: '{{hour}} h',
+      glassesLabel: '{{value}}',
+      gap: 'Notamos que entre las {{from}} y las {{to}} sueles registrar poca agua. Si quieres, te propongo adelantar los avisos del agua.',
+      steady: 'Tu agua se reparte bien a lo largo del día.',
+      basis: 'Basado en {{count}} días con registro de los últimos 14.',
+      notEnough: 'Con 7 días de agua registrada te dibujo tu curva del día.',
+    },
+    rhythm: {
+      title: 'Tu perfil',
+      learning: 'Aún te estoy conociendo ({{days}}/{{needed}} días)',
+      learningBody: 'Con unos días más de check-ins te cuento qué noto de tu ritmo.',
+      basis: 'Basado en {{days}} días con check-ins.',
+      chronotype: {
+        morning:
+          'Tiendes a un ritmo más de mañana: los fines de semana tu sueño se centra hacia las {{time}}.',
+        intermediate:
+          'Tiendes a un ritmo intermedio: los fines de semana tu sueño se centra hacia las {{time}}.',
+        evening:
+          'Tiendes a un ritmo más de noche: los fines de semana tu sueño se centra hacia las {{time}}.',
+        note: 'Es una tendencia de tus últimas semanas, no una etiqueta.',
+      },
+      activeDays: 'Los días en que más te mueves tienden a ser {{days}}.',
+      activeDaysAnd: ' y ',
+      energy: {
+        higher:
+          'Notamos que los días después de dormir 7 h o más tu energía fue en promedio {{diff}} puntos más alta (de 1 a 5) que tras noches más cortas.',
+        lower:
+          'Notamos que los días después de dormir 7 h o más tu energía fue en promedio {{diff}} puntos más baja (de 1 a 5) que tras noches más cortas.',
+        none: 'Por ahora no vemos una diferencia clara entre tu energía y tus horas de sueño.',
+        insufficient:
+          'Para comparar tu energía con tu sueño necesito 7 días de cada tipo de noche.',
+        basis: 'Basado en {{enough}} días con 7 h o más y {{short}} con menos.',
+      },
+    },
+    card: {
+      label: 'Tu ritmo',
+      open: 'Ver Tu ritmo',
+      dismiss: 'Ahora no',
+      sleepDebt: {
+        title: '≈ {{hours}} de sueño pendiente',
+        body: 'Esta semana llevas un poco de sueño pendiente. Una noche algo más temprana puede ayudar.',
+      },
+      jetlag: {
+        title: 'Tu sueño se corre en el fin de semana',
+        body: 'Notamos que se corre casi {{time}} respecto a entre semana.',
+      },
+      waterGap: {
+        title: 'Tu agua en la tarde',
+        body: 'Entre las {{from}} y las {{to}} sueles registrar poca agua. Míralo en Tu ritmo.',
+      },
+    },
+  },
+  sleepCalc: {
+    title: 'Horas para dormir',
+    intro: 'Si te despiertas a las…, intenta dormir a…',
+    wakeLabel: 'Me despierto a las',
+    option: '{{bedtime}}',
+    optionLabel: 'Dormir a las {{bedtime}}: {{cycles}} ciclos, {{duration}} de sueño',
+    cycles: '{{cycles}} ciclos · {{duration}}',
+    goal: 'Tu meta de sueño es {{hours}} h.',
+    note: 'Cada ciclo dura unos 90 minutos y cuento 15 minutos para que te duermas. Es una guía: tu meta de horas sigue mandando.',
+    entry: {
+      title: 'Horas para dormir',
+      body: 'Calcula a qué hora acostarte según cuándo despiertas.',
+    },
+    back: 'Volver',
+  },
   maintenance: {
     title: 'Restaurando tus datos',
     body: 'Un momento, no cierres la app.',
@@ -887,6 +979,7 @@ export const es = {
       snooze: 'Posponer 10 min',
       skip: 'Omitir hoy',
       cancel: 'Cancelar',
+      sleepCycles: 'Ver horas para dormir',
     },
     sub: { water: '{{done}} de {{total}} vasos', goal: '{{exercise}}: {{goal}}' },
     loadError: 'No pudimos cargar tu día',
@@ -947,6 +1040,8 @@ export const es = {
       text: '¿Adelantamos {{minutes}} minutos los avisos del agua?',
       reason:
         'A las 18:00 llevabas menos del 60% de tu meta en {{short}} de los {{total}} días que registraste.',
+      reasonGap:
+        'Entre las {{gapFrom}} y las {{gapTo}} sueles registrar poca agua, y a las 18:00 llevabas menos del 60% de tu meta en {{short}} de los {{total}} días que registraste.',
     },
     gymDay: {
       text: '¿Pasamos tu entrenamiento del {{fromDayName}} al {{toDayName}}?',

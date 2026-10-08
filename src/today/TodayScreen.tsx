@@ -21,6 +21,7 @@ import {
   entrySubtitle,
   entryTime,
   entryTitle,
+  isBedtimeEntry,
 } from './labels';
 import { InsightSlot } from './slots';
 import { useToday } from './useToday';
@@ -97,7 +98,11 @@ export function TodayScreen() {
             }}
           />
         ) : null}
-        <InsightSlot />
+        <InsightSlot
+          card={data.companionCard}
+          onOpen={() => router.push('/progreso')}
+          onDismiss={() => void today.dismissCompanionCard()}
+        />
 
         {data.reviewEntry ? (
           <Card variant="highlight">
@@ -220,6 +225,16 @@ export function TodayScreen() {
                     setMenuFor(null);
                   }}
                 />
+                {isBedtimeEntry(menuFor) ? (
+                  <Button
+                    label={t('today.menu.sleepCycles')}
+                    variant="secondary"
+                    onPress={() => {
+                      setMenuFor(null);
+                      router.push('/ciclos-sueno');
+                    }}
+                  />
+                ) : null}
                 <Button
                   label={t('today.menu.cancel')}
                   variant="ghost"
