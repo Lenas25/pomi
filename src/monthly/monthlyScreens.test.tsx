@@ -5,6 +5,7 @@ import { createRepositories, type Repositories } from '../db/repositories';
 import { createTestDb } from '../db/testing/createTestDb';
 import type { Db } from '../db/types';
 import { setLanguage } from '../i18n';
+import { es } from '../i18n/es';
 import type { PhotoFs } from '../photos/photoStore';
 import { loadDefaultTemplates } from '../templates/defaults';
 import { ThemeProvider } from '../ui/theme';
@@ -91,6 +92,18 @@ function renderThemed(ui: ReactElement) {
 }
 
 describe('MonthlyReviewScreen', () => {
+  it('shows the backup reminder by default and hides it when the setting is off', async () => {
+    const first = await renderThemed(<MonthlyReviewScreen />);
+    await screen.findByText('Revisión mensual');
+    expect(screen.getByText(es.monthly.backupReminder)).toBeTruthy();
+    first.unmount();
+
+    await mockEnv.repos!.settings.set('backupReminder', false);
+    await renderThemed(<MonthlyReviewScreen />);
+    await screen.findByText('Revisión mensual');
+    expect(screen.queryByText(es.monthly.backupReminder)).toBeNull();
+  });
+
   it('walks measurements and photos, saves everything and offers the comparison', async () => {
     const repos = mockEnv.repos!;
     await repos.photos.add({ date: '2020-01-01', pose: 'frente', uri: 'old.jpg' });

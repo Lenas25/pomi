@@ -12,7 +12,7 @@ import tokens from '../../design/tokens.json';
 import { buildReport } from './buildReport';
 import { periodFor } from './period';
 import { REPORT_PALETTE } from './palette';
-import { prepareReport, previewText } from './prepare';
+import { capPhotosForPdf, prepareReport, previewText } from './prepare';
 import { escapeHtml, renderHtml } from './renderHtml';
 import { renderText } from './renderText';
 import { applyTemplate, defaultSelection, toggleSection } from './templates';
@@ -245,7 +245,7 @@ describe('buildReport', () => {
     });
   });
 
-  it('photos are excluded unless their section is ticked, and capped when they are', () => {
+  it('photos are excluded unless their section is ticked; the model keeps every photo', () => {
     for (const template of REPORT_TEMPLATES) {
       const model = buildReport(data, applyTemplate(selection({ period: 'all' }), template), NOW);
       expect(model.sections.map((section) => section.kind)).not.toContain('photos');
@@ -254,7 +254,7 @@ describe('buildReport', () => {
     const photos = model.sections[0];
     if (photos?.kind !== 'photos') throw new Error('photos expected');
     expect(photos.total).toBe(6); // 10-01 .. 10-06 are in the 30 day period only up to today
-    expect(photos.items).toHaveLength(Math.min(6, MAX_REPORT_PHOTOS));
+    expect(photos.items).toHaveLength(6); // uncapped: the PDF path applies MAX_REPORT_PHOTOS
     expect(photos.items[0]?.date).toBe('2026-10-06');
   });
 
@@ -412,6 +412,30 @@ describe('text and HTML renderers', () => {
     const html = renderHtml(trainer, { t: tEs, language: 'es' });
     expect(html).toContain(tokens.color.light.text);
     expect(html).toContain(tokens.color.light.border);
+  });
+});
+
+describe('PDF photo cap', () => {
+  const photoModel = () =>
+    buildReport(data, selection({ sections: ['photos'], period: '30d' }), NOW);
+  const items = (model: ReturnType<typeof photoModel>) => {
+    const section = model.sections[0];
+    if (section?.kind !== 'photos') throw new Error('photos expected');
+    return section;
+  };
+
+  it('caps the photos only on the PDF path and keeps the total', () => {
+    const model = photoModel();
+    const capped = items(capPhotosForPdf(model));
+    expect(capped.items).toHaveLength(MAX_REPORT_PHOTOS);
+    expect(capped.total).toBe(6);
+    expect(items(model).items).toHaveLength(6);
+    const html = prepareReport(model, 'pdf', { t: tEs, language: 'es' });
+    expect(html.format === 'pdf' && (html.html.match(/<figure>/g) ?? []).length).toBe(
+      MAX_REPORT_PHOTOS,
+    );
+    // The text model counts every photo selected.
+    expect(previewText(model, 'text', { t: tEs, language: 'es' })).toContain('6');
   });
 });
 

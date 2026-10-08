@@ -98,6 +98,7 @@ describe('NameQuestion', () => {
     await renderScreen(<NameQuestion />);
     expect(screen.getByText(es.onboarding.welcome.bubble)).toBeTruthy();
     expect(screen.getByText(es.onboarding.medical.body)).toBeTruthy();
+    expect(screen.getByText(es.onboarding.backupNotice)).toBeTruthy();
     expect(screen.queryByRole('button', { name: es.onboarding.back })).toBeNull();
   });
 

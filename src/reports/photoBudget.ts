@@ -3,8 +3,7 @@
 
 /**
  * Upper bound of the embedded photo data (characters of the data URIs, about the bytes they add to
- * the HTML). No image-resizing dependency is installed (expo-image-manipulator is not in the
- * project), so photos are embedded as stored (camera quality 0.7) and this cap decides how many fit.
+ * the HTML). Photos are downscaled to ~1000 px JPEGs before this cap decides how many fit.
  */
 export const REPORT_PHOTO_BYTES_CAP = 4_000_000;
 

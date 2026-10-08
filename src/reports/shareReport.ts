@@ -8,6 +8,7 @@ import { Share } from 'react-native';
 
 import { deleteAfterGrace, removeStaleCacheFiles, safely } from '../backup/files';
 import { expoPhotoFs } from '../photos/expoPhotoFs';
+import { resizeToJpeg, type ResizeToJpeg } from '../photos/imageResize';
 
 import { isReportExportName } from './exportName';
 import { fitPhotoBudget, type PhotoSelection } from './photoBudget';
@@ -22,25 +23,58 @@ export async function shareText(message: string, title: string): Promise<ShareOu
   return result.action === Share.dismissedAction ? 'dismissed' : 'shared';
 }
 
+/** Width (px) photos are downscaled to before they are embedded in the PDF. */
+export const REPORT_PHOTO_WIDTH = 1000;
+
+/** What `collectPhotoSources` needs from the platform, so it is tested with fakes. */
+export type PhotoSourceIo = {
+  exists: (name: string) => boolean;
+  uriOf: (name: string) => string;
+  /** Downscaled JPEG copy (compress 0.7) in the cache; returns its URI. */
+  resize: ResizeToJpeg;
+  readBase64: (uri: string) => Promise<string>;
+  /** Deletes a cache file; never throws. */
+  discard: (uri: string) => void;
+};
+
+const defaultIo: PhotoSourceIo = {
+  exists: (name) => expoPhotoFs.exists(name),
+  uriOf: (name) => expoPhotoFs.uriOf(name),
+  resize: resizeToJpeg,
+  readBase64: (uri) => new File(uri).base64(),
+  discard: (uri) => safely(() => new File(uri).delete()),
+};
+
 /**
- * Photo file names -> `data:image/jpeg;base64,...` for the files that still exist, within the byte
- * cap. `dropped` counts the photos left out (missing, unreadable or over the cap): the PDF says so.
+ * Photo file names -> `data:image/jpeg;base64,...` of a ~1000 px JPEG copy, for the files that still
+ * exist, within the byte cap. The temporary copy is deleted once embedded. `dropped` counts the
+ * photos left out (missing, unreadable or over the cap): the PDF says so.
  */
-export async function readPhotoSources(names: readonly string[]): Promise<PhotoSelection> {
+export async function collectPhotoSources(
+  names: readonly string[],
+  io: PhotoSourceIo,
+): Promise<PhotoSelection> {
   const candidates: { name: string; uri: string | null }[] = [];
   for (const name of names) {
     let uri: string | null = null;
+    let resized: string | null = null;
     try {
-      if (expoPhotoFs.exists(name)) {
-        uri = `data:image/jpeg;base64,${await expoPhotoFs.readBase64(name)}`;
+      if (io.exists(name)) {
+        resized = await io.resize(io.uriOf(name), REPORT_PHOTO_WIDTH);
+        uri = `data:image/jpeg;base64,${await io.readBase64(resized)}`;
       }
     } catch {
       // A photo that cannot be read is left out; the caption still lists it.
+    } finally {
+      if (resized !== null) io.discard(resized);
     }
     candidates.push({ name, uri });
   }
   return fitPhotoBudget(candidates);
 }
+
+export const readPhotoSources = (names: readonly string[]): Promise<PhotoSelection> =>
+  collectPhotoSources(names, defaultIo);
 
 /**
  * Prints the HTML to a PDF in the cache, shares it and removes it afterwards (a minute after a

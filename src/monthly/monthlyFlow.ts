@@ -24,6 +24,8 @@ export type MonthlyContext = {
   previous: Record<string, { uri: string; date: string } | undefined>;
   /** A monthly check-in already exists for this calendar month. */
   doneThisMonth: boolean;
+  /** `backupReminder` setting (default on): show the gentle "export your backup" line. */
+  backupReminder: boolean;
 };
 
 const LOOKBACK_FROM = '2000-01-01';
@@ -66,6 +68,7 @@ export async function loadMonthlyContext(
     guide: photoSpec?.guide,
     previous,
     doneThisMonth: (await repos.checkins.inRange(monthStart, today, 'monthly')).length > 0,
+    backupReminder: (await repos.settings.get('backupReminder')) ?? true,
   };
 }
 

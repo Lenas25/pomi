@@ -9,7 +9,6 @@ import { clockToMinutes } from '../domain/time';
 import { inPeriod, periodFor } from './period';
 import {
   MAX_NOTE_LENGTH,
-  MAX_REPORT_PHOTOS,
   type GymExerciseReport,
   type GymReport,
   type HabitsReport,
@@ -207,7 +206,7 @@ function photosSection(data: ReportData, period: ReportPeriod): PhotosReport {
   return {
     kind: 'photos',
     empty: inRange.length === 0,
-    items: inRange.slice(0, MAX_REPORT_PHOTOS),
+    items: inRange,
     total: inRange.length,
   };
 }

@@ -107,6 +107,8 @@ export const settingsSchemas = {
   gymDaysChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Day the steps goal (`goals.stepsGoal`) last changed, whichever way it changed. */
   goalsChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** Gentle "export your backup" line in the monthly review (default on). */
+  backupReminder: z.boolean(),
   sedentaryNudge: sedentaryNudgeSchema,
   sedentaryHistory: sedentaryHistorySchema,
   /** Epoch ms of the last heavy background run (suggestions + notification sync, at most every ~6 h). */

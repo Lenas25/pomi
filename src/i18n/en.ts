@@ -244,6 +244,8 @@ export const en: Messages = {
       title: 'Before we start',
       body: 'Goals are general starting points, not medical advice. If you have a medical condition (for example kidney or heart disease), check the water and exercise goals with a professional first.',
     },
+    backupNotice:
+      "Pomi doesn't use Android's automatic backup; export your backup before switching phones.",
     body: {
       title: 'How much do you weigh and how tall are you?',
       hint: 'Your weight sets your water goal.',
@@ -564,6 +566,12 @@ export const en: Messages = {
     title: 'Backup',
     intro:
       'Save all your data to a file, or bring it back from one. Your data lives only on this phone: the backup is your safety copy.',
+    policy:
+      "Pomi doesn't use Android's automatic backup; export your backup before switching phones.",
+    reminder: {
+      label: 'Remind me to export my backup',
+      hint: 'Shows as a line in the monthly review. It sends no notifications.',
+    },
     export: {
       title: 'Save a backup',
       body: 'Includes your profile, settings, templates, workouts, habits, steps and check-ins.',
@@ -718,6 +726,7 @@ export const en: Messages = {
   },
   monthly: {
     title: 'Monthly review',
+    backupReminder: 'When you can, export your backup from Settings > Backup.',
     intro: {
       bubble: 'Shall we see how you changed?',
       body: 'Weight and measurements and, if you like, a few photos to compare. All optional, at your pace.',

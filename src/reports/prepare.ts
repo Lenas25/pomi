@@ -4,7 +4,7 @@ import type { Language, Translate } from '../i18n';
 
 import { renderHtml } from './renderHtml';
 import { renderText } from './renderText';
-import type { ReportFormat, ReportModel } from './types';
+import { MAX_REPORT_PHOTOS, type ReportFormat, type ReportModel } from './types';
 
 export type PrepareContext = {
   t: Translate;
@@ -22,6 +22,18 @@ export type PreparedReport = { format: 'text'; message: string } | { format: 'pd
  * (no change to the model, the selection or the preview). They are NOT built yet.
  */
 
+/** The PDF embeds photos, so only the newest `MAX_REPORT_PHOTOS` go in; the text model keeps all. */
+export function capPhotosForPdf(model: ReportModel): ReportModel {
+  return {
+    ...model,
+    sections: model.sections.map((section) =>
+      section.kind === 'photos'
+        ? { ...section, items: section.items.slice(0, MAX_REPORT_PHOTOS) }
+        : section,
+    ),
+  };
+}
+
 export function prepareReport(
   model: ReportModel,
   format: ReportFormat,
@@ -30,7 +42,7 @@ export function prepareReport(
   if (format === 'pdf') {
     return {
       format,
-      html: renderHtml(model, {
+      html: renderHtml(capPhotosForPdf(model), {
         t: context.t,
         language: context.language,
         ...(context.photoSources ? { photoSources: context.photoSources } : {}),
@@ -50,5 +62,8 @@ export function previewText(
   format: ReportFormat,
   context: Pick<PrepareContext, 't' | 'language'>,
 ): string {
-  return renderText(model, { ...context, includesPhotos: format === 'pdf' });
+  return renderText(format === 'pdf' ? capPhotosForPdf(model) : model, {
+    ...context,
+    includesPhotos: format === 'pdf',
+  });
 }

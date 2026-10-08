@@ -111,6 +111,9 @@ export function NameQuestion() {
           <Text style={[theme.text('body'), { color: theme.color.text }]}>
             {t('onboarding.medical.body')}
           </Text>
+          <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
+            {t('onboarding.backupNotice')}
+          </Text>
         </View>
       </Card>
     </QuestionScreen>

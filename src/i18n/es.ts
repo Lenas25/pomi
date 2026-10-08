@@ -243,6 +243,8 @@ export const es = {
       title: 'Antes de empezar',
       body: 'Las metas son puntos de partida generales, no consejo médico. Si tienes una condición médica (por ejemplo renal o cardíaca), consulta antes las metas de agua y ejercicio.',
     },
+    backupNotice:
+      'Pomi no usa la copia automática de Android; exporta tu respaldo antes de cambiar de teléfono.',
     body: {
       title: '¿Cuánto pesas y cuánto mides?',
       hint: 'Con tu peso calculamos tu meta de agua.',
@@ -560,6 +562,12 @@ export const es = {
     title: 'Respaldo',
     intro:
       'Guarda todos tus datos en un archivo, o recupéralos desde uno. Los datos viven solo en tu teléfono: el respaldo es tu copia de seguridad.',
+    policy:
+      'Pomi no usa la copia automática de Android; exporta tu respaldo antes de cambiar de teléfono.',
+    reminder: {
+      label: 'Recordarme exportar el respaldo',
+      hint: 'Aparece como una línea en la revisión mensual. No envía notificaciones.',
+    },
     export: {
       title: 'Guardar un respaldo',
       body: 'Incluye tu perfil, ajustes, plantillas, entrenamientos, hábitos, pasos y check-ins.',
@@ -717,6 +725,7 @@ export const es = {
   },
   monthly: {
     title: 'Revisión mensual',
+    backupReminder: 'Cuando puedas, exporta tu respaldo desde Ajustes > Respaldo.',
     intro: {
       bubble: '¿Vemos cuánto cambiaste?',
       body: 'Peso y medidas y, si quieres, unas fotos para comparar. Todo es opcional y a tu ritmo.',

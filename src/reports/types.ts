@@ -37,8 +37,8 @@ export type ReportFormat = 'text' | 'pdf';
 
 export const MAX_NOTE_LENGTH = 500;
 /**
- * Photos in one report (newest first). The PDF carries them inline and no resizing library is
- * installed, so only the two most recent go in (plus a byte cap, see `photoBudget.ts`).
+ * Photos embedded in the PDF (newest first; the text model keeps all of them). Each is downscaled
+ * first (`shareReport.ts`) and a byte cap applies on top (see `photoBudget.ts`).
  */
 export const MAX_REPORT_PHOTOS = 2;
 
@@ -152,9 +152,9 @@ export type MeasuresReport = {
 export type PhotosReport = {
   kind: 'photos';
   empty: boolean;
-  /** Newest first, at most `MAX_REPORT_PHOTOS`. `name` is the file name in the private folder. */
+  /** Newest first, all in the period (the PDF path keeps `MAX_REPORT_PHOTOS`). `name` is the file name in the private folder. */
   items: { date: string; pose: string; name: string }[];
-  /** Photos in the period, including the ones left out by the cap. */
+  /** Photos in the period. */
   total: number;
 };
 

@@ -13,7 +13,7 @@ import { loadReportData } from './loadReportData';
 import { prepareReport } from './prepare';
 import { readPhotoSources, sharePdf, shareText } from './shareReport';
 import { ShareView } from './ShareView';
-import type { ReportData, ReportFormat, ReportModel } from './types';
+import { MAX_REPORT_PHOTOS, type ReportData, type ReportFormat, type ReportModel } from './types';
 
 /** Route `/compartir`: loads the data once, then hands over to the form. */
 export function ShareScreen() {
@@ -51,7 +51,9 @@ export function ShareScreen() {
       }
       const photos = model.sections.find((section) => section.kind === 'photos');
       const { sources: photoSources, dropped: photosDropped } = await readPhotoSources(
-        photos?.kind === 'photos' ? photos.items.map((item) => item.name) : [],
+        photos?.kind === 'photos'
+          ? photos.items.slice(0, MAX_REPORT_PHOTOS).map((item) => item.name)
+          : [],
       );
       const prepared = prepareReport(model, 'pdf', {
         t: translate,

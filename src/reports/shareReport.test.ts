@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-import { isReportExportName, readPhotoSources, sharePdf } from './shareReport';
+import {
+  collectPhotoSources,
+  isReportExportName,
+  REPORT_PHOTO_WIDTH,
+  sharePdf,
+  type PhotoSourceIo,
+} from './shareReport';
 
 // Names must start with `mock` to be used inside the hoisted factories.
 const mockFiles = new Map<string, { deleted: boolean }>();
@@ -49,13 +55,8 @@ jest.mock('expo-sharing', () => ({
     if (mockShareFails) throw new Error('no target');
   },
 }));
-jest.mock('../photos/expoPhotoFs', () => ({
-  expoPhotoFs: {
-    exists: (name: string) => name !== 'missing.jpg',
-    readBase64: async (name: string) =>
-      name === 'broken.jpg' ? Promise.reject(new Error('x')) : 'QQ==',
-  },
-}));
+jest.mock('../photos/expoPhotoFs', () => ({ expoPhotoFs: {} }));
+jest.mock('../photos/imageResize', () => ({ resizeToJpeg: async () => 'cache://unused.jpg' }));
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -103,11 +104,56 @@ describe('helpers', () => {
     expect(isReportExportName('pomi-backup-2026.json')).toBe(false);
     expect(isReportExportName('pomi-report-x.json')).toBe(false);
   });
+});
 
-  it('reads photos as data URIs and leaves out the missing or unreadable ones', async () => {
-    expect(await readPhotoSources(['a.jpg', 'missing.jpg', 'broken.jpg'])).toEqual({
-      sources: { 'a.jpg': 'data:image/jpeg;base64,QQ==' },
+describe('collectPhotoSources', () => {
+  function fakeIo(overrides: Partial<PhotoSourceIo> = {}) {
+    const resized: [string, number][] = [];
+    const discarded: string[] = [];
+    const io: PhotoSourceIo = {
+      exists: (name) => name !== 'missing.jpg',
+      uriOf: (name) => `file:///photos/${name}`,
+      resize: async (uri, width) => {
+        resized.push([uri, width]);
+        return `cache://resized-${resized.length}.jpg`;
+      },
+      readBase64: async (uri) =>
+        uri.includes('resized-2') ? Promise.reject(new Error('x')) : 'QQ==',
+      discard: (uri) => void discarded.push(uri),
+      ...overrides,
+    };
+    return { io, resized, discarded };
+  }
+
+  it('downscales each photo to ~1000 px, embeds it and deletes the temp copy', async () => {
+    const { io, resized, discarded } = fakeIo();
+    const result = await collectPhotoSources(['a.jpg', 'missing.jpg', 'b.jpg', 'c.jpg'], io);
+    expect(REPORT_PHOTO_WIDTH).toBe(1000);
+    expect(resized).toEqual([
+      ['file:///photos/a.jpg', 1000],
+      ['file:///photos/b.jpg', 1000],
+      ['file:///photos/c.jpg', 1000],
+    ]);
+    // b's copy could not be read: left out, but its temp copy is still removed.
+    expect(result).toEqual({
+      sources: {
+        'a.jpg': 'data:image/jpeg;base64,QQ==',
+        'c.jpg': 'data:image/jpeg;base64,QQ==',
+      },
       dropped: 2,
     });
+    expect(discarded).toEqual([
+      'cache://resized-1.jpg',
+      'cache://resized-2.jpg',
+      'cache://resized-3.jpg',
+    ]);
+  });
+
+  it('keeps the total byte cap and reports the photos left out', async () => {
+    const { io, discarded } = fakeIo({ readBase64: async () => 'A'.repeat(3_000_000) });
+    const result = await collectPhotoSources(['a.jpg', 'b.jpg'], io);
+    expect(Object.keys(result.sources)).toEqual(['a.jpg']);
+    expect(result.dropped).toBe(1);
+    expect(discarded).toHaveLength(2);
   });
 });

@@ -161,6 +161,11 @@ export function MonthlyReviewScreen() {
               <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
                 {t('monthly.intro.body')}
               </Text>
+              {context.backupReminder ? (
+                <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+                  {t('monthly.backupReminder')}
+                </Text>
+              ) : null}
               <Button label={t('monthly.intro.start')} onPress={() => setStep('measures')} />
               <Button label={t('monthly.intro.later')} variant="ghost" onPress={leave} />
             </>

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
@@ -57,6 +57,27 @@ export function BackupScreen() {
   const [includePhotos, setIncludePhotos] = useState(false);
   const [busy, setBusy] = useState<'export' | 'pick' | 'restore' | 'photos' | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [reminder, setReminder] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRepositories()
+      .settings.get('backupReminder')
+      .then((stored) => {
+        if (!cancelled) setReminder(stored ?? true);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const changeReminder = useCallback((value: boolean) => {
+    setReminder(value);
+    getRepositories()
+      .settings.set('backupReminder', value)
+      .catch(() => setReminder(!value));
+  }, []);
   const [problems, setProblems] = useState<string[]>([]);
   const [pending, setPending] = useState<Backup | null>(null);
 
@@ -255,6 +276,9 @@ export function BackupScreen() {
         <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
           {t('backup.intro')}
         </Text>
+        <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
+          {t('backup.policy')}
+        </Text>
 
         <Card>
           <View style={{ gap: theme.space[3] }}>
@@ -289,6 +313,32 @@ export function BackupScreen() {
               loading={busy === 'export'}
               disabled={busy !== null}
             />
+          </View>
+        </Card>
+
+        <Card>
+          <View style={{ gap: theme.space[2] }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: theme.space[3],
+                minHeight: theme.touch.min,
+              }}
+            >
+              <Text style={[theme.text('body'), { flex: 1, color: theme.color.text }]}>
+                {t('backup.reminder.label')}
+              </Text>
+              <Switch
+                accessibilityLabel={t('backup.reminder.label')}
+                value={reminder}
+                onValueChange={changeReminder}
+                trackColor={{ true: theme.color.brand, false: theme.color.border }}
+                thumbColor={theme.color.surface}
+              />
+            </View>
+            <Text style={muted}>{t('backup.reminder.hint')}</Text>
           </View>
         </Card>
 
