@@ -34,8 +34,8 @@ export type ReportTemplateId = (typeof REPORT_TEMPLATES)[number];
 export const REPORT_PERIODS = ['7d', '30d', '90d', 'all'] as const;
 export type ReportPeriodKind = (typeof REPORT_PERIODS)[number];
 
-/** `text` and `pdf` exist today; `csv` and `json` are v3 (see `renderers.ts`). */
-export type ReportFormat = 'text' | 'pdf';
+export const REPORT_FORMATS = ['text', 'pdf', 'csv', 'json'] as const;
+export type ReportFormat = (typeof REPORT_FORMATS)[number];
 
 export const MAX_NOTE_LENGTH = 500;
 /**
@@ -184,7 +184,7 @@ export type ReportModel = {
 // --- Renderers ----------------------------------------------------------------------------------
 
 /**
- * A renderer turns the model into a string for one format. CSV and JSON (v3) will be two more
- * entries of this shape; the rest of the pipeline (model, selection, preview) does not change.
+ * A renderer turns the model into a string for one format (`renderText`, `renderHtml`,
+ * `renderCsv`, `renderJson`); the rest of the pipeline (model, selection, preview) is shared.
  */
 export type ReportRenderer<Context> = (model: ReportModel, context: Context) => string;

@@ -1319,10 +1319,12 @@ export const en: Messages = {
       all: 'Since I started',
     },
     format: 'Format',
-    formatOption: { text: 'Text', pdf: 'PDF' },
+    formatOption: { text: 'Text', pdf: 'PDF', csv: 'CSV', json: 'JSON' },
     formatHint: {
       text: 'Shared as a message, without photos.',
       pdf: 'A document to print or send, with the photos if you ticked them.',
+      csv: 'A table to open in a spreadsheet. Photos never go: only how many there are.',
+      json: 'Structured data for other tools. Photos never go: only how many there are.',
     },
     note: 'Opening note (optional)',
     notePlaceholder: 'Something you want read first',

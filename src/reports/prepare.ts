@@ -2,7 +2,9 @@
 // the very same content the person is about to share.
 import type { Language, Translate } from '../i18n';
 
+import { CSV_BOM, renderCsv } from './renderCsv';
 import { renderHtml } from './renderHtml';
+import { renderJson } from './renderJson';
 import { renderText } from './renderText';
 import { MAX_REPORT_PHOTOS, type ReportFormat, type ReportModel } from './types';
 
@@ -15,12 +17,10 @@ export type PrepareContext = {
   photosDropped?: number;
 };
 
-export type PreparedReport = { format: 'text'; message: string } | { format: 'pdf'; html: string };
-
-/*
- * v3 adds `csv` and `json` here: each is one more `ReportRenderer` over the same `ReportModel`
- * (no change to the model, the selection or the preview). They are NOT built yet.
- */
+export type PreparedReport =
+  | { format: 'text'; message: string }
+  | { format: 'pdf'; html: string }
+  | { format: 'csv' | 'json'; content: string };
 
 /** The PDF embeds photos, so only the newest `MAX_REPORT_PHOTOS` go in; the text model keeps all. */
 export function capPhotosForPdf(model: ReportModel): ReportModel {
@@ -50,6 +50,9 @@ export function prepareReport(
       }),
     };
   }
+  // CSV and JSON are language independent and never carry photos (only their count).
+  if (format === 'csv') return { format, content: renderCsv(model) };
+  if (format === 'json') return { format, content: renderJson(model) };
   return {
     format,
     message: renderText(model, { t: context.t, language: context.language, includesPhotos: false }),
@@ -62,6 +65,9 @@ export function previewText(
   format: ReportFormat,
   context: Pick<PrepareContext, 't' | 'language'>,
 ): string {
+  // The file content itself (without the invisible BOM), so the preview is what is sent.
+  if (format === 'csv') return renderCsv(model).replace(CSV_BOM, '');
+  if (format === 'json') return renderJson(model);
   return renderText(format === 'pdf' ? capPhotosForPdf(model) : model, {
     ...context,
     includesPhotos: format === 'pdf',

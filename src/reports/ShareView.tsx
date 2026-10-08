@@ -17,6 +17,7 @@ import { applyTemplate, defaultSelection, toggleSection } from './templates';
 import {
   AVAILABLE_SECTIONS,
   MAX_NOTE_LENGTH,
+  REPORT_FORMATS,
   REPORT_PERIODS,
   REPORT_SECTIONS,
   REPORT_TEMPLATES,
@@ -25,8 +26,6 @@ import {
   type ReportModel,
   type ReportSelection,
 } from './types';
-
-const FORMATS: readonly ReportFormat[] = ['text', 'pdf'];
 
 export type ShareFailure = 'failed' | 'unavailable';
 
@@ -246,7 +245,7 @@ export function ShareView({ data, now, onShare }: ShareViewProps) {
 
         <View style={{ gap: theme.space[2] }} accessibilityRole="radiogroup">
           {heading(t('share.format'))}
-          {FORMATS.map((option) => (
+          {REPORT_FORMATS.map((option) => (
             <OptionRow
               key={option}
               label={t(`share.formatOption.${option}`)}

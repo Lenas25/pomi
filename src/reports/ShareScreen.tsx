@@ -11,7 +11,7 @@ import { useTheme } from '../ui/theme';
 
 import { loadReportData } from './loadReportData';
 import { prepareReport } from './prepare';
-import { readPhotoSources, sharePdf, shareText } from './shareReport';
+import { readPhotoSources, shareDataFile, sharePdf, shareText } from './shareReport';
 import { ShareView } from './ShareView';
 import { MAX_REPORT_PHOTOS, type ReportData, type ReportFormat, type ReportModel } from './types';
 
@@ -48,6 +48,17 @@ export function ShareScreen() {
       if (reportFormat === 'text') {
         const prepared = prepareReport(model, 'text', { t: translate, language });
         return prepared.format === 'text' ? shareText(prepared.message, title) : 'dismissed';
+      }
+      if (reportFormat === 'csv' || reportFormat === 'json') {
+        const prepared = prepareReport(model, reportFormat, { t: translate, language });
+        return prepared.format === 'csv' || prepared.format === 'json'
+          ? shareDataFile(
+              prepared.content,
+              prepared.format,
+              `pomi-report-${format(new Date(), 'yyyy-MM-dd-HHmm')}.${prepared.format}`,
+              title,
+            )
+          : 'dismissed';
       }
       const photos = model.sections.find((section) => section.kind === 'photos');
       const { sources: photoSources, dropped: photosDropped } = await readPhotoSources(

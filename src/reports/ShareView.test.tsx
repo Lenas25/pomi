@@ -121,4 +121,15 @@ describe('ShareView', () => {
     expect(screen.getByText(/Fotos del período: 1/)).toBeTruthy();
     expect(screen.getByText('Fotos que se incluirán: 1')).toBeTruthy();
   });
+
+  it('offers CSV and JSON, and the preview shows the file content without photos', async () => {
+    await renderView();
+    await fireEvent(screen.getByRole('switch', { name: 'Fotos' }), 'valueChange', true);
+    await fireEvent.press(screen.getByRole('radio', { name: 'CSV' }));
+    expect(screen.getByText(/Una tabla para abrir en una hoja de cálculo/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver qué se enviará' }));
+    expect(screen.getByText(/section,date,item,metric,value,unit/)).toBeTruthy();
+    expect(screen.queryByText(/Fotos que se incluirán/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Volver y editar' })).toBeTruthy();
+  });
 });

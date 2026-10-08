@@ -1321,10 +1321,12 @@ export const es = {
       all: 'Desde que empecé',
     },
     format: 'Formato',
-    formatOption: { text: 'Texto', pdf: 'PDF' },
+    formatOption: { text: 'Texto', pdf: 'PDF', csv: 'CSV', json: 'JSON' },
     formatHint: {
       text: 'Se comparte como mensaje, sin fotos.',
       pdf: 'Un documento para imprimir o enviar, con las fotos si las marcaste.',
+      csv: 'Una tabla para abrir en una hoja de cálculo. Las fotos nunca van: solo cuántas hay.',
+      json: 'Datos estructurados para otras herramientas. Las fotos nunca van: solo cuántas hay.',
     },
     note: 'Nota inicial (opcional)',
     notePlaceholder: 'Algo que quieras que lea primero',

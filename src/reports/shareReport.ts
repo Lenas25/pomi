@@ -105,3 +105,33 @@ export async function sharePdf(
     else safely(() => file.delete());
   }
 }
+
+/** MIME types of the data files (the PDF has its own path). */
+const DATA_MIME = { csv: 'text/csv', json: 'application/json' } as const;
+
+/**
+ * Writes a CSV / JSON report to the cache, shares it and removes it afterwards (a minute after a
+ * successful share, right away on failure; stale ones from earlier runs go first). Same lifecycle
+ * as `sharePdf`.
+ */
+export async function shareDataFile(
+  content: string,
+  format: keyof typeof DATA_MIME,
+  fileName: string,
+  dialogTitle: string,
+): Promise<ShareOutcome> {
+  if (!(await Sharing.isAvailableAsync())) return 'unavailable';
+  removeStaleCacheFiles(isReportExportName);
+  const file = new File(Paths.cache, fileName);
+  let keepForGrace = false;
+  try {
+    file.create({ overwrite: true });
+    await file.write(content);
+    await Sharing.shareAsync(file.uri, { mimeType: DATA_MIME[format], dialogTitle });
+    keepForGrace = true;
+    return 'shared';
+  } finally {
+    if (keepForGrace) deleteAfterGrace(file);
+    else safely(() => file.delete());
+  }
+}

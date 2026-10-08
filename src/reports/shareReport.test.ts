@@ -4,6 +4,7 @@ import {
   collectPhotoSources,
   isReportExportName,
   REPORT_PHOTO_WIDTH,
+  shareDataFile,
   sharePdf,
   type PhotoSourceIo,
 } from './shareReport';
@@ -22,6 +23,12 @@ jest.mock('expo-file-system', () => {
       this.uri = parts.map((part) => (typeof part === 'string' ? part : 'cache')).join('/');
       this.name = this.uri.split('/').at(-1) ?? '';
       if (!mockFiles.has(this.uri)) mockFiles.set(this.uri, { deleted: false });
+    }
+    create() {
+      mockCalls.push(`create:${this.uri}`);
+    }
+    async write(content: string) {
+      mockCalls.push(`write:${this.uri}:${content}`);
     }
     async move(destination: MockFile) {
       mockCalls.push(`move:${this.uri}->${destination.uri}`);
@@ -102,7 +109,36 @@ describe('helpers', () => {
   it('recognises only its own report files', () => {
     expect(isReportExportName('pomi-report-2026-10-06-0900.pdf')).toBe(true);
     expect(isReportExportName('pomi-backup-2026.json')).toBe(false);
-    expect(isReportExportName('pomi-report-x.json')).toBe(false);
+    expect(isReportExportName('pomi-report-x.csv')).toBe(true);
+    expect(isReportExportName('pomi-report-x.json')).toBe(true);
+    expect(isReportExportName('pomi-report-x.txt')).toBe(false);
+  });
+});
+
+describe('shareDataFile', () => {
+  it('writes the content, shares it with its MIME type, sweeps old reports and deletes after the grace period', async () => {
+    expect(await shareDataFile('a,b', 'csv', 'pomi-report-x.csv', 'Title')).toBe('shared');
+    expect(mockCalls[0]).toBe('delete:cache/pomi-report-old.pdf');
+    expect(mockCalls).toContain('write:cache/pomi-report-x.csv:a,b');
+    expect(mockCalls.some((call) => call.includes('"mimeType":"text/csv"'))).toBe(true);
+    expect(mockCalls.some((call) => call.startsWith('delete:cache/pomi-report-x.csv'))).toBe(false);
+    jest.advanceTimersByTime(60_000);
+    expect(mockCalls.some((call) => call.startsWith('delete:cache/pomi-report-x.csv'))).toBe(true);
+  });
+
+  it('uses application/json for JSON, says unavailable without writing, and cleans up on failure', async () => {
+    await shareDataFile('{}', 'json', 'pomi-report-x.json', 'Title');
+    expect(mockCalls.some((call) => call.includes('"mimeType":"application/json"'))).toBe(true);
+
+    mockAvailable = false;
+    mockCalls.length = 0;
+    expect(await shareDataFile('{}', 'json', 'pomi-report-y.json', 'Title')).toBe('unavailable');
+    expect(mockCalls).toEqual([]);
+
+    mockAvailable = true;
+    mockShareFails = true;
+    await expect(shareDataFile('{}', 'json', 'pomi-report-z.json', 'Title')).rejects.toThrow();
+    expect(mockCalls.some((call) => call.startsWith('delete:cache/pomi-report-z.json'))).toBe(true);
   });
 });
 
