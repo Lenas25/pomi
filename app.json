@@ -52,7 +52,8 @@
       "react-native-health-connect",
       "expo-sqlite",
       "expo-audio",
-      "expo-background-task"
+      "expo-background-task",
+      "expo-sharing"
     ]
   }
 }

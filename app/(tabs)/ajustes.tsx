@@ -1,6 +1,6 @@
 import { ScrollView, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { ShieldCheck } from 'phosphor-react-native';
+import { Barbell, FloppyDisk, ShieldCheck } from 'phosphor-react-native';
 
 import { useT } from '../../src/i18n';
 import { useNotificationPrefs } from '../../src/notifications/useNotificationPrefs';
@@ -64,6 +64,40 @@ export default function Ajustes() {
               </Text>
               <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
                 {t('settings.permissions.body')}
+              </Text>
+            </View>
+          </View>
+        </Card>
+
+        <Card
+          onPress={() => router.push('/importar-programa')}
+          accessibilityLabel={t('settings.programImport.title')}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
+            <Barbell color={theme.color.text} />
+            <View style={{ flex: 1 }}>
+              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
+                {t('settings.programImport.title')}
+              </Text>
+              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+                {t('settings.programImport.body')}
+              </Text>
+            </View>
+          </View>
+        </Card>
+
+        <Card
+          onPress={() => router.push('/respaldo')}
+          accessibilityLabel={t('settings.backup.title')}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
+            <FloppyDisk color={theme.color.text} />
+            <View style={{ flex: 1 }}>
+              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
+                {t('settings.backup.title')}
+              </Text>
+              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+                {t('settings.backup.body')}
               </Text>
             </View>
           </View>

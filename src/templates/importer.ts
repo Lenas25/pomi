@@ -111,7 +111,7 @@ function mapCustomMessage(message: string): ImportErrorCode | null {
   }
 }
 
-function issueToErrors(
+export function issueToErrors(
   issue: z.core.$ZodIssue,
   input: unknown,
   basePath: readonly PathKey[],
@@ -196,7 +196,7 @@ export function importTemplate(json: unknown): ImportResult {
   return { ok: false, errors: errors.slice(0, MAX_ERRORS) };
 }
 
-function lineFromSyntaxError(text: string, error: unknown): number | undefined {
+export function lineFromSyntaxError(text: string, error: unknown): number | undefined {
   if (!(error instanceof Error)) return undefined;
   const lineMatch = /line (\d+)/i.exec(error.message);
   if (lineMatch?.[1]) return Number(lineMatch[1]);

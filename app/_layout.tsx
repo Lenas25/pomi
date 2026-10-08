@@ -50,6 +50,8 @@ function RootStack() {
           <Stack.Screen name="compartir" />
           <Stack.Screen name="permisos" />
           <Stack.Screen name="bateria" />
+          <Stack.Screen name="respaldo" />
+          <Stack.Screen name="importar-programa" />
         </Stack.Protected>
       </Stack>
     </>

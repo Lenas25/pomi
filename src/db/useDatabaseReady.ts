@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { migrate } from 'drizzle-orm/expo-sqlite/migrator';
 
+import type { Repositories } from './repositories';
 import { resolveOnboardingComplete } from '../onboarding/resolveStatus';
 import { useOnboardingStatusStore } from '../onboarding/statusStore';
 import { setLanguagePersistence, useLocaleStore } from '../i18n';
@@ -10,17 +11,22 @@ import { getDatabase, getRepositories, migrations } from './index';
 
 export type DatabaseStatus = 'loading' | 'ready' | 'error';
 
+/** Copies theme, language and onboarding status from the database into their in-memory stores. */
+export async function hydrateStores(repositories: Repositories): Promise<void> {
+  const mode = await repositories.settings.get('themeMode');
+  useThemeModeStore.getState().hydrate(mode ?? 'system');
+  const language = await repositories.settings.get('language');
+  useLocaleStore.getState().hydrate(language ?? 'system');
+  useOnboardingStatusStore.getState().setComplete(await resolveOnboardingComplete(repositories));
+}
+
 async function runBootstrap(): Promise<void> {
   // Opening the file happens here (not at import) so any failure reaches the error screen.
   await migrate(getDatabase(), migrations);
   const repositories = getRepositories();
   await repositories.templates.seedDefaults();
-  const mode = await repositories.settings.get('themeMode');
-  if (mode) useThemeModeStore.getState().hydrate(mode);
+  await hydrateStores(repositories);
   setThemeModePersistence((next) => repositories.settings.set('themeMode', next));
-  const language = await repositories.settings.get('language');
-  useLocaleStore.getState().hydrate(language ?? 'system');
-  useOnboardingStatusStore.getState().setComplete(await resolveOnboardingComplete(repositories));
   // 'system' is stored as "no value", so the device language keeps being followed.
   setLanguagePersistence((next) =>
     next === 'system'
