@@ -15,6 +15,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useDatabaseReady } from '../src/db/useDatabaseReady';
 import { routeGuards } from '../src/domain/onboarding/redirect';
 import { useT } from '../src/i18n';
+import { sweepOrphanPhotosAtStart } from '../src/photos/startupSweep';
 import { useNotificationSetup } from '../src/notifications/useNotificationSetup';
 import { useOnboardingStatusStore } from '../src/onboarding/statusStore';
 import { EmptyState } from '../src/ui/EmptyState';
@@ -55,6 +56,7 @@ function RootStack() {
           <Stack.Screen name="permisos" />
           <Stack.Screen name="bateria" />
           <Stack.Screen name="respaldo" />
+          <Stack.Screen name="fotos" />
           <Stack.Screen name="acerca" />
           <Stack.Screen name="importar-programa" />
           <Stack.Screen name="crear-rutina" />
@@ -99,6 +101,10 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) SplashScreen.hide();
   }, [ready]);
+
+  useEffect(() => {
+    if (dbStatus === 'ready') sweepOrphanPhotosAtStart();
+  }, [dbStatus]);
 
   if (!ready) return null;
 

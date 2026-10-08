@@ -169,7 +169,14 @@ describe('weeklyBuckets', () => {
 describe('metrics', () => {
   it('parses decimals with a comma or a dot and rejects typos', () => {
     expect(parseMetricInput('61,5', 'kg')).toEqual({ ok: true, value: 61.5 });
-    expect(parseMetricInput(' 61.54 ', 'kg')).toEqual({ ok: true, value: 61.5 });
+    expect(parseMetricInput(' 61.5 ', 'kg')).toEqual({ ok: true, value: 61.5 });
+    expect(parseMetricInput('0,1', 'unit')).toEqual({ ok: true, value: 0.1 });
+    // More than one decimal is rejected, never rounded.
+    expect(parseMetricInput('61.54', 'kg')).toEqual({ ok: false, reason: 'notNumber' });
+    expect(parseMetricInput('61,25', 'kg')).toEqual({ ok: false, reason: 'notNumber' });
+    // Decimal-safe: values that are awkward in binary floating point stay exact.
+    expect(parseMetricInput('1.1', 'unit')).toEqual({ ok: true, value: 1.1 });
+    expect(parseMetricInput('72.3', 'cm')).toEqual({ ok: true, value: 72.3 });
     expect(parseMetricInput('', 'kg')).toEqual({ ok: false, reason: 'empty' });
     expect(parseMetricInput('abc', 'kg')).toEqual({ ok: false, reason: 'notNumber' });
     expect(parseMetricInput('61.5.2', 'kg')).toEqual({ ok: false, reason: 'notNumber' });

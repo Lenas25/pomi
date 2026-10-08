@@ -83,8 +83,8 @@ async function insertChunks<Row>(
 /**
  * Replaces ALL user data with the backup, in ONE transaction: any failure (a CHECK, a foreign key,
  * a duplicate key) rolls everything back and the current data stays untouched. Photo rows are
- * always cleared (a backup without photos leaves none behind) and re-inserted only when the backup
- * includes them. The caller reschedules notifications and re-hydrates the in-memory stores
+ * replaced ONLY when the backup includes photos; a backup without them leaves the photos (rows and
+ * files) on this phone exactly as they are. The caller reschedules notifications and re-hydrates the in-memory stores
  * afterwards. Pass a `Tx` to run inside a surrounding transaction (see `restoreBackupExclusive`).
  */
 export async function restoreBackup(target: Db | Tx, backup: Backup): Promise<void> {
@@ -100,7 +100,7 @@ export async function restoreBackup(target: Db | Tx, backup: Backup): Promise<vo
     await db.delete(activityLogs);
     await db.delete(checkins);
     await db.delete(metricEntries);
-    await db.delete(photos);
+    if (backup.includesPhotos) await db.delete(photos);
     await db.delete(foodNotes);
     await db.delete(suggestions);
     await db.delete(insights);

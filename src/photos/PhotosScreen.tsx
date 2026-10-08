@@ -1,0 +1,231 @@
+// "Tus fotos" (route `/fotos`, from Ajustes and Progreso): every stored photo, a page at a time,
+// plus "delete all" (files and rows). The Progreso grid only shows the newest few.
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { format, parseISO } from 'date-fns';
+
+import { getRepositories } from '../db';
+import type { PhotoRow } from '../db/repositories/photos';
+import { useT } from '../i18n';
+import { Button } from '../ui/Button';
+import { EmptyState } from '../ui/EmptyState';
+import { Screen } from '../ui/Screen';
+import { useTheme } from '../ui/theme';
+
+import { expoPhotoFs } from './expoPhotoFs';
+import { deleteAllPhotos, deletePhoto } from './photoStore';
+import { StoredPhoto } from './StoredPhoto';
+
+/** Photos per page: three columns, six rows. */
+export const PHOTOS_PAGE_SIZE = 18;
+
+type State =
+  | { status: 'loading' }
+  | { status: 'error' }
+  | { status: 'ready'; rows: PhotoRow[]; total: number };
+
+const poseName = (pose: string) => pose.charAt(0).toUpperCase() + pose.slice(1);
+
+async function readFirstPage(): Promise<State> {
+  try {
+    const { photos } = getRepositories();
+    const [total, rows] = await Promise.all([photos.count(), photos.page(PHOTOS_PAGE_SIZE, 0)]);
+    return { status: 'ready', rows, total };
+  } catch (error) {
+    if (__DEV__) console.error('Could not load the photos', error);
+    return { status: 'error' };
+  }
+}
+
+export function PhotosScreen() {
+  const t = useT();
+  const theme = useTheme();
+  const [state, setState] = useState<State>({ status: 'loading' });
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+
+  const loadFirstPage = useCallback(async () => {
+    setState({ status: 'loading' });
+    setState(await readFirstPage());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void readFirstPage().then((next) => {
+      if (!cancelled) setState(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const loadMore = useCallback(async () => {
+    if (state.status !== 'ready') return;
+    setBusy(true);
+    try {
+      const { photos } = getRepositories();
+      const next = await photos.page(PHOTOS_PAGE_SIZE, state.rows.length);
+      setState({ status: 'ready', rows: [...state.rows, ...next], total: state.total });
+    } catch (error) {
+      if (__DEV__) console.error('Could not load more photos', error);
+      setNotice({ tone: 'error', text: t('photosScreen.loadFailed') });
+    } finally {
+      setBusy(false);
+    }
+  }, [state, t]);
+
+  const removeOne = useCallback(
+    async (id: number) => {
+      try {
+        await deletePhoto(expoPhotoFs, getRepositories().photos, id);
+        await loadFirstPage();
+      } catch (error) {
+        if (__DEV__) console.error('Could not delete the photo', error);
+        Alert.alert(t('progress.photos.deleteFailed'));
+      }
+    },
+    [loadFirstPage, t],
+  );
+
+  const confirmOne = (id: number) =>
+    Alert.alert(t('progress.photos.deleteTitle'), t('progress.photos.deleteBody'), [
+      { text: t('progress.photos.cancel'), style: 'cancel' },
+      {
+        text: t('progress.photos.delete'),
+        style: 'destructive',
+        onPress: () => void removeOne(id),
+      },
+    ]);
+
+  const removeAll = useCallback(async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await deleteAllPhotos(expoPhotoFs, getRepositories().photos);
+      setState({ status: 'ready', rows: [], total: 0 });
+      setNotice({ tone: 'success', text: t('photosScreen.deleteAllDone') });
+    } catch (error) {
+      if (__DEV__) console.error('Could not delete all the photos', error);
+      setNotice({ tone: 'error', text: t('photosScreen.deleteAllFailed') });
+      await loadFirstPage();
+    } finally {
+      setBusy(false);
+    }
+  }, [loadFirstPage, t]);
+
+  const confirmAll = (total: number) =>
+    Alert.alert(
+      t('photosScreen.deleteAllTitle'),
+      t('photosScreen.deleteAllBody', { count: total }),
+      [
+        { text: t('progress.photos.cancel'), style: 'cancel' },
+        {
+          text: t('photosScreen.deleteAllConfirm'),
+          style: 'destructive',
+          onPress: () => void removeAll(),
+        },
+      ],
+    );
+
+  const rows = state.status === 'ready' ? state.rows : [];
+  const total = state.status === 'ready' ? state.total : 0;
+
+  return (
+    <Screen scroll edges={['top', 'bottom', 'left', 'right']}>
+      <View style={{ gap: theme.space[3], paddingVertical: theme.space[4] }}>
+        <Text
+          accessibilityRole="header"
+          style={[theme.text('title-lg'), { color: theme.color.text }]}
+        >
+          {t('photosScreen.title')}
+        </Text>
+
+        {state.status === 'error' ? (
+          <>
+            <Text style={[theme.text('body'), { color: theme.color.error }]}>
+              {t('photosScreen.loadFailed')}
+            </Text>
+            <Button label={t('photosScreen.retry')} onPress={() => void loadFirstPage()} />
+          </>
+        ) : null}
+
+        {state.status === 'ready' && total === 0 ? (
+          <EmptyState
+            compact
+            pose="mide"
+            title={t('photosScreen.emptyTitle')}
+            body={t('photosScreen.emptyBody')}
+          />
+        ) : null}
+
+        {rows.length > 0 ? (
+          <>
+            <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+              {t('photosScreen.count', { count: total })}
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[3] }}>
+              {rows.map((photo) => {
+                const label = t('progress.photos.label', {
+                  pose: poseName(photo.pose),
+                  date: format(parseISO(photo.date), 'd/M/yyyy'),
+                });
+                return (
+                  <Pressable
+                    key={photo.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={label}
+                    accessibilityHint={t('progress.photos.hint')}
+                    onPress={() => confirmOne(photo.id)}
+                    style={({ pressed }) => ({
+                      width: '30%',
+                      flexGrow: 1,
+                      gap: theme.space[1],
+                      opacity: pressed ? theme.opacity.pressed : 1,
+                    })}
+                  >
+                    <StoredPhoto name={photo.uri} label={label} />
+                    <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {rows.length < total ? (
+              <Button
+                label={t('photosScreen.loadMore')}
+                variant="secondary"
+                onPress={() => void loadMore()}
+                loading={busy}
+              />
+            ) : null}
+            <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+              {t('photosScreen.deleteAllHint')}
+            </Text>
+            <Button
+              label={t('photosScreen.deleteAll')}
+              variant="danger"
+              onPress={() => confirmAll(total)}
+              disabled={busy}
+            />
+          </>
+        ) : null}
+
+        {notice ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[
+              theme.text('body'),
+              { color: notice.tone === 'success' ? theme.color.success : theme.color.error },
+            ]}
+          >
+            {notice.text}
+          </Text>
+        ) : null}
+
+        <Button label={t('photosScreen.back')} variant="ghost" onPress={() => router.back()} />
+      </View>
+    </Screen>
+  );
+}

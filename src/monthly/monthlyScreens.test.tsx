@@ -43,7 +43,8 @@ jest.mock('../photos/expoPhotoFs', () => ({
     list: () => [...mockEnv.files.keys()],
     size: () => 1,
     readBase64: async () => '',
-    writeBase64: () => undefined,
+    writeBase64: async () => undefined,
+    discard: () => undefined,
   } satisfies PhotoFs,
 }));
 // The camera itself is covered by PhotoStep.test.tsx: here a stub drives the flow.
@@ -134,7 +135,9 @@ describe('MonthlyReviewScreen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Empezar' }));
     await fireEvent.changeText(screen.getByLabelText('Peso (kg)'), 'abc');
     await fireEvent.press(screen.getByRole('button', { name: 'Siguiente' }));
-    expect(screen.getByText('Escribe un número, por ejemplo 61,5.')).toBeTruthy();
+    expect(
+      screen.getByText('Escribe un número con un decimal como máximo, por ejemplo 61,5.'),
+    ).toBeTruthy();
     expect(await repos.checkins.inRange('2000-01-01', '2999-12-31', 'monthly')).toEqual([]);
 
     await fireEvent.press(screen.getByRole('button', { name: 'Saltar' }));

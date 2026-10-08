@@ -32,6 +32,10 @@ describe('app.json colors match design tokens', () => {
 });
 
 describe('release configuration', () => {
+  it('turns Android auto backup off: the JSON backup is the only copy of the data', () => {
+    expect((appJson.expo.android as { allowBackup?: boolean }).allowBackup).toBe(false);
+  });
+
   it('has a versionCode and a semver version', () => {
     expect(appJson.expo.android.versionCode).toBeGreaterThanOrEqual(1);
     expect(appJson.expo.version).toMatch(/^\d+\.\d+\.\d+$/);

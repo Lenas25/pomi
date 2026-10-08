@@ -44,6 +44,7 @@ const baseProps = {
   total: 3,
   guide: 'Misma luz, misma hora.',
   onUse: jest.fn(async () => undefined),
+  onDiscard: jest.fn(),
   onSkipPose: jest.fn(),
   onSkipAll: jest.fn(),
 };
@@ -104,7 +105,7 @@ describe('PhotoStep capture', () => {
     await act(async () => {
       await fireEvent.press(screen.getByRole('button', { name: 'Tomar foto' }));
     });
-    expect(mockTakePicture).toHaveBeenCalledWith({ quality: 0.7 });
+    expect(mockTakePicture).toHaveBeenCalledWith({ quality: 0.7, exif: false });
     expect(screen.getByRole('image', { name: 'Foto de Frente lista para revisar' })).toBeTruthy();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Repetir' }));
@@ -139,6 +140,62 @@ describe('PhotoStep capture', () => {
     expect(screen.getByText('No pudimos guardar la foto. Inténtalo de nuevo.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Usar esta foto' })).toBeTruthy();
     logged.mockRestore();
+  });
+
+  it('never asks for EXIF data (no GPS in the photo)', async () => {
+    mockTakePicture.mockResolvedValue({ uri: 'file:///cache/a.jpg' });
+    await renderThemed(<PhotoStep {...baseProps} />);
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: 'Tomar foto' }));
+    });
+    const options = mockTakePicture.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(options.exif).toBe(false);
+    expect(options).not.toHaveProperty('additionalExif');
+  });
+
+  describe('cache capture cleanup', () => {
+    const shoot = async () => {
+      mockTakePicture.mockResolvedValue({ uri: 'file:///cache/a.jpg' });
+      await act(async () => {
+        await fireEvent.press(screen.getByRole('button', { name: 'Tomar foto' }));
+      });
+    };
+
+    it('deletes the capture on retake', async () => {
+      await renderThemed(<PhotoStep {...baseProps} />);
+      await shoot();
+      await fireEvent.press(screen.getByRole('button', { name: 'Repetir' }));
+      expect(baseProps.onDiscard).toHaveBeenCalledTimes(1);
+      expect(baseProps.onDiscard).toHaveBeenLastCalledWith('file:///cache/a.jpg');
+    });
+
+    it('deletes the capture when the pose or all the photos are skipped', async () => {
+      await renderThemed(<PhotoStep {...baseProps} />);
+      await shoot();
+      await fireEvent.press(screen.getByRole('button', { name: 'Saltar esta pose' }));
+      expect(baseProps.onDiscard).toHaveBeenCalledWith('file:///cache/a.jpg');
+      expect(baseProps.onSkipPose).toHaveBeenCalledTimes(1);
+    });
+
+    it('deletes the capture when the screen goes away', async () => {
+      const view = await renderThemed(<PhotoStep {...baseProps} />);
+      await shoot();
+      await view.unmount();
+      expect(baseProps.onDiscard).toHaveBeenCalledWith('file:///cache/a.jpg');
+    });
+  });
+
+  it('does not delete a capture that was stored', async () => {
+    mockTakePicture.mockResolvedValue({ uri: 'file:///cache/a.jpg' });
+    const view = await renderThemed(<PhotoStep {...baseProps} />);
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: 'Tomar foto' }));
+    });
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: 'Usar esta foto' }));
+    });
+    await view.unmount();
+    expect(baseProps.onDiscard).not.toHaveBeenCalled();
   });
 
   it('skips a pose or all the photos', async () => {

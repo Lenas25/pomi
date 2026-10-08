@@ -230,6 +230,7 @@ export function MonthlyReviewScreen() {
               total={context.poses.length}
               guide={context.guide}
               previous={context.previous[pose]}
+              onDiscard={(tempUri) => expoPhotoFs.discard(tempUri)}
               onUse={async (tempUri) => {
                 await savePhoto({
                   fs: expoPhotoFs,

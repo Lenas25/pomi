@@ -114,7 +114,9 @@ describe('ProgressScreen', () => {
     const input = screen.getByLabelText('Nuevo valor (kg)');
     await fireEvent.changeText(input, 'abc');
     await fireEvent.press(screen.getByRole('button', { name: 'Guardar' }));
-    expect(screen.getByText('Escribe un número, por ejemplo 61,5.')).toBeTruthy();
+    expect(
+      screen.getByText('Escribe un número con un decimal como máximo, por ejemplo 61,5.'),
+    ).toBeTruthy();
     expect(handlers.saveMetric).not.toHaveBeenCalled();
 
     await fireEvent.changeText(input, '61,5');

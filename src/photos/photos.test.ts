@@ -1,18 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
+import { MAX_BACKUP_BYTES } from '../backup/limits';
 import { createRepositories, type Repositories } from '../db/repositories';
 import { createTestDb } from '../db/testing/createTestDb';
 
 import {
   base64Length,
   buildPart,
+  isValidPhotoBase64,
   parsePart,
   planParts,
   restorePart,
+  MAX_PHOTO_PART_BYTES,
   PHOTO_ARCHIVE_FORMAT,
+  PHOTO_PART_BYTES,
 } from './photoArchive';
 import { exportPhotoArchive, importPhotoArchive, type ShareFile } from './photoBackup';
 import {
+  deleteAllPhotos,
   deletePhoto,
   isSafePhotoName,
   photoFileName,
@@ -21,6 +26,10 @@ import {
   sweepOrphanPhotos,
   type PhotoFs,
 } from './photoStore';
+
+/** Valid base64 that starts like a JPEG. */
+const JPEG_A = '/9j/QUJD';
+const JPEG_B = '/9j/REVG';
 
 /** In-memory file system: the "cache" holds captures, `files` is the private photo folder. */
 function fakeFs(cache: Record<string, string> = {}) {
@@ -38,7 +47,8 @@ function fakeFs(cache: Record<string, string> = {}) {
     list: () => [...files.keys()],
     size: (name) => files.get(name)?.length ?? 0,
     readBase64: async (name) => files.get(name) ?? '',
-    writeBase64: (name, base64) => void files.set(name, base64),
+    writeBase64: async (name, base64) => void files.set(name, base64),
+    discard: (uri) => void delete cache[uri],
   };
   return { fs, files, cache };
 }
@@ -176,7 +186,70 @@ describe('savePhoto / deletePhoto', () => {
   });
 });
 
+describe('deletePhoto order and deleteAllPhotos', () => {
+  it('removes the file first and keeps the row when the file cannot be removed', async () => {
+    const { fs, files } = fakeFs();
+    await repos.photos.add({ date: '2026-09-01', pose: 'frente', uri: 'a.jpg' });
+    files.set('a.jpg', 'x');
+    const stuck: PhotoFs = {
+      ...fs,
+      remove: () => {
+        throw new Error('locked');
+      },
+    };
+    const [row] = await repos.photos.all();
+    await expect(deletePhoto(stuck, repos.photos, row!.id)).rejects.toThrow('locked');
+    expect(await repos.photos.all()).toHaveLength(1);
+    expect(files.has('a.jpg')).toBe(true);
+  });
+
+  it('deletes every file in the store and every row', async () => {
+    const { fs, files } = fakeFs();
+    await repos.photos.add({ date: '2026-09-01', pose: 'frente', uri: 'a.jpg' });
+    await repos.photos.add({ date: '2026-09-02', pose: 'perfil', uri: 'b.jpg' });
+    files.set('a.jpg', 'x');
+    files.set('b.jpg', 'y');
+    files.set('stray.jpg', 'z');
+    expect(await deleteAllPhotos(fs, repos.photos)).toBe(2);
+    expect(files.size).toBe(0);
+    expect(await repos.photos.all()).toEqual([]);
+  });
+
+  it('pages the photos newest first', async () => {
+    for (let day = 1; day <= 5; day += 1) {
+      await repos.photos.add({ date: `2026-09-0${day}`, pose: 'frente', uri: `p${day}.jpg` });
+    }
+    expect(await repos.photos.count()).toBe(5);
+    expect((await repos.photos.page(2, 0)).map((row) => row.uri)).toEqual(['p5.jpg', 'p4.jpg']);
+    expect((await repos.photos.page(2, 4)).map((row) => row.uri)).toEqual(['p1.jpg']);
+  });
+});
+
 describe('previousPhoto / sweepOrphanPhotos', () => {
+  it('a sweep started while a photo is being saved does not delete the new file', async () => {
+    const { fs, files } = fakeFs({ 'cache://a.jpg': 'AAA' });
+    // The row insert is slow: without the lock the sweep would run in this gap.
+    const slow = {
+      ...repos.photos,
+      add: async (input: Parameters<typeof repos.photos.add>[0]) => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return repos.photos.add(input);
+      },
+    };
+    const saving = savePhoto({
+      fs,
+      photos: slow,
+      tempUri: 'cache://a.jpg',
+      date: '2026-10-01',
+      pose: 'frente',
+      now: 10,
+    });
+    const sweeping = sweepOrphanPhotos(fs, repos.photos);
+    await Promise.all([saving, sweeping]);
+    expect(files.has('2026-10-01-frente-10.jpg')).toBe(true);
+    expect(await repos.photos.all()).toHaveLength(1);
+  });
+
   it('finds the latest earlier photo of the pose whose file still exists', async () => {
     const { fs, files } = fakeFs();
     for (const [date, pose, name] of [
@@ -205,6 +278,12 @@ describe('previousPhoto / sweepOrphanPhotos', () => {
 });
 
 describe('photo archive (separate export of the image files)', () => {
+  it('keeps parts small (about 5 MB) with a lower import cap than a full backup', () => {
+    expect(PHOTO_PART_BYTES).toBe(5 * 1024 * 1024);
+    expect(MAX_PHOTO_PART_BYTES).toBeGreaterThan(PHOTO_PART_BYTES);
+    expect(MAX_PHOTO_PART_BYTES).toBeLessThan(MAX_BACKUP_BYTES);
+  });
+
   it('plans parts by size, one oversized photo getting its own part', () => {
     const files = [
       { name: 'a.jpg', bytes: 3 },
@@ -219,8 +298,8 @@ describe('photo archive (separate export of the image files)', () => {
 
   it('builds a part, parses it back and restores the files into another store', async () => {
     const source = fakeFs();
-    source.files.set('2026-10-01-frente-5.jpg', 'QUJD');
-    source.files.set('2026-10-01-perfil-6.jpg', 'REVG');
+    source.files.set('2026-10-01-frente-5.jpg', JPEG_A);
+    source.files.set('2026-10-01-perfil-6.jpg', JPEG_B);
     const text = await buildPart(
       source.fs,
       ['2026-10-01-frente-5.jpg', '2026-10-01-perfil-6.jpg'],
@@ -232,8 +311,40 @@ describe('photo archive (separate export of the image files)', () => {
     expect(parsed.part).toMatchObject({ format: PHOTO_ARCHIVE_FORMAT, part: 1, parts: 1 });
 
     const target = fakeFs();
-    expect(restorePart(target.fs, parsed.part)).toBe(2);
-    expect(target.files.get('2026-10-01-perfil-6.jpg')).toBe('REVG');
+    expect(await restorePart(target.fs, parsed.part)).toEqual({ restored: 2, failed: 0 });
+    expect(target.files.get('2026-10-01-perfil-6.jpg')).toBe(JPEG_B);
+  });
+
+  it('validates base64 and the JPEG signature', () => {
+    expect(isValidPhotoBase64(JPEG_A)).toBe(true);
+    for (const bad of ['', 'QUJD', '/9j/QUJ', '/9j/QU*D', '/9j/=QUJ', 'not base64 at all']) {
+      expect(isValidPhotoBase64(bad)).toBe(false);
+    }
+  });
+
+  it('restores file by file: a bad or unwritable file is counted, the rest still land', async () => {
+    const target = fakeFs();
+    const flaky: PhotoFs = {
+      ...target.fs,
+      writeBase64: async (name, base64) => {
+        if (name === 'b.jpg') throw new Error('disk full');
+        await target.fs.writeBase64(name, base64);
+      },
+    };
+    const part = {
+      format: PHOTO_ARCHIVE_FORMAT as typeof PHOTO_ARCHIVE_FORMAT,
+      version: 1 as const,
+      part: 1,
+      parts: 1,
+      files: [
+        { name: 'a.jpg', base64: JPEG_A },
+        { name: 'b.jpg', base64: JPEG_B },
+        { name: 'c.jpg', base64: '***' },
+        { name: 'd.jpg', base64: JPEG_B },
+      ],
+    };
+    expect(await restorePart(flaky, part)).toEqual({ restored: 2, failed: 2 });
+    expect(target.fs.list().sort()).toEqual(['a.jpg', 'd.jpg']);
   });
 
   it('rejects other files, damaged parts and unsafe names', () => {
@@ -261,14 +372,14 @@ describe('photo backup (export and import of the image files)', () => {
   async function withPhotos(files: Record<string, string>, fs: PhotoFs) {
     for (const [name, content] of Object.entries(files)) {
       await repos.photos.add({ date: name.slice(0, 10), pose: 'frente', uri: name });
-      fs.writeBase64(name, content);
+      await fs.writeBase64(name, content);
     }
   }
 
   it('shares every existing photo, in parts, sweeping old exports only before the first', async () => {
     const source = fakeFs();
     await withPhotos(
-      { '2026-09-01-frente-1.jpg': 'QUJD', '2026-10-01-frente-2.jpg': 'REVG' },
+      { '2026-09-01-frente-1.jpg': JPEG_A, '2026-10-01-frente-2.jpg': JPEG_B },
       source.fs,
     );
     await repos.photos.add({ date: '2026-08-01', pose: 'frente', uri: 'gone.jpg' });
@@ -303,7 +414,7 @@ describe('photo backup (export and import of the image files)', () => {
         today: '2026-10-07',
       }),
     ).toEqual({ status: 'none' });
-    await withPhotos({ '2026-09-01-frente-1.jpg': 'QUJD' }, empty.fs);
+    await withPhotos({ '2026-09-01-frente-1.jpg': JPEG_A }, empty.fs);
     expect(
       await exportPhotoArchive({
         fs: empty.fs,
@@ -318,7 +429,7 @@ describe('photo backup (export and import of the image files)', () => {
   it('restores only the files the restored rows point at', async () => {
     const source = fakeFs();
     await withPhotos(
-      { '2026-09-01-frente-1.jpg': 'QUJD', '2026-10-01-frente-2.jpg': 'REVG' },
+      { '2026-09-01-frente-1.jpg': JPEG_A, '2026-10-01-frente-2.jpg': JPEG_B },
       source.fs,
     );
     const text = await buildPart(source.fs, source.fs.list(), 1, 1);
@@ -329,6 +440,7 @@ describe('photo backup (export and import of the image files)', () => {
     expect(await importPhotoArchive({ fs: target.fs, photos: repos.photos, text })).toEqual({
       status: 'restored',
       restored: 1,
+      failed: 0,
       part: 1,
       parts: 1,
     });

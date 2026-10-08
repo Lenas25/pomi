@@ -302,34 +302,41 @@ function PhotosSection({
     <View style={{ gap: theme.space[3] }}>
       <SectionTitle>{t('progress.photos.title')}</SectionTitle>
       {shown.length > 0 ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[3] }}>
-          {shown.map((photo) => {
-            const label = t('progress.photos.label', {
-              pose: poseName(photo.pose),
-              date: format(parseISO(photo.date), 'd/M/yyyy'),
-            });
-            return (
-              <Pressable
-                key={photo.id}
-                accessibilityRole="button"
-                accessibilityLabel={label}
-                accessibilityHint={t('progress.photos.hint')}
-                onPress={() => confirmDelete(photo.id)}
-                style={({ pressed }) => ({
-                  width: '30%',
-                  flexGrow: 1,
-                  gap: theme.space[1],
-                  opacity: pressed ? theme.opacity.pressed : 1,
-                })}
-              >
-                <StoredPhoto name={photo.uri} label={label} />
-                <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[3] }}>
+            {shown.map((photo) => {
+              const label = t('progress.photos.label', {
+                pose: poseName(photo.pose),
+                date: format(parseISO(photo.date), 'd/M/yyyy'),
+              });
+              return (
+                <Pressable
+                  key={photo.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  accessibilityHint={t('progress.photos.hint')}
+                  onPress={() => confirmDelete(photo.id)}
+                  style={({ pressed }) => ({
+                    width: '30%',
+                    flexGrow: 1,
+                    gap: theme.space[1],
+                    opacity: pressed ? theme.opacity.pressed : 1,
+                  })}
+                >
+                  <StoredPhoto name={photo.uri} label={label} />
+                  <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Button
+            label={t('progress.photos.viewAll')}
+            variant="secondary"
+            onPress={() => router.push('/fotos')}
+          />
+        </>
       ) : (
         <Card>
           <EmptyState

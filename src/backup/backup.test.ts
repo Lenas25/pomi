@@ -134,7 +134,7 @@ describe('backup export / restore', () => {
     expect((await createBackup(target.db, OPTIONS)).data.habitEvents).toEqual([]);
   });
 
-  it('leaves photos out unless asked, and clears the existing photo rows when the backup has none', async () => {
+  it('leaves photos out unless asked, and keeps the existing photo rows when the backup has none', async () => {
     const withoutPhotos = await createBackup(source.db, OPTIONS);
     expect(withoutPhotos.includesPhotos).toBe(false);
     expect(withoutPhotos.data.photos).toEqual([]);
@@ -142,9 +142,16 @@ describe('backup export / restore', () => {
     await restoreBackup(target.db, parse(withoutPhotos));
     await target.db.insert(photos).values({ date: '2026-10-06', pose: 'side', uri: 'b.jpg' });
     await restoreBackup(target.db, parse(withoutPhotos));
-    expect(
-      (await createBackup(target.db, { ...OPTIONS, includePhotos: true })).data.photos,
-    ).toEqual([]);
+    const kept = (await createBackup(target.db, { ...OPTIONS, includePhotos: true })).data.photos;
+    expect(kept.map((row) => row.uri)).toEqual(['b.jpg']);
+  });
+
+  it('replaces the photo rows only when the backup includes photos', async () => {
+    const withPhotos = await createBackup(source.db, { ...OPTIONS, includePhotos: true });
+    await target.db.insert(photos).values({ date: '2026-10-06', pose: 'side', uri: 'b.jpg' });
+    await restoreBackup(target.db, parse(withPhotos));
+    const rows = (await createBackup(target.db, { ...OPTIONS, includePhotos: true })).data.photos;
+    expect(rows.map((row) => row.uri)).toEqual(['a.jpg']);
   });
 
   it('summarizes the counts for the preview', async () => {

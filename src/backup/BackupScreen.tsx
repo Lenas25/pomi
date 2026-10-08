@@ -9,6 +9,7 @@ import { hydrateStores } from '../db/useDatabaseReady';
 import { useT } from '../i18n';
 import type { TranslationKey } from '../i18n/types';
 import { requestNotificationSync } from '../notifications/sync';
+import { MAX_PHOTO_PART_BYTES } from '../photos/photoArchive';
 import { exportPhotoArchive, importPhotoArchive } from '../photos/photoBackup';
 import { expoPhotoFs } from '../photos/expoPhotoFs';
 import { sweepOrphanPhotos } from '../photos/photoStore';
@@ -114,17 +115,29 @@ export function BackupScreen() {
       setBusy('restore');
       try {
         await restoreBackupExclusive(getDatabase(), backup);
-        const repositories = getRepositories();
-        await hydrateStores(repositories);
-        // Files of photos the restored data no longer lists are removed (the rows were replaced).
-        await sweepOrphanPhotos(expoPhotoFs, repositories.photos).catch(() => 0);
-        // The plan of reminders came from the old data.
-        void requestNotificationSync('dataChanged');
-        setPending(null);
-        setNotice({ tone: 'success', text: t('backup.import.restored') });
       } catch (error) {
+        // Rolled back as a whole: the current data is untouched.
         if (__DEV__) console.error('Could not restore the backup', error);
         setNotice({ tone: 'error', text: t('backup.import.restoreFailed') });
+        setBusy(null);
+        return;
+      }
+      // From here on the data IS restored: a failure below must not say the opposite.
+      setPending(null);
+      try {
+        const repositories = getRepositories();
+        await hydrateStores(repositories);
+        // Photo files are touched only when the backup replaced the photo rows; a backup without
+        // photos leaves the photos (rows and files) alone.
+        if (backup.includesPhotos) {
+          await sweepOrphanPhotos(expoPhotoFs, repositories.photos).catch(() => 0);
+        }
+        // The plan of reminders came from the old data.
+        void requestNotificationSync('dataChanged');
+        setNotice({ tone: 'success', text: t('backup.import.restored') });
+      } catch (error) {
+        if (__DEV__) console.error('Restored, but could not reload the app state', error);
+        setNotice({ tone: 'success', text: t('backup.import.restoredRestart') });
       } finally {
         setBusy(null);
       }
@@ -163,7 +176,8 @@ export function BackupScreen() {
     setBusy('photos');
     setNotice(null);
     try {
-      const text = await pickTextFile(MAX_BACKUP_BYTES);
+      // A photo part is small by design: a lower cap than a full backup.
+      const text = await pickTextFile(MAX_PHOTO_PART_BYTES);
       if (text === null) return;
       const result = await importPhotoArchive({
         fs: expoPhotoFs,
@@ -172,13 +186,16 @@ export function BackupScreen() {
       });
       if (result.status === 'restored') {
         setNotice({
-          tone: 'success',
-          text: t('backup.photos.restored', {
+          tone: result.failed > 0 ? 'error' : 'success',
+          text: t(result.failed > 0 ? 'backup.photos.restoredPartial' : 'backup.photos.restored', {
             count: result.restored,
+            failed: result.failed,
             part: result.part,
             parts: result.parts,
           }),
         });
+      } else if (result.status === 'allFailed') {
+        setNotice({ tone: 'error', text: t('backup.photos.allFailed') });
       } else if (result.status === 'noMatch') {
         setNotice({ tone: 'error', text: t('backup.photos.noMatch') });
       } else {
@@ -201,14 +218,22 @@ export function BackupScreen() {
 
   const confirmReplace = useCallback(
     (backup: Backup) => {
-      Alert.alert(t('backup.import.confirmTitle'), t('backup.import.confirmBody'), [
-        { text: t('backup.import.cancel'), style: 'cancel' },
-        {
-          text: t('backup.import.confirm'),
-          style: 'destructive',
-          onPress: () => void restore(backup),
-        },
-      ]);
+      Alert.alert(
+        t('backup.import.confirmTitle'),
+        t(
+          backup.includesPhotos
+            ? 'backup.import.confirmBodyWithPhotos'
+            : 'backup.import.confirmBody',
+        ),
+        [
+          { text: t('backup.import.cancel'), style: 'cancel' },
+          {
+            text: t('backup.import.confirm'),
+            style: 'destructive',
+            onPress: () => void restore(backup),
+          },
+        ],
+      );
     },
     [restore, t],
   );
@@ -318,7 +343,7 @@ export function BackupScreen() {
                 <Text style={muted}>
                   {summary.includesPhotos
                     ? t('backup.import.withPhotos')
-                    : t('backup.import.photosCleared')}
+                    : t('backup.import.photosKept')}
                 </Text>
                 <Button
                   label={t('backup.import.replaceAll')}

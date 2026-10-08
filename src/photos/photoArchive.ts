@@ -8,8 +8,16 @@ import { isSafePhotoName, type PhotoFs } from './photoStore';
 
 export const PHOTO_ARCHIVE_FORMAT = 'pomi-photos';
 export const PHOTO_ARCHIVE_VERSION = 1;
-/** Budget of base64 characters per part (well under the 50 MB import cap). */
-export const PHOTO_PART_BYTES = 20 * 1024 * 1024;
+/**
+ * Budget of base64 characters per part. Small on purpose: a part is read whole (`File.text()`),
+ * parsed as JSON and then decoded again, so a few MB keeps the peak memory of weak phones low.
+ */
+export const PHOTO_PART_BYTES = 5 * 1024 * 1024;
+/**
+ * Import cap for a picked photo part (bytes of the file). Higher than the budget because a single
+ * photo bigger than it gets a part of its own, but far below the 50 MB cap of a full backup.
+ */
+export const MAX_PHOTO_PART_BYTES = 12 * 1024 * 1024;
 
 const partSchema = z.strictObject({
   format: z.literal(PHOTO_ARCHIVE_FORMAT),
@@ -96,8 +104,38 @@ export function parsePart(text: string): PhotoPartResult {
   return { ok: true, part: parsed.data };
 }
 
-/** Writes the files of a validated part into the store. Returns how many were written. */
-export function restorePart(fs: Pick<PhotoFs, 'writeBase64'>, part: PhotoPart): number {
-  for (const file of part.files) fs.writeBase64(file.name, file.base64);
-  return part.files.length;
+/** Standard base64 (what `File.write(..., { encoding: 'base64' })` expects), padded. */
+const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+/** Every JPEG starts with the bytes FF D8 FF, which encode to this prefix. */
+const JPEG_PREFIX = '/9j/';
+
+export function isValidPhotoBase64(base64: string): boolean {
+  return base64.length % 4 === 0 && BASE64.test(base64) && base64.startsWith(JPEG_PREFIX);
+}
+
+export type RestorePartResult = { restored: number; failed: number };
+
+/**
+ * Writes the files of a validated part into the store, one at a time: a file with invalid base64 or
+ * that cannot be written counts as failed and the rest are still restored.
+ */
+export async function restorePart(
+  fs: Pick<PhotoFs, 'writeBase64'>,
+  part: PhotoPart,
+): Promise<RestorePartResult> {
+  let restored = 0;
+  let failed = 0;
+  for (const file of part.files) {
+    if (!isValidPhotoBase64(file.base64)) {
+      failed += 1;
+      continue;
+    }
+    try {
+      await fs.writeBase64(file.name, file.base64);
+      restored += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  return { restored, failed };
 }

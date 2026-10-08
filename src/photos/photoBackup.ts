@@ -3,7 +3,7 @@
 import type { PhotosRepository } from '../db/repositories/photos';
 
 import { buildPart, parsePart, planParts, restorePart } from './photoArchive';
-import type { PhotoFs } from './photoStore';
+import { withPhotoLock, type PhotoFs } from './photoStore';
 
 export type ShareFile = (
   fileName: string,
@@ -57,9 +57,11 @@ export async function exportPhotoArchive(deps: {
 }
 
 export type ImportPhotosResult =
-  | { status: 'restored'; restored: number; part: number; parts: number }
+  | { status: 'restored'; restored: number; failed: number; part: number; parts: number }
   /** The file is fine but none of its photos belongs to the restored rows. */
   | { status: 'noMatch' }
+  /** Matching photos were in the file but none could be written (damaged data or no space). */
+  | { status: 'allFailed'; failed: number }
   | { status: 'invalid'; reason: 'invalidJson' | 'notPhotos' | 'invalid' };
 
 /**
@@ -76,6 +78,15 @@ export async function importPhotoArchive(deps: {
   const wanted = new Set((await deps.photos.all()).map((row) => row.uri));
   const files = parsed.part.files.filter((file) => wanted.has(file.name));
   if (files.length === 0) return { status: 'noMatch' };
-  const restored = restorePart(deps.fs, { ...parsed.part, files });
-  return { status: 'restored', restored, part: parsed.part.part, parts: parsed.part.parts };
+  const { restored, failed } = await withPhotoLock(() =>
+    restorePart(deps.fs, { ...parsed.part, files }),
+  );
+  if (restored === 0) return { status: 'allFailed', failed };
+  return {
+    status: 'restored',
+    restored,
+    failed,
+    part: parsed.part.part,
+    parts: parsed.part.parts,
+  };
 }

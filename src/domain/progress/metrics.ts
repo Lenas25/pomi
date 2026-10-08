@@ -15,12 +15,17 @@ const DEFAULT_RANGE = { min: 0.1, max: 100_000 };
 export type ParsedMetric =
   { ok: true; value: number } | { ok: false; reason: 'empty' | 'notNumber' | 'outOfRange' };
 
-/** "61,5" and "61.5" both work; one decimal at most is kept. */
+/**
+ * "61,5" and "61.5" both work; ONE decimal at most (a second one is a typo, not silently rounded).
+ * The value is built from integer tenths, so no float multiplication can move a digit.
+ */
 export function parseMetricInput(text: string, unit: string): ParsedMetric {
   const trimmed = text.trim();
   if (trimmed === '') return { ok: false, reason: 'empty' };
-  if (!/^\d{1,4}([.,]\d{1,2})?$/.test(trimmed)) return { ok: false, reason: 'notNumber' };
-  const value = Math.round(Number(trimmed.replace(',', '.')) * 10) / 10;
+  const match = /^(\d{1,4})(?:[.,](\d))?$/.exec(trimmed);
+  if (!match) return { ok: false, reason: 'notNumber' };
+  const tenths = Number(match[1]) * 10 + Number(match[2] ?? 0);
+  const value = tenths / 10;
   const range = RANGES[unit] ?? DEFAULT_RANGE;
   return value >= range.min && value <= range.max
     ? { ok: true, value }

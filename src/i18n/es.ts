@@ -550,6 +550,7 @@ export const es = {
     back: 'Volver a Ajustes',
     about: { title: 'Acerca de', body: 'Versión, licencia y aviso importante.' },
     backup: { title: 'Respaldo', body: 'Guarda o restaura todos tus datos en un archivo.' },
+    photos: { title: 'Mis fotos', body: 'Míralas todas o bórralas.' },
     programImport: {
       title: 'Importar programa de gym',
       body: 'Carga el programa de un archivo JSON.',
@@ -576,21 +577,26 @@ export const es = {
       body: 'Elige un respaldo de Pomi. Antes de cambiar nada verás qué contiene.',
       pick: 'Elegir archivo',
       tooLarge: 'Ese archivo es demasiado grande para un respaldo (máximo {{mb}} MB).',
-      photosCleared:
-        'Este respaldo no incluye fotos: al restaurarlo se quitarán las fotos que tienes ahora.',
+      photosKept:
+        'Este respaldo no incluye fotos: las fotos que tienes ahora se quedan como están.',
       readFailed: 'No pudimos leer el archivo.',
       errorsTitle: 'Este archivo no se puede usar',
       previewTitle: 'Esto contiene el respaldo',
       created: 'Creado el {{date}} con la versión {{version}} de Pomi.',
-      withPhotos: 'Incluye los datos de las fotos.',
+      withPhotos:
+        'Incluye los datos de las fotos: reemplazará las fotos que tienes ahora. Las imágenes se restauran después con «Restaurar fotos».',
       replaceAll: 'Reemplazar todo',
       cancel: 'Cancelar',
       confirmTitle: '¿Reemplazar todo?',
       confirmBody:
-        'Se borrarán los datos que tienes ahora y se usarán los del archivo. No se puede deshacer.',
+        'Se borrarán los datos que tienes ahora y se usarán los del archivo. Tus fotos no cambian: este respaldo no las incluye. No se puede deshacer.',
+      confirmBodyWithPhotos:
+        'Se borrarán los datos y las fotos que tienes ahora (las imágenes también) y se usarán los del archivo. Las imágenes de las fotos no viajan en el respaldo: tendrás que restaurarlas después con «Restaurar fotos». No se puede deshacer.',
       confirm: 'Sí, reemplazar',
       restoreFailed: 'No pudimos restaurar el respaldo. Tus datos actuales siguen igual.',
       restored: 'Listo. Tus datos fueron restaurados.',
+      restoredRestart:
+        'Tus datos se restauraron, pero la app no pudo recargarlos. Cierra Pomi y ábrela de nuevo.',
     },
     photos: {
       title: 'Fotos',
@@ -602,6 +608,9 @@ export const es = {
       none: 'Aún no tienes fotos guardadas.',
       exportFailed: 'No pudimos guardar las fotos. Inténtalo de nuevo.',
       restored: 'Se restauraron {{count}} fotos (archivo {{part}} de {{parts}}).',
+      restoredPartial:
+        'Se restauraron {{count}} fotos (archivo {{part}} de {{parts}}). {{failed}} no se pudieron restaurar.',
+      allFailed: 'No pudimos restaurar esas fotos. Prueba con otro archivo.',
       noMatch:
         'Ninguna de esas fotos corresponde a tu respaldo actual. Restaura primero el respaldo con fotos.',
       invalid: 'Este archivo no es un archivo de fotos de Pomi.',
@@ -672,7 +681,7 @@ export const es = {
       save: 'Guardar',
       saved: 'Guardado.',
       saveFailed: 'No pudimos guardar. Inténtalo de nuevo.',
-      invalid: 'Escribe un número, por ejemplo 61,5.',
+      invalid: 'Escribe un número con un decimal como máximo, por ejemplo 61,5.',
       outOfRange: 'Ese valor parece fuera de lo normal. Revísalo.',
       summary: '{{name}}: de {{from}} a {{to}} {{unit}}.',
       summaryOne: '{{name}}: {{value}} {{unit}} (una sola medición).',
@@ -684,6 +693,7 @@ export const es = {
       emptyTitle: 'Tus fotos aparecerán aquí',
       emptyBody: 'Con la revisión mensual podrás comparar tus fotos, a tu ritmo.',
       unavailable: 'Foto no disponible',
+      viewAll: 'Ver todas las fotos',
       label: '{{pose}}, {{date}}',
       deleteTitle: '¿Eliminar esta foto?',
       deleteBody: 'Se borra de tu teléfono. No se puede deshacer.',
@@ -718,7 +728,7 @@ export const es = {
       body: 'Deja en blanco lo que hoy no quieras registrar.',
       field: '{{name}} ({{unit}})',
       last: 'Último: {{value}} {{unit}} ({{date}})',
-      invalid: 'Escribe un número, por ejemplo 61,5.',
+      invalid: 'Escribe un número con un decimal como máximo, por ejemplo 61,5.',
       outOfRange: 'Ese valor parece fuera de lo normal. Revísalo.',
       next: 'Siguiente',
       skip: 'Saltar',
@@ -787,6 +797,27 @@ export const es = {
   maintenance: {
     title: 'Restaurando tus datos',
     body: 'Un momento, no cierres la app.',
+    slow: 'Está tardando más de lo normal, pero sigue en marcha. No cierres la app.',
+    hide: 'Ocultar este aviso',
+  },
+  photosScreen: {
+    title: 'Tus fotos',
+    count: 'Fotos: {{count}}',
+    loadMore: 'Ver más',
+    loadFailed: 'No pudimos cargar tus fotos.',
+    retry: 'Reintentar',
+    emptyTitle: 'Aún no hay fotos',
+    emptyBody: 'Las fotos que tomes en la revisión mensual aparecerán aquí.',
+    deleteAll: 'Borrar todas las fotos',
+    deleteAllHint:
+      'Quita todas las imágenes y sus datos de este teléfono. El resto de tus datos se queda.',
+    deleteAllTitle: '¿Borrar todas las fotos?',
+    deleteAllBody:
+      'Se borrarán {{count}} fotos de este teléfono: las imágenes y sus datos. Tus medidas y el resto de tus datos no cambian. No se puede deshacer.',
+    deleteAllConfirm: 'Sí, borrar todo',
+    deleteAllDone: 'Listo. Tus fotos fueron borradas.',
+    deleteAllFailed: 'No pudimos borrar todas las fotos. Inténtalo de nuevo.',
+    back: 'Volver',
   },
   about: {
     title: 'Acerca de Pomi',

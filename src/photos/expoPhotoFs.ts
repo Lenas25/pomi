@@ -41,9 +41,29 @@ export const expoPhotoFs: PhotoFs = {
     return file.exists ? file.size : 0;
   },
   readBase64: (name) => fileOf(name).base64(),
-  writeBase64(name, base64) {
-    const file = fileOf(name);
-    if (!file.exists) file.create();
-    file.write(base64, { encoding: 'base64' });
+  async writeBase64(name, base64) {
+    // Temp file first, then move over the final name: a crash mid-write leaves only a `.tmp`
+    // (swept as an orphan), never a truncated photo under a real name.
+    const temp = fileOf(`${name}.tmp`);
+    try {
+      if (!temp.exists) temp.create();
+      temp.write(base64, { encoding: 'base64' });
+      await temp.move(fileOf(name), { overwrite: true });
+    } catch (error) {
+      try {
+        if (temp.exists) temp.delete();
+      } catch {
+        // Swept as an orphan later.
+      }
+      throw error;
+    }
+  },
+  discard(uri) {
+    try {
+      const file = new File(uri);
+      if (file.exists) file.delete();
+    } catch {
+      // The cache is cleaned by the system anyway.
+    }
   },
 };

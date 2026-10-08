@@ -6,14 +6,20 @@ import { create } from 'zustand';
 import { withTransaction, type Tx } from './transaction';
 import type { Db } from './types';
 
-type MaintenanceState = { active: boolean };
+type MaintenanceState = {
+  active: boolean;
+  /** When the current run was requested (epoch ms), for the overlay's timeouts. */
+  since: number | null;
+};
 
 /** Drives the full-screen busy state. `active` turns on as soon as a maintenance run is requested. */
-export const useMaintenanceStore = create<MaintenanceState>(() => ({ active: false }));
+export const useMaintenanceStore = create<MaintenanceState>(() => ({ active: false, since: null }));
 
 let gate: Promise<void> | undefined;
 let release: (() => void) | undefined;
 let holders = 0;
+/** Runs requested and not finished yet (the overlay stays up until the last one ends). */
+let requested = 0;
 
 function raiseGate(): () => void {
   holders += 1;
@@ -54,7 +60,10 @@ export function isMaintenanceActive(): boolean {
  * gated repositories.
  */
 export async function runMaintenance<T>(db: Db, work: (tx: Tx) => Promise<T>): Promise<T> {
-  useMaintenanceStore.setState({ active: true });
+  requested += 1;
+  if (!useMaintenanceStore.getState().active) {
+    useMaintenanceStore.setState({ active: true, since: Date.now() });
+  }
   let lower: (() => void) | undefined;
   try {
     return await withTransaction(db, (tx) => {
@@ -63,7 +72,8 @@ export async function runMaintenance<T>(db: Db, work: (tx: Tx) => Promise<T>): P
     });
   } finally {
     lower?.();
-    useMaintenanceStore.setState({ active: holders > 0 });
+    requested -= 1;
+    if (requested === 0) useMaintenanceStore.setState({ active: false, since: null });
   }
 }
 

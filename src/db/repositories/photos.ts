@@ -1,4 +1,4 @@
-import { asc, desc, eq } from 'drizzle-orm';
+import { asc, count, desc, eq } from 'drizzle-orm';
 
 import { photos } from '../schema';
 import type { Db } from '../types';
@@ -26,6 +26,21 @@ export function createPhotosRepository(db: Db) {
       return db.select().from(photos).orderBy(desc(photos.date), desc(photos.id));
     },
 
+    /** One page of photos, newest first (`offset` rows skipped). */
+    async page(limit: number, offset: number): Promise<PhotoRow[]> {
+      return db
+        .select()
+        .from(photos)
+        .orderBy(desc(photos.date), desc(photos.id))
+        .limit(limit)
+        .offset(offset);
+    },
+
+    async count(): Promise<number> {
+      const rows = await db.select({ total: count() }).from(photos);
+      return rows[0]?.total ?? 0;
+    },
+
     /** Photos of one pose, oldest first. */
     async forPose(pose: string): Promise<PhotoRow[]> {
       return db
@@ -37,6 +52,10 @@ export function createPhotosRepository(db: Db) {
 
     async remove(id: number): Promise<void> {
       await db.delete(photos).where(eq(photos.id, id));
+    },
+
+    async removeAll(): Promise<void> {
+      await db.delete(photos);
     },
   };
 }

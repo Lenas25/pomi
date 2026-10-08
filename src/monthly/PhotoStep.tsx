@@ -2,7 +2,7 @@
 // pose faded on top (to line the pose up), review of the capture, retake or skip. The camera is
 // expo-camera (`CameraView`, `useCameraPermissions`, `takePictureAsync`), verified against the
 // official docs for SDK 57.
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, Linking, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
 
@@ -13,6 +13,11 @@ import { useTheme } from '../ui/theme';
 
 /** Quality of the capture (0-1): small enough to keep a year of photos reasonable, still sharp. */
 const CAPTURE_QUALITY = 0.7;
+/**
+ * Explicit on purpose: the capture must carry NO EXIF (no GPS position, no device data). The
+ * documented default is already `false`, but the privacy promise should not depend on a default.
+ */
+const CAPTURE_OPTIONS = { quality: CAPTURE_QUALITY, exif: false } as const;
 
 type PhotoStepProps = {
   /** Display name of the pose. */
@@ -24,6 +29,8 @@ type PhotoStepProps = {
   previous?: { uri: string } | undefined;
   /** Receives the cache file of the capture; throw to show the save error. */
   onUse: (tempUri: string) => Promise<void>;
+  /** Deletes a capture (camera cache file) that will not be stored: retake, skip, leaving. */
+  onDiscard?: ((tempUri: string) => void) | undefined;
   onSkipPose: () => void;
   onSkipAll: () => void;
 };
@@ -35,6 +42,7 @@ export function PhotoStep({
   guide,
   previous,
   onUse,
+  onDiscard,
   onSkipPose,
   onSkipAll,
 }: PhotoStepProps) {
@@ -47,6 +55,28 @@ export function PhotoStep({
   const [captured, setCaptured] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The capture that still sits in the camera cache; cleared once it is stored or discarded.
+  const pending = useRef<string | null>(null);
+  const mounted = useRef(true);
+  const discard = useRef(onDiscard);
+  useEffect(() => {
+    discard.current = onDiscard;
+  });
+
+  const dropCapture = () => {
+    const uri = pending.current;
+    pending.current = null;
+    if (uri !== null) discard.current?.(uri);
+  };
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      dropCapture();
+    };
+  }, []);
 
   const muted = [theme.text('caption'), { color: theme.color.textMuted }];
   const frame = {
@@ -90,8 +120,16 @@ export function PhotoStep({
     setError(null);
     setBusy(true);
     try {
-      const picture = await camera.current?.takePictureAsync({ quality: CAPTURE_QUALITY });
-      if (picture) setCaptured(picture.uri);
+      const picture = await camera.current?.takePictureAsync(CAPTURE_OPTIONS);
+      if (picture) {
+        if (!mounted.current) {
+          // The person left while the camera was working: nobody will use this file.
+          discard.current?.(picture.uri);
+          return;
+        }
+        pending.current = picture.uri;
+        setCaptured(picture.uri);
+      }
     } catch (failure) {
       if (__DEV__) console.error('Could not take the photo', failure);
       setError(t('monthly.photos.captureFailed'));
@@ -106,6 +144,8 @@ export function PhotoStep({
     setBusy(true);
     try {
       await onUse(captured);
+      // Stored: the store already removed the cache file.
+      pending.current = null;
     } catch (failure) {
       if (__DEV__) console.error('Could not save the photo', failure);
       setError(t('monthly.photos.saveFailed'));
@@ -201,6 +241,7 @@ export function PhotoStep({
             label={t('monthly.photos.retake')}
             variant="secondary"
             onPress={() => {
+              dropCapture();
               setCaptured(null);
               setError(null);
             }}
@@ -211,13 +252,19 @@ export function PhotoStep({
       <Button
         label={t('monthly.photos.skipPose')}
         variant="ghost"
-        onPress={onSkipPose}
+        onPress={() => {
+          dropCapture();
+          onSkipPose();
+        }}
         disabled={busy}
       />
       <Button
         label={t('monthly.photos.skipAll')}
         variant="ghost"
-        onPress={onSkipAll}
+        onPress={() => {
+          dropCapture();
+          onSkipAll();
+        }}
         disabled={busy}
       />
     </View>
