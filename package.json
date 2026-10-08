@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "jest",
-    "assets:generate": "node scripts/generate-placeholder-assets.js"
+    "assets:generate": "node scripts/generate-placeholder-assets.js",
+    "db:generate": "drizzle-kit generate && node scripts/build-migrations.js"
   },
   "dependencies": {
     "@expo-google-fonts/fredoka": "^0.4.1",

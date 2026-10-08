@@ -5,7 +5,7 @@
     {
       "id": "agua",
       "name": "Agua",
-      "icon": "💧",
+      "icon": "Drop",
       "habits": [
         {
           "id": "agua",
@@ -45,7 +45,7 @@
     {
       "id": "movimiento",
       "name": "Movimiento",
-      "icon": "🚶",
+      "icon": "PersonSimpleWalk",
       "habits": [
         {
           "id": "pasos",
@@ -91,7 +91,7 @@
     {
       "id": "sueno",
       "name": "Sueño",
-      "icon": "🌙",
+      "icon": "Moon",
       "reminders": [
         {
           "id": "pantallas",
@@ -132,7 +132,7 @@
     {
       "id": "comida-notas",
       "name": "Notas de comida",
-      "icon": "📝",
+      "icon": "NotePencil",
       "notes": {
         "prompt": "¿Qué comiste hoy y cómo te sentiste?",
         "optional": true

@@ -46,4 +46,45 @@ export const en: Messages = {
       body: 'Choose what to share, the period and the format.',
     },
   },
+  importErrors: {
+    root: 'the file',
+    invalidJson: 'The file is not valid JSON. Check for missing commas, braces or quotes.',
+    invalidJsonAtLine:
+      'The file is not valid JSON. Check line {{line}}: a comma, brace or quote may be missing.',
+    notObject: 'The file must contain a JSON object, not a list or loose text.',
+    unknownKind:
+      'The template type is unknown. The "kind" field must be "module", "modules" or "settings".',
+    unsupportedVersion:
+      'This template uses version {{found}}, but the app only understands version {{expected}}.',
+    missing: 'The field "{{path}}" is missing.',
+    wrongType: 'The field "{{path}}" must be {{expected}}.',
+    invalidValue: 'The field "{{path}}" has a value the app does not recognize.',
+    invalidValueWithOptions:
+      'The field "{{path}}" has a value the app does not recognize. Allowed values: {{allowed}}.',
+    tooSmall: 'The field "{{path}}" is too short or too small (minimum: {{min}}).',
+    tooBig: 'The field "{{path}}" is too long or too large (maximum: {{max}}).',
+    invalidFormat: 'The field "{{path}}" does not have the expected format.',
+    invalidTime: 'The field "{{path}}" must be a time formatted as HH:mm, for example 06:30.',
+    invalidIcon:
+      'The field "{{path}}" must be a Phosphor icon name (for example Barbell), not an emoji.',
+    invalidSchedule:
+      'The schedule at "{{path}}" needs a fixed time ("time") or a reference time ("relativeTo").',
+    invalidScale:
+      'The scale at "{{path}}" must go from a lower to a higher number, for example [1, 5].',
+    duplicateId: 'There are repeated identifiers in "{{path}}". Each one must be unique.',
+    unknown: 'There is a problem at "{{path}}".',
+    types: {
+      string: 'text',
+      number: 'a number',
+      integer: 'a whole number',
+      boolean: 'true or false',
+      array: 'a list',
+      object: 'a block of fields',
+      value: 'a different kind of value',
+    },
+  },
+  database: {
+    errorTitle: 'We could not open your data',
+    errorBody: 'Close the app and open it again. Your data is still on your phone.',
+  },
 };

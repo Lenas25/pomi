@@ -7,3 +7,5 @@ package-lock.json
 PLAN.md
 design
 templates
+src/db/migrations.generated.ts
+drizzle

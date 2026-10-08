@@ -3,7 +3,7 @@
   "kind": "module",
   "id": "metricas",
   "name": "Progreso",
-  "icon": "📏",
+  "icon": "Ruler",
   "metrics": [
     {
       "id": "peso",

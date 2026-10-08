@@ -12,7 +12,10 @@ import {
 } from '@expo-google-fonts/nunito-sans';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import '../src/i18n';
+import { useDatabaseReady } from '../src/db/useDatabaseReady';
+import { t } from '../src/i18n';
+import { EmptyState } from '../src/ui/EmptyState';
+import { Screen } from '../src/ui/Screen';
 import { IconProvider } from '../src/ui/icons';
 import { ThemeProvider, useTheme } from '../src/ui/theme';
 import { useThemeModeStore } from '../src/ui/themeModeStore';
@@ -32,6 +35,14 @@ function RootStack() {
   );
 }
 
+function DatabaseError() {
+  return (
+    <Screen>
+      <EmptyState title={t('database.errorTitle')} body={t('database.errorBody')} />
+    </Screen>
+  );
+}
+
 export default function RootLayout() {
   const mode = useThemeModeStore((state) => state.mode);
   const [fontsLoaded, fontError] = useFonts({
@@ -42,7 +53,8 @@ export default function RootLayout() {
     NunitoSans_700Bold,
     Nunito_900Black,
   });
-  const ready = fontsLoaded || fontError !== null;
+  const dbStatus = useDatabaseReady();
+  const ready = (fontsLoaded || fontError !== null) && dbStatus !== 'loading';
 
   useEffect(() => {
     if (ready) SplashScreen.hide();
@@ -53,9 +65,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider mode={mode}>
-        <IconProvider>
-          <RootStack />
-        </IconProvider>
+        <IconProvider>{dbStatus === 'error' ? <DatabaseError /> : <RootStack />}</IconProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

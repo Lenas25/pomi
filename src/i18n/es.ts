@@ -44,4 +44,45 @@ export const es = {
       body: 'Elige qué compartir, el período y el formato.',
     },
   },
+  importErrors: {
+    root: 'el archivo',
+    invalidJson: 'El archivo no es un JSON válido. Revisa que no falten comas, llaves o comillas.',
+    invalidJsonAtLine:
+      'El archivo no es un JSON válido. Revisa la línea {{line}}: puede faltar una coma, una llave o unas comillas.',
+    notObject: 'El archivo debe contener un objeto JSON, no una lista ni un texto suelto.',
+    unknownKind:
+      'No se sabe qué tipo de plantilla es. El campo «kind» debe ser «module», «modules» o «settings».',
+    unsupportedVersion:
+      'Esta plantilla usa la versión {{found}}, pero la app solo entiende la versión {{expected}}.',
+    missing: 'Falta el campo «{{path}}».',
+    wrongType: 'El campo «{{path}}» debe ser {{expected}}.',
+    invalidValue: 'El campo «{{path}}» tiene un valor que la app no reconoce.',
+    invalidValueWithOptions:
+      'El campo «{{path}}» tiene un valor que la app no reconoce. Valores permitidos: {{allowed}}.',
+    tooSmall: 'El campo «{{path}}» es demasiado corto o pequeño (mínimo: {{min}}).',
+    tooBig: 'El campo «{{path}}» es demasiado largo o grande (máximo: {{max}}).',
+    invalidFormat: 'El campo «{{path}}» no tiene el formato esperado.',
+    invalidTime: 'El campo «{{path}}» debe ser una hora con formato HH:mm, por ejemplo 06:30.',
+    invalidIcon:
+      'El campo «{{path}}» debe ser el nombre de un icono de Phosphor (por ejemplo Barbell), no un emoji.',
+    invalidSchedule:
+      'El horario en «{{path}}» necesita una hora fija («time») o una hora de referencia («relativeTo»).',
+    invalidScale:
+      'La escala en «{{path}}» debe ir de un número menor a uno mayor, por ejemplo [1, 5].',
+    duplicateId: 'Hay identificadores repetidos en «{{path}}». Cada uno debe ser único.',
+    unknown: 'Hay un problema en «{{path}}».',
+    types: {
+      string: 'un texto',
+      number: 'un número',
+      integer: 'un número entero',
+      boolean: 'verdadero o falso',
+      array: 'una lista',
+      object: 'un bloque con campos',
+      value: 'otro tipo de valor',
+    },
+  },
+  database: {
+    errorTitle: 'No pudimos abrir tus datos',
+    errorBody: 'Cierra la app y vuelve a abrirla. Tus datos siguen en tu teléfono.',
+  },
 } as const;

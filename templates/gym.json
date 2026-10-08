@@ -3,7 +3,7 @@
   "kind": "module",
   "id": "gym",
   "name": "Gym",
-  "icon": "🏋️",
+  "icon": "Barbell",
   "programs": [
     {
       "id": "glute-4d",

@@ -1,0 +1,57 @@
+import { eq } from 'drizzle-orm';
+import { z } from 'zod';
+
+import {
+  anchorsSchema,
+  checkinPrefsSchema,
+  gymDaysSchema,
+  languageSchema,
+  themeModeSchema,
+} from '../../templates/schema';
+import { settings } from '../schema';
+import type { Db } from '../types';
+
+/** Every key the app stores, with the shape of its value. Values are validated on read. */
+export const settingsSchemas = {
+  anchors: anchorsSchema,
+  gymDays: gymDaysSchema,
+  themeMode: themeModeSchema,
+  language: languageSchema,
+  activeModules: z.array(z.string()),
+  checkinPrefs: checkinPrefsSchema,
+  templatesSeeded: z.boolean(),
+} as const;
+
+export type SettingsKey = keyof typeof settingsSchemas;
+export type SettingsValue<K extends SettingsKey> = z.infer<(typeof settingsSchemas)[K]>;
+
+export function createSettingsRepository(db: Db) {
+  return {
+    /** Returns `undefined` when the key is missing or its stored value no longer matches the schema. */
+    async get<K extends SettingsKey>(key: K): Promise<SettingsValue<K> | undefined> {
+      const rows = await db.select().from(settings).where(eq(settings.key, key));
+      const row = rows[0];
+      if (!row) return undefined;
+      try {
+        const parsed = settingsSchemas[key].safeParse(JSON.parse(row.value));
+        return parsed.success ? (parsed.data as SettingsValue<K>) : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+
+    async set<K extends SettingsKey>(key: K, value: SettingsValue<K>): Promise<void> {
+      const json = JSON.stringify(value);
+      await db
+        .insert(settings)
+        .values({ key, value: json })
+        .onConflictDoUpdate({ target: settings.key, set: { value: json } });
+    },
+
+    async remove(key: SettingsKey): Promise<void> {
+      await db.delete(settings).where(eq(settings.key, key));
+    },
+  };
+}
+
+export type SettingsRepository = ReturnType<typeof createSettingsRepository>;
