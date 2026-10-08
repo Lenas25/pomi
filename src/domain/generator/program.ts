@@ -53,7 +53,10 @@ export const exerciseIdOfStep = (stepId: string): string =>
  * - `~s`: the strength rep family (3-8 reps) differs from the 8-15 of hypertrophy, fat loss and
  *   health, so the same lift is a different series of numbers. Isometric holds have no reps.
  */
-export function stepIdFor(exercise: Exercise, input: EffectiveInput): string {
+export function stepIdFor(
+  exercise: Exercise,
+  input: Pick<EffectiveInput, 'equipment' | 'goal' | 'restricted'>,
+): string {
   let id = exercise.id;
   if (exercise.equipment.length > 1) {
     if (!isLoaded(exercise, input)) id += '@bw';

@@ -473,7 +473,7 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 
 - [x] Motor de hallazgos (sección 12): `buildInsights` puro, semanal, máximo 1 por semana ISO, mínimo 21 días y 7 por grupo, umbrales por variable, tarjeta en Hoy, lista en Progreso, carta semanal, `/comparacion` y sección «Hallazgos» del reporte.
 - [x] Volumen semanal por músculo: `weeklyVolume` puro (series completadas por músculo y semana ISO con el cambio de día; 1 serie directa para el primer músculo del paso, 0,5 para los demás), gráfico de barras en Gym (esta semana) y en Progreso (4 u 8 semanas por músculo), con la referencia general por nivel solo como información, nunca como meta.
-- [ ] Editor de programas de gym dentro de la app.
+- [x] Editor de programas de gym dentro de la app: Gym > «Editar programa» (rutinas: reordenar, añadir, quitar, renombrar; pasos: reordenar con botones, añadir de la biblioteca del generador con sus filtros de equipo y molestias o un paso propio, editar series, repeticiones, descanso, pista de peso, incremento y músculos, cambiar ejercicio). Reducer puro en `src/domain/editor`; se guarda validado por el esquema de plantillas con la ruta de importación (atómica) y exporta el JSON. El id del paso se conserva al editar, así que el historial continúa; borrar o cambiar de ejercicio avisa del historial afectado.
 - [ ] Inglés completo; CSV y JSON en reportes; importar programas de un entrenador.
 - [ ] Opcional: "Conectar mi IA" (sección 14d): proveedor propio (adaptadores OpenAI-compatible y Anthropic), clave en `expo-secure-store`, vista previa de los datos antes de cada envío.
 

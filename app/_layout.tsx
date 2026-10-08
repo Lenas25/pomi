@@ -62,6 +62,10 @@ function RootStack() {
           <Stack.Screen name="acerca" />
           <Stack.Screen name="importar-programa" />
           <Stack.Screen name="crear-rutina" />
+          <Stack.Screen name="editar-programa" />
+          <Stack.Screen name="editar-rutina" />
+          <Stack.Screen name="editar-paso" />
+          <Stack.Screen name="anadir-ejercicio" />
         </Stack.Protected>
       </Stack>
       <MaintenanceOverlay />

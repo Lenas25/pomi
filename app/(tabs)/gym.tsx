@@ -136,6 +136,11 @@ export default function Gym() {
         {tab.volume ? <WeekVolumeCard data={tab.volume} /> : null}
 
         <Button
+          label={t('gym.tab.edit')}
+          variant="secondary"
+          onPress={() => router.push('/editar-programa')}
+        />
+        <Button
           label={t('creator.cta')}
           variant="secondary"
           onPress={() => router.push('/crear-rutina')}
