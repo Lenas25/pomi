@@ -55,6 +55,7 @@ function RootStack() {
           <Stack.Screen name="comparacion" />
           <Stack.Screen name="compartir" />
           <Stack.Screen name="permisos" />
+          <Stack.Screen name="mis-avisos" />
           <Stack.Screen name="bateria" />
           <Stack.Screen name="respaldo" />
           <Stack.Screen name="fotos" />

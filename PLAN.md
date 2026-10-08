@@ -165,7 +165,8 @@ type Schedule = {
 - **Límite de iOS: 64 avisos programados.** Prioriza por fecha y recorta.
 - **Android:** canales separados (Gym, Hábitos, Check-ins, Recordatorios, Revisión semanal, Cronómetros); permiso de **alarmas exactas** en Android 12 o superior, con explicación; pantalla de ayuda para quitar la **optimización de batería** según el fabricante.
 - **Acciones en la notificación:** "Hecho", "Posponer 10 min" y, en el agua, "+1 vaso".
-- **Horas de silencio** entre `bed` y `wake`.
+- **Horas de silencio** entre `bed` y `wake`, más ventanas propias (desde, hasta, días; pueden cruzar la medianoche).
+- **Mis avisos** (Ajustes): la persona decide qué avisos recibe y cuándo, por categoría: agua (activar, desde, hasta, cada 30–180 min, días), gym (activar, minutos antes 0–120), check-in de la mañana (minutos después de despertar) y de la noche (minutos antes de dormir), hora de dormir, pantallas fuera (minutos antes), pausa activa (activar, desde, hasta, cada, días) y horas de silencio extra. Todo es opcional: lo que no se toca sigue como antes. Incluye una **vista previa de mañana** con las horas exactas que saldrían (la misma función `buildUpcoming`). Se guarda en `notificationPrefs` y entra en el respaldo.
 - Los avisos de check-in se envían una sola vez, y nunca se insiste si se ignoran.
 
 ### 7.2 Cronómetros
@@ -289,7 +290,7 @@ Función pura `buildInsights(data, today)`, ejecutada una vez por semana. Muestr
 | **Hábitos** | Agua (contador), pasos (automático o manual), pausas activas, caminar después de comer y notas de comida. Constancia como "X de los últimos 10 días". |
 | **Progreso** | Constancia por semana, fuerza por ejercicio (gráfico), medidas, fotos, "Tú hace 30 días vs. hoy" y lista de hallazgos. |
 | **Compartir** | Ver sección 14. |
-| **Ajustes** | Perfil, metas (editables), horarios, programa de gym (importar plantilla), avisos, tema (claro, oscuro o del sistema), idioma, permisos, respaldo e importación. La sección **Horarios y gym** edita la hora de despertar, las horas de sueño (muestra la hora de dormir derivada), los días de gym con una hora aproximada POR día y las metas de agua y pasos; cada cambio re-sincroniza los avisos. |
+| **Ajustes** | Perfil, metas (editables), horarios, programa de gym (importar plantilla), avisos, tema (claro, oscuro o del sistema), idioma, permisos, respaldo e importación. La sección **Horarios y gym** edita la hora de despertar, las horas de sueño (muestra la hora de dormir derivada), los días de gym con una hora aproximada POR día y las metas de agua y pasos; cada cambio re-sincroniza los avisos. **Mis avisos** (`/mis-avisos`) agrupa los interruptores y horarios de cada aviso por categoría y muestra la vista previa de mañana (ver §7.1); la pausa por inactividad sigue en Ajustes y se enlaza desde ahí. |
 
 **Diseño:** la identidad visual, la mascota y la voz están en `design/BRAND.md`; la especificación de componentes, estados y movimiento en `design/HANDOFF.md`; los tokens en `design/tokens.json` (implementados en `src/ui/theme.tsx`); los assets en `design/ASSETS.md`. Tema claro (fondo crema) y oscuro (navy), siguiendo el sistema.
 

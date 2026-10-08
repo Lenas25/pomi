@@ -12,6 +12,14 @@ import {
   type AgendaState,
 } from '../agenda/buildAgenda';
 import { clockToMinutes, dayKeyFor, dayStartFor } from '../time';
+import {
+  DEFAULT_GYM_BEFORE_MIN,
+  DEFAULT_MORNING_OFFSET_MIN,
+  DEFAULT_NIGHT_OFFSET_MIN,
+  applyCategoryPrefs,
+  isInQuietWindow,
+  type CategoryPrefs,
+} from './prefs';
 
 /** The OS keeps at most this many scheduled notifications (iOS limit; Android OEMs cap too). */
 export const MAX_SCHEDULED = 64;
@@ -85,6 +93,8 @@ export type UpcomingState = AgendaState & {
   /** Monthly review on/off (default on) and its day of the month (default 1). */
   monthlyReviewEnabled?: boolean;
   monthlyReviewDay?: number;
+  /** "Mis avisos": per-category switches, windows and offsets (missing = today's behaviour). */
+  categories?: CategoryPrefs | undefined;
   /** What is already done TODAY (later days are never affected). */
   today: {
     /** An activity answer exists, or a gym session was finished. */
@@ -185,6 +195,40 @@ export function buildUpcoming(
   days: number = WINDOW_DAYS,
 ): PlannedNotification[] {
   const anchors = resolveAnchors(state.anchors, state.shifts);
+  const categories = state.categories;
+  // The planner sees the modules through the person's preferences; a custom water start wins
+  // over an accepted "water earlier" shift (the person chose the time themselves).
+  const agendaState: AgendaState = {
+    ...state,
+    modules: applyCategoryPrefs(state.modules, categories),
+    ...(categories?.water?.from !== undefined
+      ? { shifts: { ...state.shifts, waterMin: undefined } }
+      : {}),
+  };
+  const gymOn = categories?.gym?.enabled ?? true;
+  const gymBefore = categories?.gym?.minutesBefore ?? DEFAULT_GYM_BEFORE_MIN;
+  const checkinOn = {
+    morning: categories?.morningCheckin?.enabled ?? true,
+    night: categories?.nightCheckin?.enabled ?? true,
+  };
+  const checkinMinutes = {
+    morning:
+      anchors.wake === undefined
+        ? undefined
+        : offsetFrom(
+            anchors.wake,
+            categories?.morningCheckin?.offsetAfterWakeMin ?? DEFAULT_MORNING_OFFSET_MIN,
+            'wake',
+          ),
+    night:
+      anchors.bed === undefined
+        ? undefined
+        : offsetFrom(
+            anchors.bed,
+            -(categories?.nightCheckin?.offsetBeforeBedMin ?? DEFAULT_NIGHT_OFFSET_MIN),
+            'bed',
+          ),
+  };
   const candidates: Candidate[] = [];
   // Day 0 is the logical day in progress (before 04:00 it is still yesterday).
   const first = dayStartFor(from);
@@ -195,7 +239,10 @@ export function buildUpcoming(
   for (let dayIndex = 0; dayIndex <= days; dayIndex += 1) {
     const day = addDays(first, dayIndex);
     const isToday = dayIndex === 0;
-    const agenda = buildAgenda(day, isToday ? state : { ...state, todayRoutine: undefined });
+    const agenda = buildAgenda(
+      day,
+      isToday ? agendaState : { ...agendaState, todayRoutine: undefined },
+    );
     const add = (
       kind: NotificationKind,
       moduleId: string,
@@ -223,9 +270,9 @@ export function buildUpcoming(
       if (isToday && state.today.doneAgendaIds.includes(item.id)) continue;
 
       if (item.kind === 'gym') {
-        if (isToday && state.today.gymDone) continue;
+        if (!gymOn || (isToday && state.today.gymDone)) continue;
         for (const minutes of item.occurrences) {
-          add('gym', 'core', 'gym', minutes, {
+          add('gym', 'core', 'gym', offsetFrom(minutes, -gymBefore, 'gymMorning'), {
             channel: 'gym',
             category: 'pomi_snooze',
             text: { type: 'key', key: 'notify.gym' },
@@ -233,8 +280,8 @@ export function buildUpcoming(
         }
       } else if (item.kind === 'checkin') {
         const which = item.id === 'checkin:morning' ? 'morning' : 'night';
-        if (isToday && state.today.checkinsDone[which]) continue;
-        for (const minutes of item.occurrences) {
+        if (!checkinOn[which] || (isToday && state.today.checkinsDone[which])) continue;
+        for (const minutes of [checkinMinutes[which] ?? item.minutes ?? 0]) {
           add('checkin', 'core', which, minutes, {
             channel: 'checkins',
             category: null,
@@ -318,7 +365,10 @@ export function buildUpcoming(
   const upcoming = candidates.filter(({ planned }) => {
     if (planned.at <= fromMs || planned.at > untilMs) return false;
     const date = new Date(planned.at);
-    return !isQuietMinute(date.getHours() * 60 + date.getMinutes(), anchors.bed, anchors.wake);
+    return (
+      !isQuietMinute(date.getHours() * 60 + date.getMinutes(), anchors.bed, anchors.wake) &&
+      !isInQuietWindow(date, categories?.quietHours)
+    );
   });
 
   // Earlier days first, then priority, then time; whatever does not fit in 64 is dropped.

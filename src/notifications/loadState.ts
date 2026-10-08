@@ -1,5 +1,7 @@
 // Reads everything `buildUpcoming` needs from the repositories (all local, near instant).
 import type { Repositories } from '../db/repositories';
+import type { SettingsValue } from '../db/repositories/settings';
+import type { CategoryPrefs } from '../domain/notifications/prefs';
 import type { UpcomingState } from '../domain/notifications/buildUpcoming';
 import { waterTargetFor } from '../domain/habits/waterTarget';
 import type { ModuleBody } from '../templates/schema';
@@ -9,6 +11,13 @@ export type NotificationPlan = {
   enabled: boolean;
   state: UpcomingState;
 };
+
+/** The "Mis avisos" part of the stored preferences (the rest is read field by field). */
+export function categoryPrefsOf(prefs: SettingsValue<'notificationPrefs'>): CategoryPrefs {
+  const { water, gym, morningCheckin, nightCheckin, bedtime, screensOff, activePause, quietHours } =
+    prefs;
+  return { water, gym, morningCheckin, nightCheckin, bedtime, screensOff, activePause, quietHours };
+}
 
 export async function loadNotificationPlan(
   repos: Repositories,
@@ -100,6 +109,7 @@ export async function loadNotificationPlan(
     weeklyReviewEnabled: prefs?.weeklyReview ?? true,
     monthlyReviewEnabled: prefs?.monthlyReview ?? true,
     ...(prefs?.monthlyReviewDay !== undefined ? { monthlyReviewDay: prefs.monthlyReviewDay } : {}),
+    ...(prefs ? { categories: categoryPrefsOf(prefs) } : {}),
     today: {
       activityLogged: activity !== undefined || gymDone,
       gymDone,

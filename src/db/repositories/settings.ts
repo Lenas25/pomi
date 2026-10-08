@@ -13,6 +13,14 @@ import {
 import { BED_SHIFT_LIMIT_MIN, WATER_SHIFT_LIMIT_MIN } from '../../domain/suggestions/limits';
 import { dayKeyFor } from '../../domain/time';
 import { isIsoMonday } from '../../domain/gym/gymPlan';
+import {
+  CHECKIN_OFFSET_MAX,
+  EVERY_MIN_MAX,
+  EVERY_MIN_MIN,
+  GYM_BEFORE_MAX,
+  MAX_QUIET_WINDOWS,
+  SCREENS_OFF_BEFORE_MAX,
+} from '../../domain/notifications/prefs';
 import { settings } from '../schema';
 import type { Db } from '../types';
 
@@ -23,7 +31,25 @@ export const goalsSchema = z.strictObject({
   stepsGoal: z.number().int().positive().optional(),
 });
 
-/** User choices for the planned notifications (everything defaults to on). */
+const prefWeekdays = z.array(z.number().int().min(0).max(6)).min(1).max(7);
+const minutes = (max: number) => z.number().int().min(0).max(max);
+
+/** A repeating category (water, active pause): its window, interval and weekdays. */
+const repeatPrefsSchema = z.strictObject({
+  enabled: z.boolean().optional(),
+  from: timeSchema.optional(),
+  until: timeSchema.optional(),
+  everyMin: z.number().int().min(EVERY_MIN_MIN).max(EVERY_MIN_MAX).optional(),
+  days: prefWeekdays.optional(),
+});
+
+const quietWindowSchema = z.strictObject({
+  from: timeSchema,
+  until: timeSchema,
+  days: prefWeekdays,
+});
+
+/** User choices for the planned notifications (everything defaults to on / today's behaviour). */
 export const notificationPrefsSchema = z.strictObject({
   /** Master switch: off cancels every planned notification. */
   enabled: z.boolean().optional(),
@@ -36,6 +62,35 @@ export const notificationPrefsSchema = z.strictObject({
   monthlyReview: z.boolean().optional(),
   /** Day of the month (1-28, so every month has it) of the monthly review; default 1. */
   monthlyReviewDay: z.number().int().min(1).max(28).optional(),
+  /** "Mis avisos" (see `src/domain/notifications/prefs.ts`); a missing field = today's behaviour. */
+  water: repeatPrefsSchema.optional(),
+  gym: z
+    .strictObject({
+      enabled: z.boolean().optional(),
+      minutesBefore: minutes(GYM_BEFORE_MAX).optional(),
+    })
+    .optional(),
+  morningCheckin: z
+    .strictObject({
+      enabled: z.boolean().optional(),
+      offsetAfterWakeMin: minutes(CHECKIN_OFFSET_MAX).optional(),
+    })
+    .optional(),
+  nightCheckin: z
+    .strictObject({
+      enabled: z.boolean().optional(),
+      offsetBeforeBedMin: minutes(CHECKIN_OFFSET_MAX).optional(),
+    })
+    .optional(),
+  bedtime: z.strictObject({ enabled: z.boolean().optional() }).optional(),
+  screensOff: z
+    .strictObject({
+      enabled: z.boolean().optional(),
+      minutesBefore: minutes(SCREENS_OFF_BEFORE_MAX).optional(),
+    })
+    .optional(),
+  activePause: repeatPrefsSchema.optional(),
+  quietHours: z.array(quietWindowSchema).max(MAX_QUIET_WINDOWS).optional(),
 });
 
 /** What the person did to the timeline of ONE day (`date`); a different day means a clean slate. */
