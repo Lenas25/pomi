@@ -14,7 +14,13 @@ import {
   type AgendaState,
 } from '../agenda/buildAgenda';
 import { clockToMinutes, dayKeyFor, dayStartFor } from '../time';
-import { DEFAULT_GYM_BEFORE_MIN, isInQuietWindow, removeDisabledCategories } from './prefs';
+import {
+  DEFAULT_GYM_BEFORE_MIN,
+  isInQuietWindow,
+  reminderRole,
+  removeDisabledCategories,
+  type ReminderRole,
+} from './prefs';
 
 /** The OS keeps at most this many scheduled notifications (iOS limit; Android OEMs cap too). */
 export const MAX_SCHEDULED = 64;
@@ -152,6 +158,13 @@ export function isQuietMinute(
     : minuteOfDay > bedClock || minuteOfDay < wake;
 }
 
+function findReminderRole(state: AgendaState, item: AgendaItem): ReminderRole {
+  const reminder = state.modules
+    .find((module) => module.id === item.moduleId)
+    ?.reminders?.find((entry) => entry.id === item.reminderId);
+  return reminder ? reminderRole(reminder.schedule) : 'other';
+}
+
 function findHabit(state: AgendaState, item: AgendaItem): Habit | undefined {
   return state.modules
     .find((module) => module.id === item.moduleId)
@@ -177,7 +190,8 @@ function habitText(habit: Habit | undefined, item: AgendaItem, language: string)
 
 type Candidate = { planned: PlannedNotification; dayIndex: number };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+const DAY_MS = 24 * 60 * MINUTE_MS;
 
 /**
  * Notifications from `from` up to `from + days × 24 h` (a rolling window, not calendar days, so an
@@ -227,8 +241,11 @@ export function buildUpcoming(
       rest: Omit<PlannedNotification, 'id' | 'at' | 'kind' | 'data'> & {
         data?: Partial<NotificationData>;
       },
+      leadMin = 0,
     ) => {
-      const at = atMinutes(day, minutes);
+      // The lead is taken from the resolved date-time, so it may land on the previous evening
+      // (a 00:30 session with a 60 min lead fires at 23:30 the calendar day before).
+      const at = atMinutes(day, minutes) - leadMin * MINUTE_MS;
       const { data, ...fields } = rest;
       candidates.push({
         planned: {
@@ -242,17 +259,27 @@ export function buildUpcoming(
       });
     };
 
+    // "Pantallas fuera" at the very minute of "Hora de dormir" would ring twice: bedtime wins.
+    const bedtimeMinutes = new Set(
+      agenda
+        .filter((item) => item.kind === 'reminder' && findReminderRole(state, item) === 'bedtime')
+        .flatMap((item) => item.occurrences),
+    );
+
     for (const item of agenda) {
       if (isToday && state.today.doneAgendaIds.includes(item.id)) continue;
 
       if (item.kind === 'gym') {
         if (!gymOn || (isToday && state.today.gymDone)) continue;
         for (const minutes of item.occurrences) {
-          add('gym', 'core', 'gym', offsetFrom(minutes, -gymBefore, 'gymMorning'), {
-            channel: 'gym',
-            category: 'pomi_snooze',
-            text: { type: 'key', key: 'notify.gym' },
-          });
+          add(
+            'gym',
+            'core',
+            'gym',
+            minutes,
+            { channel: 'gym', category: 'pomi_snooze', text: { type: 'key', key: 'notify.gym' } },
+            gymBefore,
+          );
         }
       } else if (item.kind === 'checkin') {
         const which = item.id === 'checkin:morning' ? 'morning' : 'night';
@@ -270,7 +297,9 @@ export function buildUpcoming(
         }
       } else if (item.kind === 'reminder') {
         const text = item.label.type === 'template' ? localizedText(item.label.text, language) : '';
+        const screensOff = findReminderRole(state, item) === 'screensOff';
         for (const minutes of item.occurrences) {
+          if (screensOff && bedtimeMinutes.has(minutes)) continue;
           add('reminder', item.moduleId ?? 'core', item.reminderId ?? item.id, minutes, {
             channel: 'reminders',
             category: 'pomi_snooze',

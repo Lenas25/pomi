@@ -9,7 +9,15 @@ import {
   type PlannedNotification,
   type UpcomingState,
 } from './buildUpcoming';
-import { isInQuietWindow, reminderRole, type CategoryPrefs } from './prefs';
+import {
+  DEFAULT_SCREENS_BEFORE_MIN,
+  applyCategoryTimes,
+  isInQuietWindow,
+  moveWindowStart,
+  reminderRole,
+  windowCrossesMidnight,
+  type CategoryPrefs,
+} from './prefs';
 import { previewTomorrow } from './preview';
 
 const defaults = loadDefaultTemplates();
@@ -196,8 +204,98 @@ describe('reminderRole', () => {
   });
 });
 
+describe('review fixes', () => {
+  it('screens off is at least 5 min before bed and never rings with bedtime', () => {
+    const list = buildUpcoming(state({ screensOff: { minutesBefore: 0 } }), MONDAY);
+    expect(times(list, reminder('pantallas'))).toEqual(['21:35']);
+    const reminders = monday(list).filter((n) => n.kind === 'reminder');
+    expect(new Set(reminders.map((n) => n.at)).size).toBe(reminders.length);
+    expect(notificationPrefsSchema.parse({ screensOff: { minutesBefore: 0 } })).toEqual({
+      screensOff: { minutesBefore: 5 },
+    });
+  });
+
+  it('DEFAULT_SCREENS_BEFORE_MIN matches the template reminder', () => {
+    // `defaults.modules` are the bundled templates (`templates/habitos.json` among them).
+    const offsets = defaults.modules
+      .flatMap((module) => module.reminders ?? [])
+      .filter((entry) => reminderRole(entry.schedule) === 'screensOff')
+      .map((entry) => -(entry.schedule.offsetMin ?? 0));
+    expect(offsets).toEqual([DEFAULT_SCREENS_BEFORE_MIN]);
+  });
+
+  it('a start past the end moves the end along, never a ~23 h series', () => {
+    expect(moveWindowStart({ from: '08:00', until: '20:00' }, '09:00')).toEqual({
+      from: '09:00',
+      until: '20:00',
+    });
+    // Span 3 h, capped before bed (22:00) and before midnight.
+    expect(moveWindowStart({ from: '10:00', until: '13:00' }, '14:00', 22 * 60)).toEqual({
+      from: '14:00',
+      until: '17:00',
+    });
+    expect(moveWindowStart({ from: '08:00', until: '20:00' }, '21:00', 22 * 60)).toEqual({
+      from: '21:00',
+      until: '21:59',
+    });
+    const moved = moveWindowStart({ from: '08:00', until: '20:00' }, '21:00');
+    expect(windowCrossesMidnight(moved)).toBe(false);
+    const list = buildUpcoming(state({ water: { ...moved, everyMin: 30 } }), MONDAY);
+    expect(times(list, isWater).length).toBeLessThanOrEqual(6);
+    expect(windowCrossesMidnight({ from: '21:00', until: '20:00' })).toBe(true);
+  });
+
+  it('category prefs replace only the first schedule and keep the rest', () => {
+    const base = defaults.modules.find((module) =>
+      module.habits?.some((habit) => habit.id === 'pausa-activa'),
+    );
+    if (!base) throw new Error('module expected');
+    const extra = { days: [6], time: '11:00' };
+    const module = {
+      ...base,
+      habits: (base.habits ?? []).map((habit) =>
+        habit.id === 'pausa-activa'
+          ? { ...habit, schedules: [...(habit.schedules ?? []), extra] }
+          : habit,
+      ),
+    };
+    const [changed] = applyCategoryTimes([module], { activePause: { everyMin: 90 } });
+    const schedules = changed?.habits?.find((habit) => habit.id === 'pausa-activa')?.schedules;
+    expect(schedules).toHaveLength(2);
+    expect(schedules?.[0]?.repeatEveryMin).toBe(90);
+    expect(schedules?.[1]).toEqual(extra);
+  });
+
+  it('the gym lead comes from the session date-time (00:30 - 60 = previous evening)', () => {
+    const night: UpcomingState = {
+      ...state({ gym: { minutesBefore: 60 } }),
+      anchors: {},
+      gymDays: [{ days: [2], anchor: 'gymMorning' }],
+      gymPlan: [{ weekday: 2, time: '00:30' }],
+    };
+    const gym = buildUpcoming(night, MONDAY).filter((n) => n.kind === 'gym');
+    expect(gym.map((n) => new Date(n.at).toString())).toContain(
+      new Date(2026, 9, 5, 23, 30).toString(),
+    );
+    expect(
+      gym.some((n) => new Date(n.at).getTime() === new Date(2026, 9, 6, 23, 30).getTime()),
+    ).toBe(false);
+  });
+});
+
 describe('previewTomorrow', () => {
-  it("lists tomorrow's exact times, ignoring today's done flags", () => {
+  it('is the real scheduled window filtered to tomorrow (same ids, 64-cap included)', () => {
+    const busy = state({ water: { from: '06:00', until: '21:00', everyMin: 30 } });
+    const now = new Date(2026, 9, 5, 15, 0);
+    const scheduled = buildUpcoming(busy, now);
+    const preview = previewTomorrow(busy, now);
+    expect(preview.length).toBeGreaterThan(0);
+    expect(preview.map((n) => n.id)).toEqual(
+      scheduled.filter((n) => n.data.date === '2026-10-06').map((n) => n.id),
+    );
+  });
+
+  it("lists tomorrow's exact times; today's done flags only touch today", () => {
     const done: UpcomingState = {
       ...state({ gym: { minutesBefore: 30 } }),
       today: {

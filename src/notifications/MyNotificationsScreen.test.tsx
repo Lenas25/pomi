@@ -59,11 +59,21 @@ describe('MyNotificationsScreen', () => {
   it('shows every category and tomorrow preview, and a switch saves + resyncs', async () => {
     await renderScreen();
     await screen.findByText(m.title);
-    for (const title of [m.water, m.gym, m.checkins, m.sleep, m.pause, m.quiet, m.preview]) {
+    for (const title of [m.water, m.gym, m.checkins, m.sleep, m.pause, m.quiet]) {
       expect(screen.getByText(title)).toBeTruthy();
     }
     // The preview lists real times (the morning check-in at wake 05:10 + 10).
     expect(await screen.findByText('05:20')).toBeTruthy();
+    // The header carries the count; only the summary line is a live region.
+    const header = screen.getByText(/Vista previa de mañana \(\d+\)/);
+    const count = Number(/\((\d+)\)/.exec(String(header.props.children))?.[1]);
+    expect(count).toBeGreaterThan(1);
+    const summaryText = m.previewCountOther.replace('{{count}}', String(count));
+    expect(screen.getByText(summaryText).props.accessibilityLiveRegion).toBe('polite');
+    // No live region wraps the rows: a change is not read out as the whole list.
+    for (let node = screen.getByText('05:20').parent; node; node = node.parent) {
+      expect(node.props.accessibilityLiveRegion).toBeUndefined();
+    }
 
     fireEvent(screen.getByLabelText(m.gymOn), 'valueChange', false);
     await waitFor(async () =>
@@ -84,5 +94,26 @@ describe('MyNotificationsScreen', () => {
     await waitFor(async () =>
       expect((await repos.settings.get('notificationPrefs'))?.quietHours).toBeUndefined(),
     );
+  });
+
+  it('a load failure says so and retries instead of showing the defaults', async () => {
+    const real = repos;
+    let failing = true;
+    mockEnv.repos = {
+      ...real,
+      settings: {
+        ...real.settings,
+        get: ((key: Parameters<Repositories['settings']['get']>[0]) =>
+          failing
+            ? Promise.reject(new Error('db'))
+            : real.settings.get(key)) as Repositories['settings']['get'],
+      },
+    };
+    await renderScreen();
+    expect(await screen.findByText(m.loadFailed)).toBeTruthy();
+    expect(screen.queryByText(m.water)).toBeNull();
+    failing = false;
+    fireEvent.press(screen.getByRole('button', { name: m.retry }));
+    expect(await screen.findByText(m.water)).toBeTruthy();
   });
 });

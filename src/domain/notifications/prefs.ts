@@ -12,12 +12,19 @@ export const EVERY_MIN_MAX = 180;
 export const GYM_BEFORE_MAX = 120;
 export const CHECKIN_OFFSET_MAX = 180;
 export const SCREENS_OFF_BEFORE_MAX = 180;
+/** Screens off at least this long before bed (0 would collide with the bedtime reminder). */
+export const SCREENS_OFF_BEFORE_MIN = 5;
 export const MAX_QUIET_WINDOWS = 6;
 
 /** Built-in defaults (what the app did before the preferences existed). */
 export const DEFAULT_MORNING_OFFSET_MIN = 10;
 export const DEFAULT_NIGHT_OFFSET_MIN = 30;
 export const DEFAULT_GYM_BEFORE_MIN = 0;
+/**
+ * Minutes before bed of the bundled template's "Pantallas fuera" reminder (`templates/habitos.json`,
+ * `offsetMin: -40`; a test keeps both in step). Shown when the person has not chosen their own.
+ */
+export const DEFAULT_SCREENS_BEFORE_MIN = 40;
 
 export type RepeatPrefs = {
   enabled?: boolean | undefined;
@@ -106,7 +113,8 @@ function transformModules(
       if (!pass.times) return [habit];
       const schedule = repeatSchedule(habit.schedules?.[0], repeat);
       if (schedule === null || schedule === habit.schedules?.[0]) return [habit];
-      return [{ ...habit, schedules: [schedule] }];
+      // Only the first schedule is the person's window; any other one stays as the template has it.
+      return [{ ...habit, schedules: [schedule, ...(habit.schedules ?? []).slice(1)] }];
     });
     const reminders = (module.reminders ?? []).flatMap((reminder) => {
       const role = reminderRole(reminder.schedule);
@@ -115,7 +123,8 @@ function transformModules(
         if (pass.remove && prefs.screensOff?.enabled === false) return [];
         const before = prefs.screensOff?.minutesBefore;
         if (pass.times && before !== undefined) {
-          return [{ ...reminder, schedule: { ...reminder.schedule, offsetMin: -before } }];
+          const offsetMin = -Math.max(before, SCREENS_OFF_BEFORE_MIN);
+          return [{ ...reminder, schedule: { ...reminder.schedule, offsetMin } }];
         }
       }
       return [reminder];
@@ -188,4 +197,36 @@ export function isInQuietWindow(at: Date, windows: readonly QuietWindow[] | unde
       (window.days.includes(yesterday) && minute < until)
     );
   });
+}
+
+const DAY_MIN = 24 * 60;
+/** The last minute a same-day window may end at (a later `until` would cross midnight). */
+const LAST_MINUTE = DAY_MIN - 1;
+
+const toClock = (minutes: number) =>
+  `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+
+/**
+ * The window after the person moved its start to `nextFrom`. When the new start passes the
+ * current end, the end moves with it, keeping the original span, so a 08:00-20:00 window moved to
+ * 21:00 never becomes a ~23 h series across midnight. The end is capped before bed (`bedMin`,
+ * minutes of the day, may be >= 1440) and before midnight.
+ */
+export function moveWindowStart(
+  window: { from: string; until: string },
+  nextFrom: string,
+  bedMin?: number,
+): { from: string; until: string } {
+  const from = clockToMinutes(nextFrom);
+  const until = clockToMinutes(window.until);
+  if (from < until) return { from: nextFrom, until: window.until };
+  const span = (until - clockToMinutes(window.from) + DAY_MIN) % DAY_MIN;
+  const bedCap = bedMin !== undefined && bedMin > from ? bedMin - 1 : LAST_MINUTE;
+  const end = Math.min(from + span, bedCap, LAST_MINUTE);
+  return { from: nextFrom, until: toClock(Math.max(end, from)) };
+}
+
+/** Whether a window crosses midnight (`until` not after `from`): the screen warns about it. */
+export function windowCrossesMidnight(window: { from: string; until: string }): boolean {
+  return clockToMinutes(window.until) <= clockToMinutes(window.from);
 }

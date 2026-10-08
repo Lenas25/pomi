@@ -79,6 +79,14 @@ describe('shouldNudge', () => {
     expect(shouldNudge(state(), at(3, 0, 4)).reason).toBe('quietHours');
   });
 
+  it('the "Mis avisos" quiet windows silence the nudge too', () => {
+    // 2026-02-03 is a Tuesday (weekday 2).
+    const quiet = state({ quietWindows: [{ from: '13:00', until: '15:00', days: [2] }] });
+    expect(shouldNudge(quiet, at(14))).toEqual({ send: false, reason: 'quietHours' });
+    expect(shouldNudge(quiet, at(15)).send).toBe(true);
+    expect(shouldNudge(quiet, at(14, 0, 4)).send).toBe(true); // Wednesday: not its day
+  });
+
   it('a bedtime after midnight moves the window end past midnight (bed 00:30)', () => {
     const late = state({ bedMin: 24 * 60 + 30 });
     expect(shouldNudge(late, at(22, 0)).send).toBe(true);

@@ -12,6 +12,7 @@ import {
   type SedentaryConfig,
   type StepsReading,
 } from '../domain/sedentary';
+import type { QuietWindow } from '../domain/notifications/prefs';
 
 export type StoredSedentaryConfig = Partial<{
   [K in keyof SedentaryConfig]: SedentaryConfig[K] | undefined;
@@ -45,6 +46,8 @@ export type NudgeDeps = {
   history: () => Promise<NudgeHistory | undefined>;
   saveHistory: (history: NudgeHistory) => Promise<void>;
   readSteps: (windowMin: number, nowMs: number) => Promise<StepsReading>;
+  /** The person's extra quiet windows ("Mis avisos"); optional, none by default. */
+  quietWindows?: () => Promise<readonly QuietWindow[] | undefined>;
   /** Shows the "Pausa activa" notification. */
   notify: () => Promise<void>;
 };
@@ -56,10 +59,11 @@ export async function runSedentaryNudge(deps: NudgeDeps): Promise<NudgeDecision>
   if (!config.enabled || config.noPhone) {
     return shouldNudge({ ...baseState(config), reading: null }, now);
   }
-  const [permission, anchors, history] = await Promise.all([
+  const [permission, anchors, history, quietWindows] = await Promise.all([
     deps.hasPermission().catch(() => false),
     deps.anchors(),
     deps.history(),
+    deps.quietWindows?.() ?? Promise.resolve(undefined),
   ]);
   const state: NudgeState = {
     ...baseState(config),
@@ -67,6 +71,7 @@ export async function runSedentaryNudge(deps: NudgeDeps): Promise<NudgeDecision>
     ...anchors,
     history,
     reading: null,
+    quietWindows,
   };
 
   const pre = canNudgeNow(state, now);

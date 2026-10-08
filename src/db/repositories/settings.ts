@@ -20,6 +20,7 @@ import {
   GYM_BEFORE_MAX,
   MAX_QUIET_WINDOWS,
   SCREENS_OFF_BEFORE_MAX,
+  SCREENS_OFF_BEFORE_MIN,
 } from '../../domain/notifications/prefs';
 import { settings } from '../schema';
 import type { Db } from '../types';
@@ -86,7 +87,10 @@ export const notificationPrefsSchema = z.strictObject({
   screensOff: z
     .strictObject({
       enabled: z.boolean().optional(),
-      minutesBefore: minutes(SCREENS_OFF_BEFORE_MAX).optional(),
+      // Older saves may hold 0..4 (it would collide with the bedtime reminder): clamped, not rejected.
+      minutesBefore: minutes(SCREENS_OFF_BEFORE_MAX)
+        .transform((value) => Math.max(value, SCREENS_OFF_BEFORE_MIN))
+        .optional(),
     })
     .optional(),
   activePause: repeatPrefsSchema.optional(),

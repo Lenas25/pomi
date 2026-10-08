@@ -9,11 +9,15 @@ import {
   DEFAULT_GYM_BEFORE_MIN,
   DEFAULT_MORNING_OFFSET_MIN,
   DEFAULT_NIGHT_OFFSET_MIN,
+  DEFAULT_SCREENS_BEFORE_MIN,
   EVERY_MIN_MAX,
   EVERY_MIN_MIN,
   GYM_BEFORE_MAX,
   MAX_QUIET_WINDOWS,
   SCREENS_OFF_BEFORE_MAX,
+  SCREENS_OFF_BEFORE_MIN,
+  moveWindowStart,
+  windowCrossesMidnight,
   type QuietWindow,
   type RepeatPrefs,
 } from '../domain/notifications/prefs';
@@ -35,8 +39,6 @@ const DEFAULT_MONTHLY_DAY = 1;
 const MAX_MONTHLY_DAY = 28;
 const MINUTE_STEP = 5;
 const EVERY_STEP = 15;
-/** The template's screens-off reminder is 40 minutes before bed. */
-const DEFAULT_SCREENS_BEFORE_MIN = 40;
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 const WORK_DAYS = [1, 2, 3, 4, 5];
 /** Starting values when the person switches a repeating category to "Personalizado". */
@@ -49,9 +51,24 @@ type RepeatKey = 'water' | 'activePause';
 export function MyNotificationsScreen() {
   const t = useT();
   const theme = useTheme();
-  const { prefs, update, failed } = useNotificationPrefs();
+  const { prefs, bedMin, loadFailed, retry, update, failed } = useNotificationPrefs();
   const preview = useTomorrowPreview(prefs);
 
+  if (loadFailed) {
+    return (
+      <Screen edges={['top', 'bottom', 'left', 'right']}>
+        <View style={{ gap: theme.space[3], paddingVertical: theme.space[4] }}>
+          <Text
+            accessibilityRole="alert"
+            style={[theme.text('body'), { color: theme.color.error }]}
+          >
+            {t('settings.myNotifications.loadFailed')}
+          </Text>
+          <Button label={t('settings.myNotifications.retry')} variant="secondary" onPress={retry} />
+        </View>
+      </Screen>
+    );
+  }
   if (prefs === null) return <Screen>{null}</Screen>;
 
   const enabled = prefs.enabled ?? true;
@@ -102,7 +119,13 @@ export function MyNotificationsScreen() {
     const value = prefs[key] ?? {};
     const on = value.enabled ?? true;
     const isCustom = value.from !== undefined;
-    const set = (next: RepeatPrefs) => patch(key, { ...value, ...next });
+    // Only the changed fields: the hook merges them into the CURRENT stored category.
+    const set = (next: RepeatPrefs) => patch(key, next);
+    const windowOf = (stored: RepeatPrefs | undefined) => ({
+      from: stored?.from ?? custom.from ?? '08:00',
+      until: stored?.until ?? custom.until ?? '20:00',
+    });
+    const crosses = isCustom && windowCrossesMidnight(windowOf(value));
     return (
       <>
         {switchRow(onLabel, on, (next) => set({ enabled: next }))}
@@ -111,7 +134,9 @@ export function MyNotificationsScreen() {
             <OptionRow
               label={t('settings.myNotifications.windowAuto')}
               selected={!isCustom}
-              onPress={() => patch(key, value.enabled === false ? { enabled: false } : undefined)}
+              onPress={() =>
+                set({ from: undefined, until: undefined, everyMin: undefined, days: undefined })
+              }
             />
             <OptionRow
               label={t('settings.myNotifications.windowCustom')}
@@ -122,14 +147,24 @@ export function MyNotificationsScreen() {
               <>
                 <TimeStepper
                   label={t('settings.myNotifications.from')}
-                  value={value.from ?? custom.from ?? '08:00'}
-                  onChange={(from) => set({ from })}
+                  value={windowOf(value).from}
+                  // A start past the end moves the end along (same span, before bed and midnight).
+                  onChange={(from) =>
+                    void update((current) => ({
+                      [key]: moveWindowStart(windowOf(current[key]), from, bedMin),
+                    }))
+                  }
                 />
                 <TimeStepper
                   label={t('settings.myNotifications.until')}
-                  value={value.until ?? custom.until ?? '20:00'}
+                  value={windowOf(value).until}
                   onChange={(until) => set({ until })}
                 />
+                {crosses ? (
+                  <Text style={[theme.text('caption'), { color: theme.color.error }]}>
+                    {t('settings.myNotifications.windowCrossesMidnight')}
+                  </Text>
+                ) : null}
                 <NumberStepper
                   label={t('settings.myNotifications.every')}
                   value={value.everyMin ?? custom.everyMin ?? 60}
@@ -155,8 +190,12 @@ export function MyNotificationsScreen() {
   };
 
   const quiet = prefs.quietHours ?? [];
-  const setQuiet = (next: readonly QuietWindow[]) =>
-    patch('quietHours', next.length > 0 ? [...next] : undefined);
+  // Computed from the CURRENT stored windows, so two quick edits never overwrite each other.
+  const editQuiet = (edit: (windows: readonly QuietWindow[]) => QuietWindow[]) =>
+    void update((current) => {
+      const next = edit(current.quietHours ?? []);
+      return { quietHours: next.length > 0 ? next : undefined };
+    });
 
   const rows = preview.status === 'ready' ? previewRows(preview.planned, t) : [];
 
@@ -240,7 +279,7 @@ export function MyNotificationsScreen() {
                 {switchRow(
                   t('settings.myNotifications.gymOn'),
                   prefs.gym?.enabled ?? true,
-                  (next) => patch('gym', { ...prefs.gym, enabled: next }),
+                  (next) => patch('gym', { enabled: next }),
                 )}
                 {(prefs.gym?.enabled ?? true) ? (
                   <NumberStepper
@@ -250,7 +289,7 @@ export function MyNotificationsScreen() {
                     max={GYM_BEFORE_MAX}
                     step={MINUTE_STEP}
                     format={minutesText}
-                    onChange={(minutesBefore) => patch('gym', { ...prefs.gym, minutesBefore })}
+                    onChange={(minutesBefore) => patch('gym', { minutesBefore })}
                   />
                 ) : null}
               </>,
@@ -262,7 +301,7 @@ export function MyNotificationsScreen() {
                 {switchRow(
                   t('settings.myNotifications.morningOn'),
                   prefs.morningCheckin?.enabled ?? true,
-                  (next) => patch('morningCheckin', { ...prefs.morningCheckin, enabled: next }),
+                  (next) => patch('morningCheckin', { enabled: next }),
                 )}
                 {(prefs.morningCheckin?.enabled ?? true) ? (
                   <NumberStepper
@@ -273,14 +312,14 @@ export function MyNotificationsScreen() {
                     step={MINUTE_STEP}
                     format={minutesText}
                     onChange={(offsetAfterWakeMin) =>
-                      patch('morningCheckin', { ...prefs.morningCheckin, offsetAfterWakeMin })
+                      patch('morningCheckin', { offsetAfterWakeMin })
                     }
                   />
                 ) : null}
                 {switchRow(
                   t('settings.myNotifications.nightOn'),
                   prefs.nightCheckin?.enabled ?? true,
-                  (next) => patch('nightCheckin', { ...prefs.nightCheckin, enabled: next }),
+                  (next) => patch('nightCheckin', { enabled: next }),
                 )}
                 {(prefs.nightCheckin?.enabled ?? true) ? (
                   <NumberStepper
@@ -290,9 +329,7 @@ export function MyNotificationsScreen() {
                     max={CHECKIN_OFFSET_MAX}
                     step={MINUTE_STEP}
                     format={minutesText}
-                    onChange={(offsetBeforeBedMin) =>
-                      patch('nightCheckin', { ...prefs.nightCheckin, offsetBeforeBedMin })
-                    }
+                    onChange={(offsetBeforeBedMin) => patch('nightCheckin', { offsetBeforeBedMin })}
                   />
                 ) : null}
               </>,
@@ -309,19 +346,17 @@ export function MyNotificationsScreen() {
                 {switchRow(
                   t('settings.myNotifications.screensOn'),
                   prefs.screensOff?.enabled ?? true,
-                  (next) => patch('screensOff', { ...prefs.screensOff, enabled: next }),
+                  (next) => patch('screensOff', { enabled: next }),
                 )}
                 {(prefs.screensOff?.enabled ?? true) ? (
                   <NumberStepper
                     label={t('settings.myNotifications.screensBefore')}
                     value={prefs.screensOff?.minutesBefore ?? DEFAULT_SCREENS_BEFORE_MIN}
-                    min={0}
+                    min={SCREENS_OFF_BEFORE_MIN}
                     max={SCREENS_OFF_BEFORE_MAX}
                     step={MINUTE_STEP}
                     format={minutesText}
-                    onChange={(minutesBefore) =>
-                      patch('screensOff', { ...prefs.screensOff, minutesBefore })
-                    }
+                    onChange={(minutesBefore) => patch('screensOff', { minutesBefore })}
                   />
                 ) : null}
               </>,
@@ -342,7 +377,9 @@ export function MyNotificationsScreen() {
                 {quiet.map((window, index) => {
                   const name = t('settings.myNotifications.quietWindow', { index: index + 1 });
                   const change = (next: Partial<QuietWindow>) =>
-                    setQuiet(quiet.map((item, at) => (at === index ? { ...item, ...next } : item)));
+                    editQuiet((windows) =>
+                      windows.map((item, at) => (at === index ? { ...item, ...next } : item)),
+                    );
                   return (
                     <View key={index} style={{ gap: theme.space[2] }}>
                       <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
@@ -368,7 +405,9 @@ export function MyNotificationsScreen() {
                       <Button
                         label={t('settings.myNotifications.quietRemove', { index: index + 1 })}
                         variant="ghost"
-                        onPress={() => setQuiet(quiet.filter((_, at) => at !== index))}
+                        onPress={() =>
+                          editQuiet((windows) => windows.filter((_, at) => at !== index))
+                        }
                       />
                     </View>
                   );
@@ -377,7 +416,11 @@ export function MyNotificationsScreen() {
                   <Button
                     label={t('settings.myNotifications.quietAdd')}
                     variant="secondary"
-                    onPress={() => setQuiet([...quiet, NEW_QUIET])}
+                    onPress={() =>
+                      editQuiet((windows) =>
+                        windows.length < MAX_QUIET_WINDOWS ? [...windows, NEW_QUIET] : [...windows],
+                      )
+                    }
                   />
                 ) : null}
               </>,
@@ -398,8 +441,21 @@ export function MyNotificationsScreen() {
         ) : null}
 
         {section(
-          t('settings.myNotifications.preview'),
-          <View accessibilityLiveRegion="polite" style={{ gap: theme.space[1] }}>
+          preview.status === 'ready'
+            ? t('settings.myNotifications.previewHeader', { count: rows.length })
+            : t('settings.myNotifications.preview'),
+          <View style={{ gap: theme.space[1] }}>
+            {preview.status === 'ready' && rows.length > 0 ? (
+              // Only this summary is announced when the preview changes, never the whole list.
+              <Text accessibilityLiveRegion="polite" style={muted}>
+                {t(
+                  rows.length === 1
+                    ? 'settings.myNotifications.previewCountOne'
+                    : 'settings.myNotifications.previewCountOther',
+                  { count: rows.length },
+                )}
+              </Text>
+            ) : null}
             {preview.status === 'off' ? (
               <Text style={muted}>{t('settings.myNotifications.previewOff')}</Text>
             ) : preview.status === 'error' ? (

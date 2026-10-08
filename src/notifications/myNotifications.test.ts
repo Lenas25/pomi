@@ -9,7 +9,7 @@ import { es } from '../i18n/es';
 import type { Translate } from '../i18n';
 import { loadDefaultTemplates } from '../templates/defaults';
 
-import { mergeNotificationPrefs } from './useNotificationPrefs';
+import { mergeNotificationPrefs, savePrefsChange } from './useNotificationPrefs';
 import { loadTomorrowPreview, previewRows } from './useTomorrowPreview';
 
 let db: Db;
@@ -75,6 +75,38 @@ describe('mergeNotificationPrefs', () => {
     expect(mergeNotificationPrefs({}, { gym: { minutesBefore: 15 } })).toEqual({
       gym: { minutesBefore: 15 },
     });
+  });
+});
+
+describe('savePrefsChange', () => {
+  it('two rapid edits of one category both land (merged inside the mutex)', async () => {
+    await repos.settings.set('notificationPrefs', { gym: { enabled: true } });
+    await Promise.all([
+      savePrefsChange(repos.settings, { gym: { minutesBefore: 30 } }),
+      savePrefsChange(repos.settings, { gym: { enabled: false } }),
+    ]);
+    expect(await repos.settings.get('notificationPrefs')).toEqual({
+      gym: { enabled: false, minutesBefore: 30 },
+    });
+  });
+
+  it('a function change sees the current stored value', async () => {
+    const add = (current: { quietHours?: { from: string; until: string; days: number[] }[] }) => ({
+      quietHours: [...(current.quietHours ?? []), { from: '13:00', until: '15:00', days: [1] }],
+    });
+    await Promise.all([savePrefsChange(repos.settings, add), savePrefsChange(repos.settings, add)]);
+    expect((await repos.settings.get('notificationPrefs'))?.quietHours).toHaveLength(2);
+  });
+
+  it('clearing every field removes the category', () => {
+    expect(
+      mergeNotificationPrefs(
+        { water: { from: '08:00', until: '20:00' } },
+        {
+          water: { from: undefined, until: undefined },
+        },
+      ),
+    ).toEqual({});
   });
 });
 

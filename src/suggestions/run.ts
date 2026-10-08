@@ -4,6 +4,7 @@ import { buildSuggestions } from '../domain/suggestions/buildSuggestions';
 import { applyChange, isChangeStale, type PlanPatch } from '../domain/suggestions/applyChange';
 import { expiryCutoff } from '../domain/suggestions/limits';
 import { gymWeekStart, usualGymPlan } from '../domain/gym/gymPlan';
+import { DEFAULT_GYM_TIMES } from '../domain/onboarding/draft';
 import { activeDeloadPct } from '../gym/deload';
 import { dayKeyFor } from '../domain/time';
 import type { Repositories } from '../db/repositories';
@@ -114,11 +115,26 @@ export async function acceptSuggestion(
     if (patch.shifts) await repos.settings.set('planShifts', patch.shifts);
     if (patch.gymDays) {
       // Keep the per-day plan in step: the moved session keeps its time, a slot without one gets
-      // its anchor. A week override ("Planifica tu semana") is NOT touched.
-      const nextPlan = usualGymPlan({ gymPlan, gymDays: patch.gymDays, anchors }).flatMap(
-        (entry) => (entry.time === undefined ? [] : [{ weekday: entry.weekday, time: entry.time }]),
+      // its anchor, or the slot's default time when the anchor is missing (a weekday is never
+      // dropped for lack of a time). A week override ("Planifica tu semana") is NOT touched.
+      const slotTimes = {
+        ...anchors,
+        gymMorning: anchors?.gymMorning ?? DEFAULT_GYM_TIMES.gymMorning,
+        gymEvening: anchors?.gymEvening ?? DEFAULT_GYM_TIMES.gymEvening,
+      };
+      const nextPlan = usualGymPlan({
+        gymPlan,
+        gymDays: patch.gymDays,
+        anchors: slotTimes,
+      }).flatMap((entry) =>
+        entry.time === undefined ? [] : [{ weekday: entry.weekday, time: entry.time }],
       );
-      if (gymPlan !== undefined || nextPlan.length > 0)
+      // Without a stored plan nor any slot anchor there is nothing to keep in step.
+      if (
+        gymPlan !== undefined ||
+        anchors?.gymMorning !== undefined ||
+        anchors?.gymEvening !== undefined
+      )
         await repos.settings.set('gymPlan', nextPlan);
       await repos.settings.set('gymDays', patch.gymDays);
     }

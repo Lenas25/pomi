@@ -198,6 +198,21 @@ describe('acceptSuggestion', () => {
     ]);
   });
 
+  it('a moved gym day never drops a weekday without time: it gets the slot default', async () => {
+    // Only the morning anchor is known; Wednesday's evening session has no stored time.
+    await repos.settings.set('anchors', { gymMorning: '07:00' });
+    await repos.settings.set('gymDays', [
+      { days: [1], anchor: 'gymMorning' },
+      { days: [3], anchor: 'gymEvening' },
+    ]);
+    const id = await store({ type: 'moveGymDay', fromDay: 3, toDay: 4 });
+    expect((await acceptSuggestion(db, repos, id, NOW)).status).toBe('applied');
+    expect(await repos.settings.get('gymPlan')).toEqual([
+      { weekday: 1, time: '07:00' },
+      { weekday: 4, time: '18:00' },
+    ]);
+  });
+
   it('a moved gym day leaves this week override alone and says so', async () => {
     await repos.settings.set('gymDays', [{ days: [1, 3], anchor: 'gymMorning' }]);
     await repos.settings.set('gymWeekPlans', { '2026-01-26': [{ weekday: 2, time: '18:00' }] });

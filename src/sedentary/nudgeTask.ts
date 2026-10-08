@@ -59,6 +59,7 @@ export function runSedentaryNudgeForReal() {
       return { wakeMin: resolved.wake, bedMin: resolved.bed };
     },
     history: () => repos.settings.get('sedentaryHistory'),
+    quietWindows: async () => (await repos.settings.get('notificationPrefs'))?.quietHours,
     saveHistory: (history) => repos.settings.set('sedentaryHistory', history),
     readSteps: (windowMin, nowMs) => adapter.readRecentSteps(windowMin, nowMs),
     notify: showNudge,

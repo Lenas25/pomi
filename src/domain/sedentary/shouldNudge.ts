@@ -4,6 +4,7 @@
 // doubt (no permission, no data, switch off, phone left behind) means NO nudge.
 import { getDay, parseISO } from 'date-fns';
 
+import { isInQuietWindow, type QuietWindow } from '../notifications/prefs';
 import { dayKeyFor, minutesIntoDay } from '../time';
 
 export const WINDOW_OPTIONS_MIN = [60, 90, 120] as const;
@@ -66,6 +67,8 @@ export type NudgeState = {
   history: NudgeHistory | undefined;
   /** `null`/`undefined`: not read, or the read failed. */
   reading: StepsReading | null | undefined;
+  /** "Mis avisos" quiet windows: nothing sounds inside them, the nudge included. */
+  quietWindows?: readonly QuietWindow[] | undefined;
 };
 
 export type NudgeReason =
@@ -101,6 +104,7 @@ export function canNudgeNow(state: NudgeState, now: Date): NudgeDecision {
   const from = state.wakeMin + AFTER_WAKE_MIN;
   const to = state.bedMin - BEFORE_BED_MIN;
   if (minute < from || minute > to) return no('quietHours');
+  if (isInQuietWindow(now, state.quietWindows)) return no('quietHours');
 
   const history = state.history;
   const sentToday = history && history.date === day ? history.count : 0;
