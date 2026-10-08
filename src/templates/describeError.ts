@@ -73,6 +73,8 @@ export function describeImportError(error: ImportError, translate: Translate): s
       return translate('importErrors.invalidCondition', base);
     case 'flagValueWithoutFlag':
       return translate('importErrors.flagValueWithoutFlag', base);
+    case 'repsLanguagesDiffer':
+      return translate('importErrors.repsLanguagesDiffer', base);
     case 'unknownKey':
       return translate('importErrors.unknownKey', base);
     case 'unknown':

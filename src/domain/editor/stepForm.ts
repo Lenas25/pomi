@@ -1,6 +1,6 @@
 // String form <-> step. The screens keep what was typed as text; this decides if it is a step.
 import { slugify, uniqueId } from './reducer';
-import { validateStep } from './validate';
+import { sameRepsRange, validateStep } from './validate';
 import type { EditorErrorCode, Program, Step } from './types';
 import {
   allTexts,
@@ -8,7 +8,7 @@ import {
   withLocalizedText,
   type LocalizedText,
 } from '../../templates/localized';
-import { parseReps } from '../gym/reps';
+import { parseReps, repsRangeSpan } from '../gym/reps';
 
 export const CUSTOM_STEP_KINDS = ['check', 'wait', 'timed'] as const;
 export type CustomStepKind = (typeof CUSTOM_STEP_KINDS)[number];
@@ -20,6 +20,11 @@ export type StepForm = {
   muscles: string;
   sets: string;
   reps: string;
+  /**
+   * The reps in the OTHER language (`otherLanguage`), edited only when a new range could not be
+   * carried into it (`editReps(...).stale`); empty when the reps have one language.
+   */
+  repsOther: string;
   restSec: string;
   weightHint: string;
   incrementKg: string;
@@ -41,6 +46,10 @@ export function formFromStep(step: Step, language = 'es'): StepForm {
     muscles: (step.muscles ?? []).join(', '),
     sets: step.type === 'sets' ? num(step.sets) : '',
     reps: step.type === 'sets' ? localizedText(step.reps, language) : '',
+    repsOther:
+      step.type === 'sets' && typeof step.reps !== 'string'
+        ? (step.reps[otherLanguage(language)] ?? '')
+        : '',
     restSec: step.type === 'sets' ? num(step.restSec) : '',
     weightHint: step.type === 'sets' ? text(step.weightHint, language) : '',
     incrementKg: step.type === 'sets' ? num(step.incrementKg) : '',
@@ -62,15 +71,54 @@ const parseMuscles = (value: string): string[] =>
     .map((part) => part.trim())
     .filter((part) => part !== '');
 
+/** The language a two-language text keeps while `language` is edited. */
+export const otherLanguage = (language: string): 'es' | 'en' => (language === 'en' ? 'es' : 'en');
+
 /**
- * Reps are numbers first: an edit keeps the other language only while it still means the same
- * (same parsed range); otherwise the typed text replaces both, so no language shows stale numbers.
+ * `text` with its number or range replaced by the one in `typed` ("8–10 per leg" + "6–8 por
+ * pierna" -> "6–8 per leg"), when the result means exactly what `typed` means; otherwise null.
  */
-export function editReps(previous: LocalizedText, typed: string, language: string): LocalizedText {
+export function carryRange(text: string, typed: string): string | null {
+  const target = parseReps(typed);
+  const from = repsRangeSpan(typed);
+  const into = repsRangeSpan(text);
+  if (target === null || from === null || into === null) return null;
+  const next = text.slice(0, into.start) + typed.slice(from.start, from.end) + text.slice(into.end);
+  return JSON.stringify(parseReps(next)) === JSON.stringify(target) ? next : null;
+}
+
+export type RepsEdit = {
+  reps: LocalizedText;
+  /** The other language still holds a different range: the person must review it. */
+  stale: boolean;
+};
+
+/**
+ * Reps are numbers first. The typed text replaces the active language; the other language follows
+ * the new range when its text allows it (same suffix, "por pierna" <-> "per leg"). When it does not,
+ * it is kept as written (never dropped, never replaced by this language) and marked `stale`;
+ * `otherTyped` (what the person wrote for it after the notice) then replaces it.
+ */
+export function editReps(
+  previous: LocalizedText,
+  typed: string,
+  language: string,
+  otherTyped?: string,
+): RepsEdit {
   const next = withLocalizedText(previous, language, typed);
-  if (typeof next === 'string') return next;
-  const parsed = allTexts(next).map((text) => JSON.stringify(parseReps(text)));
-  return parsed.every((value) => value === parsed[0]) ? next : typed;
+  // Unreadable typed reps are a `repsInvalid` error, not a review of the other language.
+  if (typeof next === 'string' || sameRepsRange(next) || parseReps(typed) === null) {
+    return { reps: next, stale: false };
+  }
+  const other = otherLanguage(language);
+  const kept = next[other] ?? '';
+  const carried = carryRange(kept, typed);
+  if (carried !== null) return { reps: { ...next, [other]: carried }, stale: false };
+  if (otherTyped !== undefined && otherTyped !== '' && otherTyped !== kept) {
+    const reviewed = { ...next, [other]: otherTyped };
+    return { reps: reviewed, stale: !sameRepsRange(reviewed) };
+  }
+  return { reps: next, stale: true };
 }
 
 export type StepFormResult = { ok: true; step: Step } | { ok: false; errors: EditorErrorCode[] };
@@ -82,22 +130,30 @@ export type StepFormResult = { ok: true; step: Step } | { ok: false; errors: Edi
 export function applyForm(base: Step, form: StepForm, language = 'es'): StepFormResult {
   const edit = (previous: LocalizedText | undefined, value: string) =>
     withLocalizedText(previous, language, value.trim());
+  // Optional free text: clearing it in one language only blanks that language; the field goes
+  // away only when no language has text left.
+  const optional = (previous: LocalizedText | undefined, value: string) => {
+    const next = edit(previous, value);
+    return allTexts(next).every((text) => text.trim() === '') ? undefined : next;
+  };
+  const how = optional(base.how, form.how);
   const common = {
     name: edit(base.name, form.name),
-    ...(form.how.trim() ? { how: edit(base.how, form.how) } : {}),
+    ...(how !== undefined ? { how } : {}),
     ...(parseMuscles(form.muscles).length > 0 ? { muscles: parseMuscles(form.muscles) } : {}),
   };
   let step: Step;
   switch (base.type) {
     case 'sets': {
       const { how: _h, muscles: _m, weightHint: _w, incrementKg: _i, ...kept } = base;
+      const weightHint = optional(base.weightHint, form.weightHint);
       step = {
         ...kept,
         ...common,
         sets: parseNumber(form.sets),
-        reps: editReps(base.reps, form.reps.trim(), language),
+        reps: editReps(base.reps, form.reps.trim(), language, form.repsOther.trim()).reps,
         restSec: parseNumber(form.restSec),
-        ...(form.weightHint.trim() ? { weightHint: edit(base.weightHint, form.weightHint) } : {}),
+        ...(weightHint !== undefined ? { weightHint } : {}),
         ...(form.incrementKg.trim() ? { incrementKg: parseNumber(form.incrementKg) } : {}),
       };
       break;

@@ -78,7 +78,7 @@ async function seed({ db, repos }: Fixture): Promise<void> {
     enabled: true,
     createdAt: 1,
   });
-  await db.insert(photos).values({ date: '2026-10-05', pose: 'front', uri: 'a.jpg' });
+  await db.insert(photos).values({ date: '2026-10-05', pose: 'frente', uri: 'a.jpg' });
 }
 
 let source: Fixture;

@@ -27,6 +27,7 @@ export type ImportErrorCode =
   | 'duplicateId'
   | 'invalidCondition'
   | 'flagValueWithoutFlag'
+  | 'repsLanguagesDiffer'
   | 'unknownKey'
   | 'unknown';
 
@@ -106,6 +107,8 @@ function mapCustomMessage(message: string): ImportErrorCode | null {
       return 'invalidCondition';
     case CUSTOM_CODES.flagValue:
       return 'flagValueWithoutFlag';
+    case CUSTOM_CODES.repsLanguages:
+      return 'repsLanguagesDiffer';
     default:
       return null;
   }

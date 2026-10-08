@@ -23,6 +23,8 @@ import {
 import { runMaintenance } from '../db/maintenance';
 import { Tx, withTransaction } from '../db/transaction';
 import type { Db } from '../db/types';
+import { activePosesOf, mapPhotoPoses } from '../photos/poseIds';
+import { moduleTemplateSchema, type ModuleTemplate } from '../templates/schema';
 
 import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, type Backup, type BackupData } from './schema';
 
@@ -137,12 +139,23 @@ export async function restoreBackup(target: Db | Tx, backup: Backup): Promise<vo
     await insertChunks(data.checkins, (rows) => db.insert(checkins).values(rows));
     await insertChunks(data.metricEntries, (rows) => db.insert(metricEntries).values(rows));
     if (backup.includesPhotos) {
-      await insertChunks(data.photos, (rows) => db.insert(photos).values(rows));
+      // Older backups keyed photos by the pose label: store them under the stable pose id.
+      const restored = mapPhotoPoses(data.photos, activePosesOf(restoredModules(data)));
+      await insertChunks(restored, (rows) => db.insert(photos).values(rows));
     }
     await insertChunks(data.foodNotes, (rows) => db.insert(foodNotes).values(rows));
     await insertChunks(data.suggestions, (rows) => db.insert(suggestions).values(rows));
     await insertChunks(data.insights, (rows) => db.insert(insights).values(rows));
     await insertChunks(data.reminders, (rows) => db.insert(reminders).values(rows));
+  });
+}
+
+/** The active modules of a backup that still validate (the source of the photo poses). */
+function restoredModules(data: BackupData): ModuleTemplate[] {
+  return data.templates.flatMap((row) => {
+    if (row.kind !== 'module' || !row.active) return [];
+    const parsed = moduleTemplateSchema.safeParse(row.json);
+    return parsed.success ? [parsed.data] : [];
   });
 }
 

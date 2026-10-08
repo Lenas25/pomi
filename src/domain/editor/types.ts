@@ -25,6 +25,7 @@ export const EDITOR_ERROR_CODES = [
   'stepNameEmpty',
   'setsInvalid',
   'repsInvalid',
+  'repsLanguagesDiffer',
   'restInvalid',
   'incrementInvalid',
   'waitInvalid',

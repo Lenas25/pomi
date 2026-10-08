@@ -27,6 +27,17 @@ const PER_SIDE =
   /\bpor\s+(pierna|lado|brazo|mano)\b|\bc\/u\b|\bcada\s+(pierna|lado|brazo)\b|\bper\s+(leg|side|arm|hand)\b|\beach\s+(leg|side|arm)\b/i;
 
 /**
+ * Where the number or range that `parseReps` reads sits in `text` (after a leading set count).
+ * Lets an edit carry a new range into the other language's text ("8–10 per leg" -> "6–8 per leg").
+ */
+export function repsRangeSpan(text: string): { start: number; end: number } | null {
+  const offset = SETS_PREFIX.exec(text)?.[0].length ?? 0;
+  const match = FIRST_RANGE.exec(text.slice(offset));
+  if (!match) return null;
+  return { start: offset + match.index, end: offset + match.index + match[0].length };
+}
+
+/**
  * - `"8–10"` / `"8-10"` -> reps 8..10
  * - `"8"` / `"8 por lado"` -> reps 8..8 (perSide when "por pierna/lado/brazo")
  * - `"30–45 s"` -> time 30..45 s; `"1–2 min"` -> time 60..120 s (time keeps `perSide` too)

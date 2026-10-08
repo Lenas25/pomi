@@ -1,7 +1,13 @@
 import { parseReps } from '../gym/reps';
 
 import type { EditorErrorCode, EditorIssue, Program, Step } from './types';
-import { allTexts, isBlankText } from '../../templates/localized';
+import { allTexts, isBlankText, type LocalizedText } from '../../templates/localized';
+
+/** Every language version of `reps` parses to the same target (the template schema rule). */
+export function sameRepsRange(reps: LocalizedText): boolean {
+  const parsed = allTexts(reps).map((text) => JSON.stringify(parseReps(text)));
+  return parsed.every((value) => value === parsed[0]);
+}
 
 const isInt = (value: number, min: number): boolean => Number.isInteger(value) && value >= min;
 
@@ -14,6 +20,7 @@ export function validateStep(step: Step): EditorErrorCode[] {
       if (!isInt(step.sets, 1)) codes.push('setsInvalid');
       // Every language version must parse (the English one is shown when the app is in English).
       if (allTexts(step.reps).some((reps) => parseReps(reps) === null)) codes.push('repsInvalid');
+      else if (!sameRepsRange(step.reps)) codes.push('repsLanguagesDiffer');
       if (!isInt(step.restSec, 0)) codes.push('restInvalid');
       if (step.incrementKg !== undefined && !(step.incrementKg > 0)) codes.push('incrementInvalid');
       break;

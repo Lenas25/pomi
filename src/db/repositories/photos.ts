@@ -69,6 +69,11 @@ export function createPhotosRepository(db: Db) {
         .orderBy(asc(photos.date), asc(photos.id));
     },
 
+    /** Moves every photo of pose `from` to pose `to` (legacy pose text -> stable pose id). */
+    async renamePose(from: string, to: string): Promise<void> {
+      await db.update(photos).set({ pose: to }).where(eq(photos.pose, from));
+    },
+
     async remove(id: number): Promise<void> {
       await db.delete(photos).where(eq(photos.id, id));
     },

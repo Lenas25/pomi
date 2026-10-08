@@ -71,7 +71,8 @@ export function MonthlyReviewScreen() {
     return () => {
       cancelled = true;
     };
-  }, [day]);
+    // Template texts are resolved at load time: reload them when the language changes.
+  }, [day, language]);
 
   const finish = useCallback(
     async (count: number) => {

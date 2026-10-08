@@ -151,6 +151,39 @@ describe('forms and validation', () => {
     expect(edited.ok && edited.step).toMatchObject({ totalSec: 750 });
   });
 
+  it('clearing how / weightHint in one language only blanks that language', () => {
+    const both: Step = {
+      ...bench,
+      how: { es: 'Codos a 45°', en: 'Elbows at 45°' },
+      weightHint: { es: 'RIR 2', en: 'RIR 2 (en)' },
+    };
+    const cleared = applyForm(both, { ...formFromStep(both, 'en'), how: '', weightHint: '' }, 'en');
+    expect(cleared.ok && cleared.step).toMatchObject({
+      how: { es: 'Codos a 45°', en: '' },
+      weightHint: { es: 'RIR 2', en: '' },
+    });
+    if (!cleared.ok) return;
+    // Clearing the last language removes the field.
+    const gone = applyForm(cleared.step, { ...formFromStep(cleared.step, 'es'), how: '' }, 'es');
+    expect(gone.ok && 'how' in gone.step).toBe(false);
+    expect(gone.ok && gone.step).toMatchObject({ weightHint: { es: 'RIR 2', en: '' } });
+  });
+
+  it('carries a new rep range into the other language, or asks to review it', () => {
+    const legs: Step = { ...bench, reps: { es: '8–10 por pierna', en: '8–10 per leg' } };
+    const carried = applyForm(legs, { ...formFromStep(legs, 'es'), reps: '6–8 por pierna' }, 'es');
+    expect(carried.ok && carried.step).toMatchObject({
+      reps: { es: '6–8 por pierna', en: '6–8 per leg' },
+    });
+    const form = { ...formFromStep(legs, 'es'), reps: '30 s por pierna' };
+    expect(form.repsOther).toBe('8–10 per leg');
+    expect(applyForm(legs, form, 'es')).toEqual({ ok: false, errors: ['repsLanguagesDiffer'] });
+    const reviewed = applyForm(legs, { ...form, repsOther: '30 s per leg' }, 'es');
+    expect(reviewed.ok && reviewed.step).toMatchObject({
+      reps: { es: '30 s por pierna', en: '30 s per leg' },
+    });
+  });
+
   it('reports each problem of a program with where it is', () => {
     const broken: Program = {
       ...program,

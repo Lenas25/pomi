@@ -50,7 +50,8 @@ export function ComparisonScreen() {
     return () => {
       cancelled = true;
     };
-  }, [today]);
+    // Template texts are resolved at load time: reload them when the language changes.
+  }, [today, language]);
 
   const comparison = useMemo(() => {
     if (load.status !== 'ready') return null;

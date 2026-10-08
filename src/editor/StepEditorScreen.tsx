@@ -4,7 +4,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import {
   applyForm,
+  editReps,
   formFromStep,
+  otherLanguage,
   hasSubstitutions,
   type EditorErrorCode,
   type StepForm,
@@ -67,6 +69,13 @@ export function StepEditorScreen() {
     router.back();
   };
 
+  // A new range that could not be carried into the other language: ask to review it here, so no
+  // language keeps a different range (the template schema rejects that on save).
+  const language = currentLanguage();
+  const other = otherLanguage(language);
+  const repsNeedReview =
+    step.type === 'sets' && editReps(step.reps, form.reps.trim(), language).stale;
+
   // Always offered when the exercise has substitutions; the picker applies the equipment filters.
   const canSwap = hasSubstitutions(library, step);
 
@@ -100,6 +109,22 @@ export function StepEditorScreen() {
               onChangeText={set('reps')}
               error={errorFor('repsInvalid')}
             />
+            {repsNeedReview ? (
+              <>
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={[theme.text('caption'), { color: theme.color.textMuted }]}
+                >
+                  {t(`editor.step.repsOtherNotice.${other}`)}
+                </Text>
+                <TextField
+                  label={t(`editor.step.repsOther.${other}`)}
+                  value={form.repsOther}
+                  onChangeText={set('repsOther')}
+                  error={errorFor('repsLanguagesDiffer')}
+                />
+              </>
+            ) : null}
             <TextField
               label={t('editor.step.restSec')}
               value={form.restSec}

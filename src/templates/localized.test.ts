@@ -12,6 +12,7 @@ import {
   collectTextFields,
   editableText,
   isBlankText,
+  legacyPoseIds,
   localizedText,
   mergeLocales,
   poseEntries,
@@ -19,6 +20,7 @@ import {
   type LocalizedText,
 } from './localized';
 import { editReps } from '../domain/editor/stepForm';
+import { notificationTextProblems } from './notificationLimits';
 
 const SHIPPED = { 'gym.json': gymJson, 'habitos.json': habitosJson, 'metricas.json': metricasJson };
 
@@ -64,7 +66,8 @@ describe('localizedText', () => {
       en: 'Water',
     });
     expect(withLocalizedText('Agua', 'es', 'Hidratación')).toBe('Hidratación');
-    expect(withLocalizedText('Agua', 'en', 'Water')).toEqual({ es: 'Agua', en: 'Water' });
+    // A plain string is one text shown as written: it is replaced and stays plain.
+    expect(withLocalizedText('Agua', 'en', 'Water')).toBe('Water');
     // Unchanged text keeps its shape.
     expect(withLocalizedText('Agua', 'en', 'Agua')).toBe('Agua');
   });
@@ -76,18 +79,69 @@ describe('localizedText', () => {
     expect(isBlankText({ es: 'Agua', en: 'Water' })).toBe(false);
   });
 
-  it('a reps edit keeps the other language only while it means the same range', () => {
+  it('a reps edit keeps the other language while it means the same range', () => {
     const reps = { es: '8–10 por pierna', en: '8–10 per leg' };
-    expect(editReps(reps, '8–10 por pierna.', 'es')).toEqual({ es: '8–10 por pierna.', en: '8–10 per leg' });
-    expect(editReps(reps, '6–8 por pierna', 'es')).toBe('6–8 por pierna');
-    expect(editReps('8–10', '6–8', 'en')).toBe('6–8');
+    expect(editReps(reps, '8–10 por pierna.', 'es')).toEqual({
+      reps: { es: '8–10 por pierna.', en: '8–10 per leg' },
+      stale: false,
+    });
+    expect(editReps('8–10', '6–8', 'en')).toEqual({ reps: '6–8', stale: false });
   });
 
-  it('poses keep the Spanish text as the photo id', () => {
-    expect(poseEntries([{ es: 'frente', en: 'front' }, 'perfil'], 'en')).toEqual({
+  it('a new range is carried into the other language with its own suffix', () => {
+    const reps = { es: '8–10 por pierna', en: '8–10 per leg' };
+    expect(editReps(reps, '6–8 por pierna', 'es')).toEqual({
+      reps: { es: '6–8 por pierna', en: '6–8 per leg' },
+      stale: false,
+    });
+    expect(editReps(reps, '12 per leg', 'en')).toEqual({
+      reps: { es: '12 por pierna', en: '12 per leg' },
+      stale: false,
+    });
+    expect(editReps({ es: '3x8–10', en: '3x8–10' }, '3x6–8', 'es').reps).toEqual({
+      es: '3x6–8',
+      en: '3x6–8',
+    });
+  });
+
+  it('keeps the other language and marks it stale when the range cannot be carried', () => {
+    const reps = { es: '8–10 por pierna', en: '8–10 per leg' };
+    // Seconds now: "6–8 per leg" would still be reps, so English is kept for review.
+    expect(editReps(reps, '30–45 s por pierna', 'es')).toEqual({
+      reps: { es: '30–45 s por pierna', en: '8–10 per leg' },
+      stale: true,
+    });
+    // What the person writes for the other language after the notice replaces it.
+    expect(editReps(reps, '30–45 s por pierna', 'es', '30–45 s per leg')).toEqual({
+      reps: { es: '30–45 s por pierna', en: '30–45 s per leg' },
+      stale: false,
+    });
+    expect(editReps(reps, '30–45 s por pierna', 'es', '10 per leg').stale).toBe(true);
+  });
+
+  it('poses use their explicit id, or the Spanish text for a legacy text pose', () => {
+    expect(
+      poseEntries([{ id: 'frente', label: { es: 'frente', en: 'front' } }, 'perfil'], 'en'),
+    ).toEqual({
       ids: ['frente', 'perfil'],
       names: { frente: 'Front', perfil: 'Perfil' },
     });
+    expect(poseEntries([{ es: 'espalda', en: 'back' }], 'en').ids).toEqual(['espalda']);
+  });
+
+  it('maps legacy pose texts (any language) to the pose id', () => {
+    expect(
+      legacyPoseIds([
+        { id: 'front', label: { es: 'frente', en: 'front view' } },
+        { es: 'perfil', en: 'side' },
+      ]),
+    ).toEqual(
+      new Map([
+        ['frente', 'front'],
+        ['front view', 'front'],
+        ['side', 'perfil'],
+      ]),
+    );
   });
 });
 
@@ -137,5 +191,70 @@ describe('shipped templates are fully translated', () => {
         }
       }
     }
+  });
+});
+
+describe('reps languages and pose ids in the schema', () => {
+  const withReps = (reps: unknown) => ({
+    ...moduleWith('Gym'),
+    programs: [
+      {
+        id: 'p',
+        name: 'P',
+        routines: [
+          {
+            id: 'r',
+            name: 'R',
+            steps: [{ type: 'sets', id: 's', name: 'Remo', sets: 3, reps, restSec: 60 }],
+          },
+        ],
+      },
+    ],
+  });
+
+  it('rejects language versions of reps with different ranges, with the path', () => {
+    expect(importTemplate(withReps({ es: '8–10 por pierna', en: '8–10 per leg' })).ok).toBe(true);
+    const result = importTemplate(withReps({ es: '8–10', en: '6–8' }));
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors.map((error) => [error.code, error.path])).toEqual([
+      ['repsLanguagesDiffer', 'programs[0].routines[0].steps[0].reps.en'],
+    ]);
+  });
+
+  it('accepts poses with an explicit id and upgrades legacy pose labels at read time', () => {
+    const photos = { frequency: 'monthly', poses: [{ id: 'frente', label: 'frente' }, 'perfil'] };
+    expect(importTemplate({ ...moduleWith('Medidas'), photos }).ok).toBe(true);
+    expect(addKnownTranslations(photos, bundledTranslations())).toEqual({
+      frequency: 'monthly',
+      poses: [
+        { id: 'frente', label: { es: 'frente', en: 'front' } },
+        { es: 'perfil', en: 'side' },
+      ],
+    });
+  });
+});
+
+describe('notification text limits', () => {
+  it('passes the shipped templates', () => {
+    for (const json of Object.values(SHIPPED)) expect(notificationTextProblems(json)).toEqual([]);
+  });
+
+  it('reports long titles and bodies and extra emoji in any language', () => {
+    const json = {
+      habits: [
+        {
+          notification: {
+            title: { es: 'Agua', en: 'A title that is much too long to fit' },
+            body: { es: '💧 Bebe agua 💧', en: 'x'.repeat(81) },
+          },
+        },
+      ],
+    };
+    expect(notificationTextProblems(json).map((problem) => [problem.code, problem.path])).toEqual([
+      ['notificationTitleTooLong', 'habits[0].notification.title.en'],
+      ['notificationBodyTooLong', 'habits[0].notification.body.en'],
+      ['notificationTooManyEmoji', 'habits[0].notification.es'],
+    ]);
   });
 });

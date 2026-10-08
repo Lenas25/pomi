@@ -6,6 +6,7 @@ import { resolveOnboardingComplete } from '../onboarding/resolveStatus';
 import { useOnboardingStatusStore } from '../onboarding/statusStore';
 import { setLanguagePersistence, useLocaleStore } from '../i18n';
 import { setThemeModePersistence, useThemeModeStore } from '../ui/themeModeStore';
+import { activePoses, migratePhotoPoseIds } from '../photos/poseIds';
 
 import { getDatabase, getRepositories, migrations } from './index';
 
@@ -25,6 +26,10 @@ async function runBootstrap(): Promise<void> {
   await migrate(getDatabase(), migrations);
   const repositories = getRepositories();
   await repositories.templates.seedDefaults();
+  await migratePhotoPoseIds(
+    repositories.photos,
+    activePoses(await repositories.templates.listModules()),
+  );
   await hydrateStores(repositories);
   setThemeModePersistence((next) => repositories.settings.set('themeMode', next));
   // 'system' is stored as "no value", so the device language keeps being followed.

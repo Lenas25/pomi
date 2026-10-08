@@ -233,8 +233,13 @@ describe('StepEditorScreen', () => {
     const step = useEditorStore
       .getState()
       .state?.program.routines[0]?.steps.find((s) => s.id === 'rdl');
-    // The English "8–10" no longer means the same range, so the typed text replaces both.
-    expect(step).toMatchObject({ id: 'rdl', type: 'sets', sets: 4, reps: '6–8' });
+    // The new range is carried into the English text too, so both languages say the same.
+    expect(step).toMatchObject({
+      id: 'rdl',
+      type: 'sets',
+      sets: 4,
+      reps: { es: '6–8', en: '6–8' },
+    });
     expect(router.back).toHaveBeenCalled();
   });
 });

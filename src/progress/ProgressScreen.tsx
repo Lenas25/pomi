@@ -305,9 +305,12 @@ function MonthlySection({ done }: { done: boolean }) {
 
 function PhotosSection({
   photos,
+  poseNames,
   onDelete,
 }: {
   photos: ProgressData['photos'];
+  /** Pose id -> label in the active language. */
+  poseNames: ProgressData['poseNames'];
   onDelete: (id: number) => Promise<void>;
 }) {
   const t = useT();
@@ -333,7 +336,7 @@ function PhotosSection({
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[3] }}>
             {shown.map((photo) => {
               const label = t('progress.photos.label', {
-                pose: poseName(photo.pose),
+                pose: poseNames[photo.pose] ?? poseName(photo.pose),
                 date: format(parseISO(photo.date), 'd/M/yyyy'),
               });
               return (
@@ -460,6 +463,7 @@ export function ProgressScreen() {
             <MonthlySection done={state.status === 'ready' && state.data.monthlyDone} />
             <PhotosSection
               photos={state.status === 'ready' ? state.data.photos : []}
+              poseNames={state.status === 'ready' ? state.data.poseNames : {}}
               onDelete={removePhoto}
             />
 

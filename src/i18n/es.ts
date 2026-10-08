@@ -74,6 +74,14 @@ export const es = {
     duplicateId: 'Hay identificadores repetidos en «{{path}}». Cada uno debe ser único.',
     invalidCondition: 'La condición en «{{path}}» necesita «days» (con al menos un día) o «flag».',
     flagValueWithoutFlag: 'La condición en «{{path}}» usa «flagValue» sin «flag».',
+    notificationTitleTooLong:
+      'El título de la notificación en «{{path}}» tiene {{length}} caracteres; el máximo es {{max}}.',
+    notificationBodyTooLong:
+      'El texto de la notificación en «{{path}}» tiene {{length}} caracteres; el máximo es {{max}}.',
+    notificationTooManyEmoji:
+      'La notificación en «{{path}}» tiene {{count}} emojis; se permite como máximo {{max}}.',
+    repsLanguagesDiffer:
+      'Las repeticiones en «{{path}}» no dicen lo mismo que en español. Cada idioma debe tener el mismo rango, por ejemplo «8–10 por pierna» y «8–10 per leg».',
     unknownKey:
       'La app no conoce el campo «{{path}}». Revisa si está mal escrito; los campos que empiezan con «_» se ignoran.',
     unknown: 'Hay un problema en «{{path}}».',
@@ -1815,6 +1823,15 @@ export const es = {
       reps: 'Repeticiones (por ejemplo 8–10)',
       restSec: 'Descanso (segundos)',
       weightHint: 'Pista de peso',
+      /** Keyed by the OTHER language: shown when a new range could not be carried into it. */
+      repsOther: {
+        es: 'Repeticiones en español',
+        en: 'Repeticiones en inglés',
+      },
+      repsOtherNotice: {
+        es: 'Cambiaste el rango. Revisa las repeticiones en español para que digan lo mismo.',
+        en: 'Cambiaste el rango. Revisa las repeticiones en inglés para que digan lo mismo.',
+      },
       incrementKg: 'Incremento (kg)',
       waitSec: 'Espera (segundos)',
       totalMin: 'Duración (minutos)',
@@ -1857,6 +1874,7 @@ export const es = {
       stepNameEmpty: 'Escribe un nombre.',
       setsInvalid: 'Las series deben ser un número entero de 1 o más.',
       repsInvalid: 'Escribe las repeticiones como 8–10, 8 o 30–45 s.',
+      repsLanguagesDiffer: 'Las repeticiones en el otro idioma deben tener el mismo rango.',
       restInvalid: 'El descanso debe ser un número de segundos (0 o más).',
       incrementInvalid: 'El incremento debe ser mayor que 0.',
       waitInvalid: 'La espera debe ser de 1 segundo o más.',

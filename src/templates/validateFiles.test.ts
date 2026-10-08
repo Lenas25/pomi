@@ -13,6 +13,7 @@ import { coverageProblems } from '../domain/generator/library';
 import { describeImportError } from './describeError';
 import { parseExerciseLibrary } from './exercises';
 import { importTemplateFromText } from './importer';
+import { describeNotificationProblem, notificationTextProblems } from './notificationLimits';
 
 const ROOT = resolve(__dirname, '../..');
 const TARGET = resolve(ROOT, process.env.TEMPLATES_PATH ?? 'templates');
@@ -55,7 +56,9 @@ describe('template files', () => {
     }
     const result = importTemplateFromText(text);
     const problems = result.ok
-      ? []
+      ? notificationTextProblems(JSON.parse(text)).map((problem) =>
+          `${problem.path}: ${describeNotificationProblem(problem, t)}`,
+        )
       : result.errors.map((error) => `${error.path || '(file)'}: ${describeImportError(error, t)}`);
     expect(problems).toEqual([]);
   });

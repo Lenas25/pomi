@@ -76,6 +76,14 @@ export const en: Messages = {
     duplicateId: 'There are repeated identifiers in "{{path}}". Each one must be unique.',
     invalidCondition: 'The condition at "{{path}}" needs "days" (with at least one day) or "flag".',
     flagValueWithoutFlag: 'The condition at "{{path}}" uses "flagValue" without "flag".',
+    notificationTitleTooLong:
+      'The notification title at "{{path}}" has {{length}} characters; the maximum is {{max}}.',
+    notificationBodyTooLong:
+      'The notification text at "{{path}}" has {{length}} characters; the maximum is {{max}}.',
+    notificationTooManyEmoji:
+      'The notification at "{{path}}" has {{count}} emoji; at most {{max}} is allowed.',
+    repsLanguagesDiffer:
+      'The reps at "{{path}}" do not match the Spanish text. Every language must have the same range, for example "8–10 por pierna" and "8–10 per leg".',
     unknownKey:
       'The app does not know the field "{{path}}". Check for a typo; fields starting with "_" are ignored.',
     unknown: 'There is a problem at "{{path}}".',
@@ -1813,6 +1821,14 @@ export const en: Messages = {
       reps: 'Reps (for example 8–10)',
       restSec: 'Rest (seconds)',
       weightHint: 'Weight hint',
+      repsOther: {
+        es: 'Reps in Spanish',
+        en: 'Reps in English',
+      },
+      repsOtherNotice: {
+        es: 'You changed the range. Check the Spanish reps so they say the same.',
+        en: 'You changed the range. Check the English reps so they say the same.',
+      },
       incrementKg: 'Increment (kg)',
       waitSec: 'Wait (seconds)',
       totalMin: 'Duration (minutes)',
@@ -1856,6 +1872,7 @@ export const en: Messages = {
       stepNameEmpty: 'Write a name.',
       setsInvalid: 'Sets must be a whole number of 1 or more.',
       repsInvalid: 'Write reps like 8–10, 8 or 30–45 s.',
+      repsLanguagesDiffer: 'The reps in the other language must have the same range.',
       restInvalid: 'Rest must be a number of seconds (0 or more).',
       incrementInvalid: 'The increment must be greater than 0.',
       waitInvalid: 'The wait must be 1 second or more.',

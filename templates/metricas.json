@@ -61,16 +61,25 @@
     "frequency": "monthly",
     "poses": [
       {
-        "es": "frente",
-        "en": "front"
+        "id": "frente",
+        "label": {
+          "es": "frente",
+          "en": "front"
+        }
       },
       {
-        "es": "perfil",
-        "en": "side"
+        "id": "perfil",
+        "label": {
+          "es": "perfil",
+          "en": "side"
+        }
       },
       {
-        "es": "espalda",
-        "en": "back"
+        "id": "espalda",
+        "label": {
+          "es": "espalda",
+          "en": "back"
+        }
       }
     ],
     "guide": {

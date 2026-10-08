@@ -37,7 +37,8 @@ export function sourceText(value: LocalizedText): string {
 
 /**
  * Replaces the text for ONE locale and keeps the others, so editing a step name in English does
- * not drop its Spanish text. A plain string edited in Spanish stays a plain string.
+ * not drop its Spanish text. A plain string (written in one language, shown as is) is replaced and
+ * stays a plain string in either language: only a template that is already a map keeps two texts.
  */
 export function withLocalizedText(
   previous: LocalizedText | undefined,
@@ -46,10 +47,7 @@ export function withLocalizedText(
 ): LocalizedText {
   // Unchanged text keeps its exact shape (a plain string is not turned into a map).
   if (previous !== undefined && localizedText(previous, locale) === text) return previous;
-  if (previous === undefined || typeof previous === 'string') {
-    if (locale !== 'en' || previous === undefined) return text;
-    return { es: previous, en: text };
-  }
+  if (previous === undefined || typeof previous === 'string') return text;
   return locale === 'en' ? { ...previous, en: text } : { ...previous, es: text };
 }
 
@@ -79,21 +77,46 @@ export function hasEnglish(value: LocalizedText | undefined): boolean {
 }
 
 /**
- * Photo poses: the Spanish text is the STABLE id stored with each photo (`frente`), the localized
- * text is only the label. Returns the ids and an id -> label map.
+ * A template photo pose: `{ id, label }` with an explicit STABLE id (stored with each photo), or a
+ * legacy text whose Spanish version is the id.
  */
+export type PoseSpec = LocalizedText | { id: string; label: LocalizedText };
+
+const isPoseWithId = (pose: PoseSpec): pose is { id: string; label: LocalizedText } =>
+  typeof pose === 'object' && 'id' in pose;
+
+export const poseId = (pose: PoseSpec): string => (isPoseWithId(pose) ? pose.id : sourceText(pose));
+const poseLabel = (pose: PoseSpec): LocalizedText => (isPoseWithId(pose) ? pose.label : pose);
+
+/** Photo poses: the ids stored with each photo and an id -> label map in `locale`. */
 export function poseEntries(
-  poses: readonly LocalizedText[],
+  poses: readonly PoseSpec[],
   locale: string,
 ): { ids: string[]; names: Record<string, string> } {
   const names: Record<string, string> = {};
   const ids = poses.map((pose) => {
-    const id = sourceText(pose);
-    const label = localizedText(pose, locale);
+    const id = poseId(pose);
+    const label = localizedText(poseLabel(pose), locale);
     names[id] = label.charAt(0).toUpperCase() + label.slice(1);
     return id;
   });
   return { ids, names };
+}
+
+/**
+ * Legacy pose text -> pose id: every label text (any language) that differs from its pose id.
+ * Photo rows stored under such a text (older versions keyed photos by the label) are renamed to
+ * the id (startup and backup restore), so a pose keeps its photo history.
+ */
+export function legacyPoseIds(poses: readonly PoseSpec[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const pose of poses) {
+    const id = poseId(pose);
+    for (const text of allTexts(poseLabel(pose))) {
+      if (text !== id && !map.has(text)) map.set(text, id);
+    }
+  }
+  return map;
 }
 
 /** Keys whose values are user-facing template text (strings or `{ es, en? }`). */
@@ -118,6 +141,9 @@ export const TEXT_KEYS: ReadonlySet<string> = new Set([
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/** `{ es, en? }`: a text value. Other objects under a text key (a pose `{ id, label }`) are walked. */
+const isLocalizedMap = (value: unknown): boolean => isRecord(value) && 'es' in value;
+
 /** Every template text field under `value`, with its JSON path (`_` author notes skipped). */
 export function collectTextFields(
   value: unknown,
@@ -127,7 +153,7 @@ export function collectTextFields(
   if (Array.isArray(value)) {
     return value.flatMap((item, index) => collectTextFields(item, [...path, index], textKey));
   }
-  if (textKey && (typeof value === 'string' || isRecord(value))) return [{ path, value }];
+  if (textKey && (typeof value === 'string' || isLocalizedMap(value))) return [{ path, value }];
   if (!isRecord(value)) return [];
   return Object.entries(value).flatMap(([key, child]) =>
     key.startsWith('_') ? [] : collectTextFields(child, [...path, key], TEXT_KEYS.has(key)),
@@ -157,7 +183,7 @@ function mergeValue(es: unknown, en: unknown, textKey: boolean): unknown {
   return Object.fromEntries(
     Object.entries(es).map(([key, child]) => [
       key,
-      textKey ? child : mergeValue(child, other[key], TEXT_KEYS.has(key)),
+      textKey && isLocalizedMap(es) ? child : mergeValue(child, other[key], TEXT_KEYS.has(key)),
     ]),
   );
 }
@@ -180,7 +206,7 @@ function translateValue(
     const en = dictionary.get(value);
     return en === undefined ? value : { es: value, en };
   }
-  if (!isRecord(value) || textKey) return value;
+  if (!isRecord(value) || (textKey && isLocalizedMap(value))) return value;
   return Object.fromEntries(
     Object.entries(value).map(([key, child]) => [
       key,

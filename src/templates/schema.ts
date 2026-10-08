@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { parseReps } from '../domain/gym/reps';
 import { localizedTextSchema } from './localized';
 
 /**
@@ -20,6 +21,7 @@ export const CUSTOM_CODES = {
   duplicateId: 'custom:duplicateId',
   condition: 'custom:condition',
   flagValue: 'custom:flagValue',
+  repsLanguages: 'custom:repsLanguages',
 } as const;
 
 const idSchema = z.string().min(1);
@@ -87,7 +89,8 @@ export const waitStepSchema = z.strictObject({
   waitReason: freeTextSchema.optional(),
 });
 
-export const setsStepSchema = z.strictObject({
+export const setsStepSchema = z
+  .strictObject({
   type: z.literal('sets'),
   ...stepBase,
   sets: positiveInt,
@@ -99,7 +102,15 @@ export const setsStepSchema = z.strictObject({
   bodyweight: z.boolean().optional(),
   holdSec: positiveInt.optional(),
   incrementKg: z.number().positive().optional(),
-});
+})
+  // Reps are numbers first: every language version must mean the same range, or the targets
+  // (parsed from the Spanish text) would disagree with what an English reader sees.
+  .superRefine((step, ctx) => {
+    if (typeof step.reps === 'string' || step.reps.en === undefined) return;
+    if (JSON.stringify(parseReps(step.reps.en)) !== JSON.stringify(parseReps(step.reps.es))) {
+      ctx.addIssue({ code: 'custom', message: CUSTOM_CODES.repsLanguages, path: ['reps', 'en'] });
+    }
+  });
 
 export const timedStepSchema = z.strictObject({
   type: z.literal('timed'),
@@ -230,7 +241,15 @@ export const metricSchema = z.strictObject({
 
 export const photosSchema = z.strictObject({
   frequency: z.enum(['weekly', 'monthly']),
-  poses: z.array(localizedTextSchema(1)).min(1),
+  /** `{ id, label }` (stable id stored with each photo) or a legacy text (its Spanish is the id). */
+  poses: z
+    .array(
+      z.union([
+        localizedTextSchema(1),
+        z.strictObject({ id: idSchema, label: localizedTextSchema(1) }),
+      ]),
+    )
+    .min(1),
   guide: freeTextSchema.optional(),
 });
 

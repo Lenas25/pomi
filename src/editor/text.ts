@@ -12,6 +12,7 @@ const ERROR_KEYS = {
   stepNameEmpty: 'editor.errors.stepNameEmpty',
   setsInvalid: 'editor.errors.setsInvalid',
   repsInvalid: 'editor.errors.repsInvalid',
+  repsLanguagesDiffer: 'editor.errors.repsLanguagesDiffer',
   restInvalid: 'editor.errors.restInvalid',
   incrementInvalid: 'editor.errors.incrementInvalid',
   waitInvalid: 'editor.errors.waitInvalid',
