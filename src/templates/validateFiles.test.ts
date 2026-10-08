@@ -8,7 +8,10 @@ import { beforeAll, describe, expect, it } from '@jest/globals';
 
 import { setLanguage, t } from '../i18n';
 
+import { coverageProblems } from '../domain/generator/library';
+
 import { describeImportError } from './describeError';
+import { parseExerciseLibrary } from './exercises';
 import { importTemplateFromText } from './importer';
 
 const ROOT = resolve(__dirname, '../..');
@@ -23,6 +26,14 @@ function jsonFilesIn(path: string): string[] {
   });
 }
 
+function isExerciseLibrary(text: string): boolean {
+  try {
+    return (JSON.parse(text) as { kind?: unknown }).kind === 'exercises';
+  } catch {
+    return false;
+  }
+}
+
 describe('template files', () => {
   beforeAll(() => {
     setLanguage('es');
@@ -35,7 +46,14 @@ describe('template files', () => {
   });
 
   it.each(files.map((file) => [relative(ROOT, file), file]))('%s is valid', (_name, file) => {
-    const result = importTemplateFromText(readFileSync(file as string, 'utf8'));
+    const text = readFileSync(file as string, 'utf8');
+    // The exercise library (routine generator) is data of its own kind, with its own schema.
+    if (isExerciseLibrary(text)) {
+      const library = parseExerciseLibrary(JSON.parse(text));
+      expect(library.ok ? coverageProblems(library.library) : library.problems).toEqual([]);
+      return;
+    }
+    const result = importTemplateFromText(text);
     const problems = result.ok
       ? []
       : result.errors.map((error) => `${error.path || '(file)'}: ${describeImportError(error, t)}`);

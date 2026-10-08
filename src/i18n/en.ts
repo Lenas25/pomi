@@ -1112,6 +1112,532 @@ export const en: Messages = {
     retry: 'Try again',
     cta: 'Share my progress',
   },
+  exercises: {
+    gobletSquat: {
+      name: 'Goblet squat',
+      how: 'Hold a dumbbell at your chest, sit down with an upright torso and push the floor away.',
+    },
+    backSquat: {
+      name: 'Barbell back squat',
+      how: 'Bar on your upper back, lower with control as far as you can keep a neutral spine.',
+    },
+    press: {
+      name: '45° leg press',
+      how: 'Back supported, lower to about 90° at the knee and push without fully locking out.',
+    },
+    boxSquat: {
+      name: 'Box squat',
+      how: 'Sit back to a box or bench at a comfortable height, touch it and stand up without bouncing.',
+    },
+    bss: {
+      name: 'Bulgarian split squat',
+      how: 'Back foot on a bench, torso slightly leaning forward, lower with control.',
+    },
+    stepup: {
+      name: 'Step-up',
+      how: 'Step onto a box or bench pushing through the heel of the working leg.',
+    },
+    reverseLunge: {
+      name: 'Reverse lunge',
+      how: 'Step back, lower the knee close to the floor and return pushing with the front leg.',
+    },
+    htHeavy: {
+      name: 'Hip thrust machine',
+      how: 'Pause for 1 second at the top squeezing the glute, without arching your lower back.',
+    },
+    htMid: {
+      name: 'Barbell hip thrust',
+      how: 'Upper back on a bench, bar over your hips, drive up until knees, hips and shoulders line up.',
+    },
+    dumbbellHipThrust: {
+      name: 'Dumbbell hip thrust',
+      how: 'Upper back on a bench or sofa, dumbbell on your hips, drive up and squeeze at the top.',
+    },
+    gluteBridge: {
+      name: 'Glute bridge',
+      how: 'Lying on your back with bent knees, lift your hips squeezing the glutes and lower slowly.',
+    },
+    singleLegBridge: {
+      name: 'Single-leg glute bridge',
+      how: 'One leg extended, lift your hips with the other without letting the pelvis rotate.',
+    },
+    rdl: {
+      name: 'Dumbbell Romanian deadlift',
+      how: 'Hips back with a flat back; lower until you feel the hamstring stretch.',
+    },
+    rdlBarbell: {
+      name: 'Barbell Romanian deadlift',
+      how: 'Bar close to your legs, hips back, neutral spine, lower to just below the knee.',
+    },
+    sldl: {
+      name: 'Single-leg Romanian deadlift',
+      how: 'Tilt your torso sending the free leg back; keep your hips square to the floor.',
+    },
+    deadlift: {
+      name: 'Conventional deadlift',
+      how: 'Bar over mid-foot, neutral spine, push the floor away and extend your hips.',
+    },
+    cablePullThrough: {
+      name: 'Cable pull-through',
+      how: 'Facing away from the cable, send your hips back and drive them forward to stand.',
+    },
+    legCurl: {
+      name: 'Seated leg curl',
+      how: 'Control the way back and feel the hamstring stretch at the end of the range.',
+    },
+    slidingLegCurl: {
+      name: 'Sliding leg curl',
+      how: 'Heels on a towel on a smooth floor, lift your hips and slide your heels toward you.',
+    },
+    legext: {
+      name: 'Leg extension',
+      how: 'Extend without swinging your body and lower slowly.',
+    },
+    chestPressMachine: {
+      name: 'Machine chest press',
+      how: 'Back supported, press forward and return slowly without dropping the weight.',
+    },
+    benchPress: {
+      name: 'Barbell bench press',
+      how: 'Shoulder blades together, lower the bar to your chest and press in a straight line.',
+    },
+    dbFloorPress: {
+      name: 'Dumbbell floor press',
+      how: 'Lying on the floor, lower until your elbows touch and press the dumbbells up.',
+    },
+    pushUp: {
+      name: 'Push-up',
+      how: 'Body in one line, lower your chest to the floor and push. Use your knees if needed.',
+    },
+    inclinePushUp: {
+      name: 'Incline push-up',
+      how: 'Hands on a firm bench or step, body in one line; lower your chest and push.',
+    },
+    fistPushUp: {
+      name: 'Fist push-up',
+      how: 'Rest on your fists with straight wrists; lower your chest to the floor and push.',
+    },
+    pecDeck: {
+      name: 'Pec deck fly',
+      how: 'Bring your arms together in front without shrugging and return with control.',
+    },
+    shoulderPressMachine: {
+      name: 'Machine shoulder press',
+      how: 'Back supported, press up without arching your lower back.',
+    },
+    dbShoulderPress: {
+      name: 'Dumbbell shoulder press',
+      how: 'Seated or standing, press the dumbbells up without arching your lower back.',
+    },
+    ohpBarbell: {
+      name: 'Barbell overhead press',
+      how: 'Glutes and abs tight, press the bar in a straight line over your head.',
+    },
+    landminePress: {
+      name: 'Landmine press',
+      how: 'Bar anchored on the floor, press up and forward keeping the elbow close to your body.',
+    },
+    neutralGripDbPress: {
+      name: 'Neutral-grip dumbbell press',
+      how: 'Palms facing each other, press the dumbbells up with your elbows slightly forward.',
+    },
+    pikePushUp: {
+      name: 'Pike push-up',
+      how: 'Hips high in a V shape, lower your head between your hands and push. Put your hands on a step if needed.',
+    },
+    row: {
+      name: 'Seated cable row',
+      how: 'Chest tall, pull your elbows back close to your body and squeeze your shoulder blades.',
+    },
+    dbrow: {
+      name: 'One-arm dumbbell row',
+      how: 'One hand on a bench, pull your elbow toward your hip without rotating your torso.',
+    },
+    chestSupportedRow: {
+      name: 'Chest-supported row',
+      how: 'Chest on an incline bench, pull your elbows back and squeeze your shoulder blades.',
+    },
+    invertedRow: {
+      name: 'Inverted row',
+      how: 'Under a sturdy bar or table, body straight, pull your chest to the bar.',
+    },
+    facepull: {
+      name: 'Rope face pull',
+      how: 'Pull the rope toward your face opening your elbows, without leaning back.',
+    },
+    rearDeltFly: {
+      name: 'Rear-delt dumbbell fly',
+      how: 'Torso hinged or chest supported, open your arms out to the sides with a soft elbow.',
+    },
+    proneYRaise: {
+      name: 'Prone Y raise',
+      how: 'Face down, lift your arms in a Y shape without lifting your chest much.',
+    },
+    latPulldown: {
+      name: 'Lat pulldown',
+      how: 'Bring the bar to your upper chest with your elbows down and back.',
+    },
+    pullUp: {
+      name: 'Pull-up',
+      how: 'Hang with a firm body and pull until your chin clears the bar.',
+    },
+    dbPullover: {
+      name: 'Dumbbell pullover',
+      how: 'Lying on a bench, take the dumbbell behind your head with nearly straight arms.',
+    },
+    pronePulldown: {
+      name: 'Prone pulldown',
+      how: 'Face down with your arms forward, pull your elbows to your ribs like a pulldown.',
+    },
+    deadbug: {
+      name: 'Dead bug',
+      how: 'Lower back flat on the floor, exhale as you extend the opposite arm and leg.',
+    },
+    plank: {
+      name: 'Plank',
+      how: 'Forearms on the floor, body in one line, abs and glutes tight.',
+    },
+    pallofPress: {
+      name: 'Pallof press',
+      how: 'Side-on to the cable, press your hands forward and resist the rotation.',
+    },
+    birdDog: {
+      name: 'Bird dog',
+      how: 'On all fours, extend the opposite arm and leg without moving your hips.',
+    },
+    sidePlank: {
+      name: 'Side plank',
+      how: 'Resting on your forearm, body in one line, hips up.',
+    },
+    standingCalfRaise: {
+      name: 'Standing calf raise',
+      how: 'Rise as high as you can and lower until you feel a full stretch.',
+    },
+    dbCalfRaise: {
+      name: 'Dumbbell calf raise',
+      how: 'On a step, one leg at a time, with a dumbbell in the hand on the same side.',
+    },
+    bodyweightCalfRaise: {
+      name: 'Bodyweight calf raise',
+      how: 'On a step, rise and lower through the full range without bouncing.',
+    },
+    abd: {
+      name: 'Seated hip abduction',
+      how: 'Leaning forward, open your legs without swinging your torso.',
+    },
+    sideLyingAbduction: {
+      name: 'Side-lying hip abduction',
+      how: 'Lying on your side, lift the top leg with the toes slightly pointing down.',
+    },
+    kick: {
+      name: 'Cable glute kickback',
+      how: 'Leg back and slightly out on a diagonal, with a still torso.',
+    },
+    donkeyKick: {
+      name: 'Donkey kick',
+      how: 'On all fours, drive the heel toward the ceiling without arching your lower back.',
+    },
+    curl: {
+      name: 'Incline dumbbell curl',
+      how: 'On a 45° bench, curl the dumbbell without swinging and lower with control.',
+    },
+    hammerCurl: {
+      name: 'Hammer curl',
+      how: 'Neutral grip, curl the dumbbell with the elbow tucked in and lower with control.',
+    },
+    tri: {
+      name: 'Cable triceps pushdown',
+      how: 'Elbows tucked in, extend fully and return slowly.',
+    },
+    overheadTricepsExtension: {
+      name: 'Overhead triceps extension',
+      how: 'One dumbbell in both hands behind your head, extend upward.',
+    },
+    benchDip: {
+      name: 'Bench dip',
+      how: 'Hands on the edge of a bench, lower your body bending your elbows backward.',
+    },
+    lateralRaise: {
+      name: 'Lateral raise',
+      how: 'Raise your arms out to the sides to shoulder height, without shrugging.',
+    },
+  },
+  generator: {
+    perSide: 'per side',
+    goal: {
+      hypertrophy: 'Hypertrophy',
+      strength: 'Strength',
+      fatLoss: 'Fat loss',
+      health: 'General health',
+    },
+    session: {
+      full: 'Full body {{letter}}',
+      upper: 'Upper {{letter}}',
+      lower: 'Lower {{letter}}',
+      push: 'Push {{letter}}',
+      pull: 'Pull {{letter}}',
+      legs: 'Legs {{letter}}',
+    },
+    warmup: {
+      general: 'General warm-up, 3 to 5 min: brisk walk, bike or light jumps.',
+      mobility: {
+        full: 'Mobility: hip and shoulder circles, 5 slow squats.',
+        upper: 'Mobility: shoulder rotations and cat-camel.',
+        lower: 'Mobility: leg swings, hip circles and 5 slow squats.',
+        push: 'Mobility: shoulder rotations and chest opener.',
+        pull: 'Mobility: shoulder rotations and shoulder blade retractions.',
+        legs: 'Mobility: leg swings, hip circles and 5 slow squats.',
+      },
+      care: {
+        knee: 'Knee: use only the range that does not bother you.',
+        lower_back: 'Lower back: gentle cat-camel and a neutral spine when loading.',
+        shoulder: 'Shoulder: gentle rotations, pain free.',
+        wrist: 'Wrist: gentle circles before loading.',
+      },
+    },
+    effort: {
+      beginner:
+        'Effort: finish every set with {{min}} to {{max}} reps in reserve (you could do {{min}} to {{max}} more). Weeks 1 and 2: 3 to 4 in reserve while you learn the technique.',
+      intermediate: 'Effort: finish every set with {{min}} to {{max}} reps in reserve.',
+      advanced:
+        'Effort: finish every set with {{min}} to {{max}} reps in reserve; on isolation work you can get closer to failure.',
+    },
+    approach: { ramp: '1 × 8 at 50% · 1 × 5 at 70% · 1 × 3 at 85%' },
+    cardio: {
+      name: 'Easy cardio {{min}} min',
+      easy: 'Comfortable pace: you can talk without gasping',
+    },
+    program: { name: 'My routine: {{goal}}, {{days}} days' },
+  },
+  creator: {
+    title: 'Create my routine',
+    cta: 'Create my routine',
+    empty: {
+      title: 'You do not have a routine yet',
+      body: "Create one in a couple of minutes or import your trainer's from Settings.",
+    },
+    back: 'Back',
+    parq: {
+      title: 'Before you start',
+      intro:
+        'Seven quick health questions (PAR-Q+). Your answers stay on your phone and only adjust the proposal.',
+      progress: 'Question {{n}} of {{total}}',
+      yes: 'Yes',
+      no: 'No',
+      previous: 'Previous',
+      continue: 'Continue',
+      q: {
+        q1: 'Has your doctor ever said that you have a heart condition OR high blood pressure?',
+        q2: 'Do you feel pain in your chest at rest, during your daily activities of living, OR when you do physical activity?',
+        q3: 'Do you lose balance because of dizziness OR have you lost consciousness in the last 12 months? (Answer NO if dizziness was from over-breathing, including during vigorous exercise.)',
+        q4: 'Have you ever been diagnosed with another chronic medical condition (other than heart disease or high blood pressure)?',
+        q5: 'Are you currently taking prescribed medications for a chronic medical condition?',
+        q6: 'Do you currently have (or have had within the past 12 months) a bone, joint, or soft tissue (muscle, ligament, or tendon) problem that could be made worse by becoming more physically active? (Answer NO if a past problem no longer limits you.)',
+        q7: 'Has your doctor ever said that you should only do medically supervised physical activity?',
+      },
+      clear: {
+        title: 'All clear',
+        body: 'Start slowly and build up gradually.',
+      },
+      notice: {
+        title: 'Better to check first',
+        body: 'You answered "yes" to something important. Before becoming more active, talk to your doctor or a qualified exercise professional. Pomi is not medical clearance and does not give medical advice.',
+        chestPain: 'Chest pain is a sign to stop and see your doctor before training.',
+        restricted: 'If you decide to continue, we will only propose a gentle beginner routine.',
+        acknowledge: 'I understand and I want a gentle routine',
+      },
+      disclaimer:
+        'If during a session you feel chest pain, dizziness with fainting or severe shortness of breath, stop and seek care.',
+    },
+    inputs: {
+      title: 'Your routine',
+      intro: 'Tell us the basics. We start from what you answered when you began.',
+      restricted: 'Because of your answers, the proposal will be a gentle beginner routine.',
+      joints: 'You marked a bone, joint or soft tissue problem: choose the area below.',
+      goal: {
+        label: 'Goal',
+        hypertrophy: 'Build muscle',
+        strength: 'Strength',
+        fatLoss: 'Lose fat',
+        health: 'General health',
+      },
+      region: {
+        label: 'Priority area',
+        none: 'None',
+        glutes: 'Glutes',
+        legs: 'Legs',
+        back: 'Back',
+        chest: 'Chest',
+        shoulders: 'Shoulders',
+        arms: 'Arms',
+      },
+      level: {
+        label: 'Level',
+        beginner: 'Beginner',
+        intermediate: 'Intermediate',
+        advanced: 'Advanced',
+      },
+      days: 'Days per week',
+      minutes: 'Minutes per session',
+      minutesValue: '{{min}} min',
+      equipment: {
+        label: 'Equipment',
+        gym: 'Gym',
+        dumbbells: 'Dumbbells at home',
+        bodyweight: 'Just my body',
+      },
+      limitations: {
+        label: 'Areas that bother you',
+        hint: 'We will avoid the exercises that load them and use equivalent ones.',
+        knee: 'Knee',
+        lower_back: 'Lower back',
+        shoulder: 'Shoulder',
+        wrist: 'Wrist',
+      },
+      generate: 'See my proposal',
+    },
+    errors: {
+      noExercises:
+        'We could not find exercises for that combination. Try other equipment or fewer marked areas.',
+      screening: 'Answer the health questionnaire first.',
+    },
+    muscle: {
+      gluteo: 'Glutes',
+      cuadriceps: 'Quadriceps',
+      isquios: 'Hamstrings',
+      pecho: 'Chest',
+      espalda: 'Back',
+      hombro: 'Shoulders',
+      gemelos: 'Calves',
+      biceps: 'Biceps',
+      triceps: 'Triceps',
+      hombro_posterior: 'Rear delts',
+      gluteo_medio: 'Glute medius',
+      espalda_alta: 'Upper back',
+      core: 'Core',
+    },
+    preview: {
+      title: 'Your proposal',
+      intro:
+        'It is a proposal: nothing is saved until you accept it. You can swap exercises or remove them.',
+      summary: '{{days}} days per week, up to {{minutes}} min per session',
+      routines: 'Routines',
+      session: '{{name}} · {{minutes}} min',
+      line: '{{sets}} × {{reps}}',
+      swap: 'Swap',
+      swapLabel: 'Swap {{name}}',
+      swapTitle: 'Swap {{name}} for',
+      swapNone: 'There is no other equivalent exercise available.',
+      swapCancel: 'Cancel',
+      remove: 'Remove',
+      removeLabel: 'Remove {{name}}',
+      volume: {
+        title: 'Sets per muscle per week',
+        row: '{{sets}} sets · range {{min}}–{{max}} · {{times}} times',
+        priority: 'priority',
+        ok: 'In range',
+        low: 'Below the range',
+        high: 'Above the range',
+      },
+      who: {
+        title: 'Against the WHO guidelines',
+        aerobic: 'Cardio this week: {{min}} of {{target}} min',
+        strength: 'Strength days: {{days}} (the WHO asks for {{target}} or more)',
+        hint: 'Walking on your free days counts too.',
+      },
+      warnings: {
+        title: 'Notices',
+        daysReduced:
+          'You asked for {{requested}} days, but for this goal and level we use {{used}}.',
+        volumeBelowRange:
+          '{{muscle}} ends at {{sets}} sets, under the minimum of {{min}}: it did not fit the time or the chosen equipment.',
+        cardioBelowWho:
+          'The planned cardio adds up to {{minutes}} min; the WHO recommends {{target}} min a week. Walking on your free days helps.',
+        restrictedTemplate:
+          'It is a gentle beginner routine, because of your questionnaire answers.',
+        noSafeExercise:
+          'There is no safe exercise with your limitations to train {{muscle}}; talk to a professional.',
+      },
+      honesty:
+        'Exercise alone gives modest body composition changes: Pomi does not promise fat loss from training only.',
+      accept: 'Accept and use this routine',
+      accepting: 'Saving…',
+    },
+    why: {
+      title: 'Why this routine',
+      design: 'Pomi default, not a finding',
+      evidence: 'Evidence',
+      rule: {
+        volume: 'Volume',
+        priority: 'Priority area',
+        frequency: 'Frequency',
+        split: 'Weekly split',
+        loadReps: 'Reps',
+        effort: 'Effort',
+        rest: 'Rest',
+        progression: 'Progression',
+        warmup: 'Warm-up',
+        exerciseOrder: 'Exercise order',
+        time: 'Time',
+        limitations: 'Your limitations',
+        cardio: 'Cardio',
+        screening: 'Health questionnaire',
+      },
+      body: {
+        volume:
+          'Between {{min}} and {{max}} sets per muscle per week: more sets give more muscle, with diminishing returns.',
+        priority: 'The priority area adds {{bonus}} sets a week on top of that band.',
+        frequency:
+          'Every muscle is trained {{times}} times a week: the simplest way to spread the volume.',
+        loadReps:
+          '{{compound}} reps on compound lifts and {{isolation}} on isolation work: any load works if you get close to effort.',
+        effort: 'Finish your sets with {{min}} to {{max}} reps in reserve.',
+        rest: 'Rest {{compound}} s on compound lifts and {{isolation}} s on isolation work.',
+        progression:
+          'Double progression: when you complete every set at the top of the range, add weight. Deloads are reactive: after {{stall}} sessions without improving, one week with {{pct}}% less weight.',
+        warmup:
+          '{{minutes}} min warm-up and ramp-up sets on the first lift; they do not count as volume.',
+        exerciseOrder: 'Multi-joint exercises first, single-joint ones after.',
+        time: 'Every session fits in {{minutes}} min (up to {{sets}} sets). If the volume does not fit, isolation work is trimmed first.',
+        limitations:
+          'We avoid exercises that load the areas you marked and put equivalent ones in.',
+        cardio:
+          'Easy cardio at the end of sessions; the WHO recommends {{target}} min a week of moderate activity.',
+        screening:
+          'You answered "yes" in the questionnaire, so we only offer a gentle beginner routine.',
+      },
+      split: {
+        full: 'Full-body sessions on non-consecutive days.',
+        upperLower: 'Four days: upper and lower body, twice each.',
+        upperLowerPpl: 'Five days: upper and lower, plus push, pull and legs.',
+        ppl: 'Six days: push, pull and legs, twice each.',
+      },
+      summary: {
+        E1: 'More weekly sets per muscle increase hypertrophy, with diminishing returns; indirect sets count half.',
+        E2: 'Training each muscle twice a week works as well as or better than once; at equal volume, frequency is mostly logistics.',
+        E3: 'Light or heavy loads give similar hypertrophy if you get close to effort; heavy ones favour strength.',
+        E4: 'Resting more than 60 to 90 s is not worse; compound lifts benefit from 2 to 3 min.',
+        E5: 'Adding 2 to 10% load when you beat the range is the ACSM rule; scheduled deloads have shown no benefit.',
+        E6: 'Multi-joint exercises first; full range of motion is at least as good as partial.',
+        E7: 'Warming up improves performance; ramp-up sets are common practice, without trials behind them.',
+        E8: 'Cardio does not prevent gaining muscle; 150 to 250 moderate minutes a week help weight loss (food matters more).',
+        E9: 'The WHO asks for 150 to 300 min a week of moderate activity and strength work at least 2 days.',
+        E10: 'The PAR-Q+ questionnaire (7 questions) flags who should check with a professional before starting.',
+        E11: 'At equal volume, full-body and split routines give similar results; beginners start with full body.',
+        E12: 'Table of defaults by goal and level: Pomi decisions between sources, not findings.',
+        E13: 'Most studies are of young adults and last a few weeks: the numbers are starting points.',
+      },
+    },
+    accept: {
+      title: 'Use this routine',
+      kept: 'We keep your history for {{count}} exercises.',
+      lost: 'The history of these will not show: {{names}}.',
+      note: 'Your gym days in Settings do not change; the routines rotate between them.',
+      confirm: 'Use routine',
+      cancel: 'Cancel',
+      failed: 'We could not save the routine. Please try again.',
+    },
+  },
   database: {
     errorTitle: 'We could not open your data',
     errorBody:

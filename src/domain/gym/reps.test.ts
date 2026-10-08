@@ -5,6 +5,17 @@ import gymJson from '../../../templates/gym.json';
 import { parseReps } from './reps';
 
 describe('parseReps', () => {
+  it('knows "per side" in English too (generated programs follow the app language)', () => {
+    expect(parseReps('8–10 per side')).toEqual({ kind: 'reps', min: 8, max: 10, perSide: true });
+    expect(parseReps('12 each leg')).toMatchObject({ perSide: true });
+    expect(parseReps('20–40 s per side')).toEqual({
+      kind: 'time',
+      minSec: 20,
+      maxSec: 40,
+      perSide: true,
+    });
+  });
+
   it('parses ranges with an en dash or a hyphen', () => {
     expect(parseReps('8–10')).toEqual({ kind: 'reps', min: 8, max: 10, perSide: false });
     expect(parseReps('8-10')).toEqual({ kind: 'reps', min: 8, max: 10, perSide: false });

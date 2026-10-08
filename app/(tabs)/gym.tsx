@@ -9,7 +9,6 @@ import { Button } from '../../src/ui/Button';
 import { Card } from '../../src/ui/Card';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Screen } from '../../src/ui/Screen';
-import { SectionPlaceholder } from '../../src/ui/SectionPlaceholder';
 import { useTheme } from '../../src/ui/theme';
 
 function openSession(routineId: string): void {
@@ -41,7 +40,17 @@ export default function Gym() {
       </Screen>
     );
   }
-  if (!tab.program) return <SectionPlaceholder section="gym" />;
+  if (!tab.program) {
+    return (
+      <Screen>
+        <EmptyState
+          title={t('creator.empty.title')}
+          body={t('creator.empty.body')}
+          action={{ label: t('creator.cta'), onPress: () => router.push('/crear-rutina') }}
+        />
+      </Screen>
+    );
+  }
 
   const { program, todayRoutineId, resumableRoutineId } = tab;
   const today = program.routines.find((routine) => routine.id === todayRoutineId);
@@ -122,6 +131,12 @@ export default function Gym() {
             );
           })}
         </View>
+
+        <Button
+          label={t('creator.cta')}
+          variant="secondary"
+          onPress={() => router.push('/crear-rutina')}
+        />
       </View>
     </Screen>
   );

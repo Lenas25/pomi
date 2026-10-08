@@ -1,0 +1,53 @@
+// View model of the proposal preview: pure functions over a `GeneratedProgram`, so the screen only
+// lays things out. Texts are i18n keys + params.
+import type {
+  GeneratedProgram,
+  MuscleVolume,
+  RuleRef,
+  SessionKind,
+} from '../domain/generator/types';
+
+export type ExerciseLine = {
+  sessionId: string;
+  exerciseId: string;
+  sets: number;
+  reps: string;
+};
+
+export type RoutineView = {
+  id: string;
+  kind: SessionKind;
+  name: string;
+  minutes: number;
+  lines: ExerciseLine[];
+  cardioMin: number;
+};
+
+export function routinesOf(generated: GeneratedProgram): RoutineView[] {
+  return generated.program.routines.map((routine) => {
+    const session = generated.plan.sessions.find((candidate) => candidate.id === routine.id);
+    const summary = generated.summary.sessions.find((candidate) => candidate.id === routine.id);
+    return {
+      id: routine.id,
+      kind: session?.kind ?? 'full',
+      name: routine.name,
+      minutes: summary?.minutes ?? 0,
+      cardioMin: session?.cardioMin ?? 0,
+      lines: routine.steps.flatMap((step) =>
+        step.type === 'sets'
+          ? [{ sessionId: routine.id, exerciseId: step.id, sets: step.sets, reps: step.reps }]
+          : [],
+      ),
+    };
+  });
+}
+
+/** Rows of the weekly volume table, largest muscles first (the order of the evidence table). */
+export function volumeRows(generated: GeneratedProgram): MuscleVolume[] {
+  return generated.summary.weekly;
+}
+
+/** The rules to explain, with the split rule carrying the kind of week in its params. */
+export function rulesToExplain(generated: GeneratedProgram): RuleRef[] {
+  return generated.summary.rules;
+}

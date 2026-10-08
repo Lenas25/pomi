@@ -23,7 +23,8 @@ const SECONDS_UNIT = /^\s*(s|seg|segs|segundos|sec|secs)\b/i;
 const MINUTES_UNIT = /^\s*(min|mins|minuto|minutos)\b/i;
 // Leading "3x" / "3 × " set count: the sets live in `step.sets`, so it is ignored.
 const SETS_PREFIX = /^\s*\d+\s*[x×]\s*(?=\d)/i;
-const PER_SIDE = /\bpor\s+(pierna|lado|brazo|mano)\b|\bc\/u\b|\bcada\s+(pierna|lado|brazo)\b/i;
+const PER_SIDE =
+  /\bpor\s+(pierna|lado|brazo|mano)\b|\bc\/u\b|\bcada\s+(pierna|lado|brazo)\b|\bper\s+(leg|side|arm|hand)\b|\beach\s+(leg|side|arm)\b/i;
 
 /**
  * - `"8–10"` / `"8-10"` -> reps 8..10

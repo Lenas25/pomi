@@ -1109,6 +1109,533 @@ export const es = {
     retry: 'Reintentar',
     cta: 'Compartir mi progreso',
   },
+  exercises: {
+    gobletSquat: {
+      name: 'Sentadilla goblet',
+      how: 'Sostén una mancuerna al pecho, baja con el torso erguido y sube empujando el piso.',
+    },
+    backSquat: {
+      name: 'Sentadilla con barra',
+      how: 'Barra sobre la espalda alta, baja controlado hasta donde llegues sin perder la espalda neutra.',
+    },
+    press: {
+      name: 'Prensa 45°',
+      how: 'Espalda apoyada, baja hasta unos 90° de rodilla y empuja sin bloquear del todo.',
+    },
+    boxSquat: {
+      name: 'Sentadilla a un cajón',
+      how: 'Siéntate en un cajón o banco a una altura cómoda, toca y levántate sin rebotar.',
+    },
+    bss: {
+      name: 'Sentadilla búlgara',
+      how: 'Pie de atrás sobre un banco, torso un poco inclinado hacia adelante, baja con control.',
+    },
+    stepup: {
+      name: 'Step-up',
+      how: 'Sube a un escalón o banco empujando con el talón de la pierna que apoya.',
+    },
+    reverseLunge: {
+      name: 'Zancada hacia atrás',
+      how: 'Da un paso atrás, baja la rodilla casi al piso y vuelve empujando con la pierna de adelante.',
+    },
+    htHeavy: {
+      name: 'Hip thrust en máquina',
+      how: 'Pausa de 1 segundo arriba apretando el glúteo, sin arquear la espalda baja.',
+    },
+    htMid: {
+      name: 'Hip thrust con barra',
+      how: 'Espalda alta en un banco, barra sobre la cadera, sube hasta alinear rodillas, cadera y hombros.',
+    },
+    dumbbellHipThrust: {
+      name: 'Hip thrust con mancuerna',
+      how: 'Espalda alta en un banco o sillón, mancuerna sobre la cadera, sube y aprieta arriba.',
+    },
+    gluteBridge: {
+      name: 'Puente de glúteo',
+      how: 'Boca arriba con rodillas dobladas, sube la cadera apretando el glúteo y baja despacio.',
+    },
+    singleLegBridge: {
+      name: 'Puente de glúteo a una pierna',
+      how: 'Una pierna estirada, sube la cadera con la otra sin que la pelvis rote.',
+    },
+    rdl: {
+      name: 'Peso muerto rumano con mancuernas',
+      how: 'Cadera hacia atrás con la espalda recta; baja hasta sentir el estiramiento en el isquio.',
+    },
+    rdlBarbell: {
+      name: 'Peso muerto rumano con barra',
+      how: 'Barra pegada a las piernas, cadera atrás, espalda neutra, baja hasta bajo la rodilla.',
+    },
+    sldl: {
+      name: 'Peso muerto a una pierna',
+      how: 'Inclina el torso llevando la pierna libre hacia atrás; cadera cuadrada al piso.',
+    },
+    deadlift: {
+      name: 'Peso muerto convencional',
+      how: 'Barra sobre el medio del pie, espalda neutra, empuja el piso y extiende la cadera.',
+    },
+    cablePullThrough: {
+      name: 'Pull-through en polea',
+      how: 'De espaldas a la polea, lleva la cadera atrás y vuelve extendiéndola con fuerza.',
+    },
+    legCurl: {
+      name: 'Curl femoral sentado',
+      how: 'Controla la bajada y siente el estiramiento del isquio al final del recorrido.',
+    },
+    slidingLegCurl: {
+      name: 'Curl femoral deslizante',
+      how: 'Talones sobre una toalla en piso liso, sube la cadera y desliza los talones hacia ti.',
+    },
+    legext: {
+      name: 'Extensión de cuádriceps',
+      how: 'Extiende sin balancear el cuerpo y baja despacio.',
+    },
+    chestPressMachine: {
+      name: 'Press de pecho en máquina',
+      how: 'Espalda apoyada, empuja al frente y regresa despacio sin dejar caer el peso.',
+    },
+    benchPress: {
+      name: 'Press de banca con barra',
+      how: 'Omóplatos juntos, baja la barra al pecho y empuja en línea recta.',
+    },
+    dbFloorPress: {
+      name: 'Press de pecho en el piso con mancuernas',
+      how: 'Boca arriba en el piso, baja hasta que el codo toque y empuja las mancuernas hacia arriba.',
+    },
+    pushUp: {
+      name: 'Flexión de brazos',
+      how: 'Cuerpo en una línea, baja el pecho al piso y empuja. Apoya las rodillas si hace falta.',
+    },
+    inclinePushUp: {
+      name: 'Flexión inclinada',
+      how: 'Manos sobre un banco o escalón firme, cuerpo en una línea; baja el pecho y empuja.',
+    },
+    fistPushUp: {
+      name: 'Flexión sobre puños',
+      how: 'Apoya los puños con las muñecas rectas; baja el pecho al piso y empuja.',
+    },
+    pecDeck: {
+      name: 'Aperturas en máquina',
+      how: 'Junta los brazos al frente sin encoger los hombros y regresa con control.',
+    },
+    shoulderPressMachine: {
+      name: 'Press de hombro en máquina',
+      how: 'Espalda apoyada, empuja hacia arriba sin arquear la espalda baja.',
+    },
+    dbShoulderPress: {
+      name: 'Press de hombro con mancuernas',
+      how: 'Sentado o de pie, empuja las mancuernas arriba sin arquear la espalda baja.',
+    },
+    ohpBarbell: {
+      name: 'Press militar con barra',
+      how: 'Glúteos y abdomen firmes, empuja la barra en línea recta sobre la cabeza.',
+    },
+    landminePress: {
+      name: 'Press landmine',
+      how: 'Barra anclada en el piso, empuja hacia arriba y adelante con un codo cerca del cuerpo.',
+    },
+    neutralGripDbPress: {
+      name: 'Press de hombro con agarre neutro',
+      how: 'Palmas enfrentadas, empuja las mancuernas arriba con los codos un poco al frente.',
+    },
+    pikePushUp: {
+      name: 'Flexión en pica',
+      how: 'Cadera alta formando una V, baja la cabeza entre las manos y empuja. Apoya las manos en un escalón si hace falta.',
+    },
+    row: {
+      name: 'Remo sentado en polea baja',
+      how: 'Pecho alto, lleva los codos atrás pegados al cuerpo y junta los omóplatos.',
+    },
+    dbrow: {
+      name: 'Remo con mancuerna a una mano',
+      how: 'Una mano en un banco, lleva el codo hacia la cadera sin rotar el torso.',
+    },
+    chestSupportedRow: {
+      name: 'Remo con pecho apoyado',
+      how: 'Pecho sobre un banco inclinado, lleva los codos atrás y junta los omóplatos.',
+    },
+    invertedRow: {
+      name: 'Remo invertido',
+      how: 'Bajo una barra firme o una mesa resistente, cuerpo recto, lleva el pecho a la barra.',
+    },
+    facepull: {
+      name: 'Face pull con cuerda',
+      how: 'Lleva la cuerda hacia la cara abriendo los codos, sin inclinar el torso atrás.',
+    },
+    rearDeltFly: {
+      name: 'Pájaro con mancuernas',
+      how: 'Torso inclinado o pecho apoyado, abre los brazos a los lados con un codo suave.',
+    },
+    proneYRaise: {
+      name: 'Elevación en Y boca abajo',
+      how: 'Boca abajo, levanta los brazos en forma de Y sin despegar mucho el pecho.',
+    },
+    latPulldown: {
+      name: 'Jalón al pecho',
+      how: 'Lleva la barra a la parte alta del pecho con los codos hacia abajo y atrás.',
+    },
+    pullUp: {
+      name: 'Dominada',
+      how: 'Cuelga con el cuerpo firme y sube hasta pasar la barbilla de la barra.',
+    },
+    dbPullover: {
+      name: 'Pullover con mancuerna',
+      how: 'Boca arriba en un banco, lleva la mancuerna detrás de la cabeza con los brazos casi rectos.',
+    },
+    pronePulldown: {
+      name: 'Jalón boca abajo',
+      how: 'Boca abajo con los brazos adelante, lleva los codos a las costillas como un jalón.',
+    },
+    deadbug: {
+      name: 'Dead bug',
+      how: 'Espalda baja pegada al piso, exhala al extender brazo y pierna contrarios.',
+    },
+    plank: {
+      name: 'Plancha',
+      how: 'Antebrazos en el piso, cuerpo en una línea, abdomen y glúteos firmes.',
+    },
+    pallofPress: {
+      name: 'Pallof press',
+      how: 'De lado a la polea, empuja las manos al frente y resiste que el cuerpo gire.',
+    },
+    birdDog: {
+      name: 'Bird dog',
+      how: 'En cuadrupedia, extiende brazo y pierna contrarios sin mover la cadera.',
+    },
+    sidePlank: {
+      name: 'Plancha lateral',
+      how: 'Apoyada en el antebrazo, cuerpo en línea, cadera arriba.',
+    },
+    standingCalfRaise: {
+      name: 'Elevación de talones de pie',
+      how: 'Sube lo más alto que puedas y baja hasta sentir el estiramiento completo.',
+    },
+    dbCalfRaise: {
+      name: 'Elevación de talones con mancuerna',
+      how: 'En un escalón y a una pierna, con una mancuerna en la mano libre de apoyo.',
+    },
+    bodyweightCalfRaise: {
+      name: 'Elevación de talones sin peso',
+      how: 'En un escalón, sube y baja con recorrido completo y sin rebotar.',
+    },
+    abd: {
+      name: 'Abducción sentada',
+      how: 'Inclinada hacia adelante, abre las piernas sin balancear el torso.',
+    },
+    sideLyingAbduction: {
+      name: 'Abducción de cadera acostada',
+      how: 'De lado, sube la pierna de arriba con la punta del pie un poco hacia abajo.',
+    },
+    kick: {
+      name: 'Patada de glúteo en polea',
+      how: 'Pierna atrás y un poco hacia afuera en diagonal, con el torso quieto.',
+    },
+    donkeyKick: {
+      name: 'Patada de glúteo en cuadrupedia',
+      how: 'En cuadrupedia, empuja el talón hacia el techo sin arquear la espalda baja.',
+    },
+    curl: {
+      name: 'Curl de bíceps inclinado',
+      how: 'Banco inclinado a 45°, sube la mancuerna sin balancear y baja con control.',
+    },
+    hammerCurl: {
+      name: 'Curl martillo',
+      how: 'Agarre neutro, sube la mancuerna con el codo pegado al cuerpo y baja con control.',
+    },
+    tri: {
+      name: 'Extensión de tríceps en polea',
+      how: 'Codos pegados al cuerpo, extiende por completo y sube despacio.',
+    },
+    overheadTricepsExtension: {
+      name: 'Extensión de tríceps sobre la cabeza',
+      how: 'Una mancuerna con las dos manos detrás de la cabeza, extiende hacia arriba.',
+    },
+    benchDip: {
+      name: 'Fondos en banco',
+      how: 'Manos en el borde de un banco, baja el cuerpo doblando los codos hacia atrás.',
+    },
+    lateralRaise: {
+      name: 'Elevación lateral',
+      how: 'Sube los brazos a los lados hasta la altura del hombro, sin encoger el cuello.',
+    },
+  },
+  generator: {
+    perSide: 'por lado',
+    goal: {
+      hypertrophy: 'Hipertrofia',
+      strength: 'Fuerza',
+      fatLoss: 'Bajar grasa',
+      health: 'Salud general',
+    },
+    session: {
+      full: 'Cuerpo completo {{letter}}',
+      upper: 'Superior {{letter}}',
+      lower: 'Inferior {{letter}}',
+      push: 'Empuje {{letter}}',
+      pull: 'Tirón {{letter}}',
+      legs: 'Piernas {{letter}}',
+    },
+    warmup: {
+      general: 'Calentamiento general de 3 a 5 min: caminata rápida, bici o saltos suaves.',
+      mobility: {
+        full: 'Movilidad: círculos de cadera y de hombros, 5 sentadillas lentas.',
+        upper: 'Movilidad: rotaciones de hombro y gato-camello.',
+        lower: 'Movilidad: balanceo de pierna, círculos de cadera y 5 sentadillas lentas.',
+        push: 'Movilidad: rotaciones de hombro y apertura de pecho.',
+        pull: 'Movilidad: rotaciones de hombro y retracción de omóplatos.',
+        legs: 'Movilidad: balanceo de pierna, círculos de cadera y 5 sentadillas lentas.',
+      },
+      care: {
+        knee: 'Rodilla: usa solo el recorrido que no moleste.',
+        lower_back: 'Espalda baja: gato-camello suave y espalda neutra al cargar.',
+        shoulder: 'Hombro: rotaciones suaves, sin dolor.',
+        wrist: 'Muñeca: círculos suaves antes de cargar.',
+      },
+    },
+    effort: {
+      beginner:
+        'Esfuerzo: termina cada serie con {{min}} a {{max}} repeticiones en reserva (podrías hacer {{min}} a {{max}} más). Semanas 1 y 2: 3 a 4 en reserva para aprender la técnica.',
+      intermediate: 'Esfuerzo: termina cada serie con {{min}} a {{max}} repeticiones en reserva.',
+      advanced:
+        'Esfuerzo: termina cada serie con {{min}} a {{max}} repeticiones en reserva; en los aislamientos puedes acercarte más al fallo.',
+    },
+    approach: { ramp: '1 × 8 al 50% · 1 × 5 al 70% · 1 × 3 al 85%' },
+    cardio: {
+      name: 'Cardio suave {{min}} min',
+      easy: 'Ritmo cómodo: puedes hablar sin ahogarte',
+    },
+    program: { name: 'Mi rutina: {{goal}}, {{days}} días' },
+  },
+  creator: {
+    title: 'Crear mi rutina',
+    cta: 'Crear mi rutina',
+    empty: {
+      title: 'Aún no tienes una rutina',
+      body: 'Crea una en un par de minutos o importa la de tu entrenador desde Ajustes.',
+    },
+    back: 'Atrás',
+    parq: {
+      title: 'Antes de empezar',
+      intro:
+        'Siete preguntas rápidas de salud (PAR-Q+). Tus respuestas se quedan en tu teléfono y solo sirven para ajustar la propuesta.',
+      progress: 'Pregunta {{n}} de {{total}}',
+      yes: 'Sí',
+      no: 'No',
+      previous: 'Anterior',
+      continue: 'Continuar',
+      q: {
+        q1: '¿Tu médico te ha dicho alguna vez que tienes una enfermedad del corazón O presión arterial alta?',
+        q2: '¿Sientes dolor en el pecho en reposo, durante tus actividades diarias O cuando haces actividad física?',
+        q3: '¿Pierdes el equilibrio por mareos O has perdido el conocimiento en los últimos 12 meses? (Responde NO si el mareo fue por respirar demasiado rápido, también durante ejercicio intenso.)',
+        q4: '¿Te han diagnosticado otra enfermedad crónica (distinta de una enfermedad del corazón o de presión arterial alta)?',
+        q5: '¿Tomas actualmente medicamentos recetados para una enfermedad crónica?',
+        q6: '¿Tienes actualmente (o has tenido en los últimos 12 meses) un problema de hueso, articulación o tejido blando (músculo, ligamento o tendón) que podría empeorar si te mueves más? (Responde NO si un problema pasado ya no te limita.)',
+        q7: '¿Te ha dicho tu médico alguna vez que solo deberías hacer actividad física con supervisión médica?',
+      },
+      clear: {
+        title: 'Todo en orden',
+        body: 'Empieza despacio y sube poco a poco.',
+      },
+      notice: {
+        title: 'Conviene consultar primero',
+        body: 'Respondiste «sí» a algo importante. Antes de moverte más, habla con tu médico o con un profesional del ejercicio cualificado. Pomi no es una autorización médica ni da consejo médico.',
+        chestPain:
+          'El dolor en el pecho es una señal para parar y consultar a tu médico antes de entrenar.',
+        restricted:
+          'Si decides continuar, solo te propondremos una rutina suave para principiantes.',
+        acknowledge: 'Lo entiendo y quiero una rutina suave',
+      },
+      disclaimer:
+        'Si durante una sesión sientes dolor en el pecho, mareo con desmayo o falta de aire intensa, para y busca atención.',
+    },
+    inputs: {
+      title: 'Tu rutina',
+      intro: 'Cuéntanos lo básico. Partimos de lo que respondiste al empezar.',
+      restricted: 'Por tus respuestas, la propuesta será una rutina suave para principiantes.',
+      joints: 'Marcaste un problema de hueso, articulación o tejido blando: elige la zona abajo.',
+      goal: {
+        label: 'Objetivo',
+        hypertrophy: 'Ganar músculo',
+        strength: 'Fuerza',
+        fatLoss: 'Bajar grasa',
+        health: 'Salud general',
+      },
+      region: {
+        label: 'Zona prioritaria',
+        none: 'Ninguna',
+        glutes: 'Glúteos',
+        legs: 'Piernas',
+        back: 'Espalda',
+        chest: 'Pecho',
+        shoulders: 'Hombros',
+        arms: 'Brazos',
+      },
+      level: {
+        label: 'Nivel',
+        beginner: 'Principiante',
+        intermediate: 'Intermedio',
+        advanced: 'Avanzado',
+      },
+      days: 'Días por semana',
+      minutes: 'Minutos por sesión',
+      minutesValue: '{{min}} min',
+      equipment: {
+        label: 'Equipo',
+        gym: 'Gimnasio',
+        dumbbells: 'Mancuernas en casa',
+        bodyweight: 'Solo mi cuerpo',
+      },
+      limitations: {
+        label: 'Zonas con molestias',
+        hint: 'Evitaremos los ejercicios que las cargan y pondremos otros equivalentes.',
+        knee: 'Rodilla',
+        lower_back: 'Espalda baja',
+        shoulder: 'Hombro',
+        wrist: 'Muñeca',
+      },
+      generate: 'Ver mi propuesta',
+    },
+    errors: {
+      noExercises:
+        'No encontramos ejercicios para esa combinación. Prueba con otro equipo o con menos zonas marcadas.',
+      screening: 'Primero responde el cuestionario de salud.',
+    },
+    muscle: {
+      gluteo: 'Glúteos',
+      cuadriceps: 'Cuádriceps',
+      isquios: 'Isquiotibiales',
+      pecho: 'Pecho',
+      espalda: 'Espalda',
+      hombro: 'Hombros',
+      gemelos: 'Gemelos',
+      biceps: 'Bíceps',
+      triceps: 'Tríceps',
+      hombro_posterior: 'Hombro posterior',
+      gluteo_medio: 'Glúteo medio',
+      espalda_alta: 'Espalda alta',
+      core: 'Core',
+    },
+    preview: {
+      title: 'Tu propuesta',
+      intro:
+        'Es una propuesta: no se guarda nada hasta que la aceptes. Puedes cambiar ejercicios o quitarlos.',
+      summary: '{{days}} días por semana, hasta {{minutes}} min por sesión',
+      routines: 'Rutinas',
+      session: '{{name}} · {{minutes}} min',
+      line: '{{sets}} × {{reps}}',
+      swap: 'Cambiar',
+      swapLabel: 'Cambiar {{name}}',
+      swapTitle: 'Cambiar {{name}} por',
+      swapNone: 'No hay otro ejercicio equivalente disponible.',
+      swapCancel: 'Cancelar',
+      remove: 'Quitar',
+      removeLabel: 'Quitar {{name}}',
+      volume: {
+        title: 'Series por músculo a la semana',
+        row: '{{sets}} series · rango {{min}}–{{max}} · {{times}} veces',
+        priority: 'prioritario',
+        ok: 'En rango',
+        low: 'Por debajo del rango',
+        high: 'Por encima del rango',
+      },
+      who: {
+        title: 'Frente a la OMS',
+        aerobic: 'Cardio de la semana: {{min}} de {{target}} min',
+        strength: 'Días de fuerza: {{days}} (la OMS pide {{target}} o más)',
+        hint: 'Caminar en tus días libres también suma.',
+      },
+      warnings: {
+        title: 'Avisos',
+        daysReduced: 'Pediste {{requested}} días, pero para este objetivo y nivel usamos {{used}}.',
+        volumeBelowRange:
+          '{{muscle}} queda en {{sets}} series, bajo el mínimo de {{min}}: no cabía en el tiempo o con el equipo elegido.',
+        cardioBelowWho:
+          'El cardio planeado suma {{minutes}} min; la OMS recomienda {{target}} min a la semana. Caminar en tus días libres ayuda.',
+        restrictedTemplate:
+          'Es una rutina suave para principiantes, por tus respuestas del cuestionario.',
+        noSafeExercise:
+          'No hay un ejercicio seguro con tus limitaciones para trabajar {{muscle}}; consulta a un profesional.',
+      },
+      honesty:
+        'El ejercicio por sí solo da cambios modestos de composición corporal: Pomi no promete bajar grasa solo con entrenar.',
+      accept: 'Aceptar y usar esta rutina',
+      accepting: 'Guardando…',
+    },
+    why: {
+      title: 'Por qué esta rutina',
+      design: 'Valor por defecto de Pomi, no un hallazgo',
+      evidence: 'Evidencia',
+      rule: {
+        volume: 'Volumen',
+        priority: 'Zona prioritaria',
+        frequency: 'Frecuencia',
+        split: 'Reparto de la semana',
+        loadReps: 'Repeticiones',
+        effort: 'Esfuerzo',
+        rest: 'Descansos',
+        progression: 'Progresión',
+        warmup: 'Calentamiento',
+        exerciseOrder: 'Orden de los ejercicios',
+        time: 'Tiempo',
+        limitations: 'Tus limitaciones',
+        cardio: 'Cardio',
+        screening: 'Cuestionario de salud',
+      },
+      body: {
+        volume:
+          'Entre {{min}} y {{max}} series por músculo a la semana: más series dan más músculo, con retornos decrecientes.',
+        priority: 'La zona prioritaria suma {{bonus}} series a la semana sobre esa banda.',
+        frequency:
+          'Cada músculo se entrena {{times}} veces por semana: es la forma más simple de repartir el volumen.',
+        loadReps:
+          '{{compound}} repeticiones en ejercicios compuestos y {{isolation}} en aislamientos: cualquier carga sirve si te acercas al esfuerzo.',
+        effort: 'Termina las series con {{min}} a {{max}} repeticiones en reserva.',
+        rest: 'Descansos de {{compound}} s en ejercicios compuestos y {{isolation}} s en aislamientos.',
+        progression:
+          'Doble progresión: cuando completas todas las series en lo alto del rango, sube el peso. La descarga es reactiva: tras {{stall}} sesiones sin mejorar, una semana con {{pct}}% menos de peso.',
+        warmup:
+          'Calentamiento de {{minutes}} min y series de aproximación en el primer ejercicio; no cuentan como volumen.',
+        exerciseOrder: 'Primero los ejercicios de varias articulaciones, después los de una sola.',
+        time: 'Cada sesión cabe en {{minutes}} min (hasta {{sets}} series). Si el volumen no cabe, se recortan primero los aislamientos.',
+        limitations:
+          'Evitamos los ejercicios que cargan las zonas que marcaste y ponemos otros equivalentes.',
+        cardio:
+          'Cardio suave al final de las sesiones; la OMS recomienda {{target}} min semanales de actividad moderada.',
+        screening:
+          'Respondiste «sí» en el cuestionario, así que solo ofrecemos una rutina suave para principiantes.',
+      },
+      split: {
+        full: 'Sesiones de cuerpo completo en días no consecutivos.',
+        upperLower: 'Cuatro días: parte superior e inferior, dos veces cada una.',
+        upperLowerPpl: 'Cinco días: superior e inferior, más empuje, tirón y piernas.',
+        ppl: 'Seis días: empuje, tirón y piernas, dos veces cada uno.',
+      },
+      summary: {
+        E1: 'Más series semanales por músculo aumentan la hipertrofia, con retornos decrecientes; las series indirectas cuentan la mitad.',
+        E2: 'Entrenar cada músculo dos veces por semana funciona igual o mejor que una; con el mismo volumen, la frecuencia es sobre todo logística.',
+        E3: 'Cargas ligeras o pesadas dan hipertrofia parecida si te acercas al esfuerzo; las pesadas favorecen la fuerza.',
+        E4: 'Descansar más de 60 a 90 s no es peor; los ejercicios compuestos se benefician de 2 a 3 min.',
+        E5: 'Subir 2 a 10% la carga al superar el rango es la regla de la ACSM; las descargas programadas no han mostrado beneficio.',
+        E6: 'Primero los ejercicios de varias articulaciones; el recorrido completo es al menos tan bueno como el parcial.',
+        E7: 'Calentar mejora el rendimiento; las series de aproximación son práctica común, sin ensayos que las respalden.',
+        E8: 'El cardio no impide ganar músculo; 150 a 250 min semanales moderados ayudan a bajar de peso (la alimentación pesa más).',
+        E9: 'La OMS pide 150 a 300 min semanales de actividad moderada y fuerza al menos 2 días.',
+        E10: 'El cuestionario PAR-Q+ (7 preguntas) detecta a quien debería consultar antes de empezar.',
+        E11: 'Con el mismo volumen, cuerpo completo y rutinas divididas dan resultados parecidos; quien empieza va con cuerpo completo.',
+        E12: 'Tabla de valores por defecto según objetivo y nivel: decisiones de Pomi entre las fuentes, no hallazgos.',
+        E13: 'La mayoría de los estudios son de adultos jóvenes y de pocas semanas: las cifras son puntos de partida.',
+      },
+    },
+    accept: {
+      title: 'Usar esta rutina',
+      kept: 'Conservamos tu historial de {{count}} ejercicios.',
+      lost: 'No aparecerá el historial de: {{names}}.',
+      note: 'Tus días de gym de Ajustes no cambian; las rutinas rotan entre ellos.',
+      confirm: 'Usar rutina',
+      cancel: 'Cancelar',
+      failed: 'No pudimos guardar la rutina. Inténtalo de nuevo.',
+    },
+  },
   database: {
     errorTitle: 'No pudimos abrir tus datos',
     errorBody:

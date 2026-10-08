@@ -1,0 +1,1858 @@
+{
+  "_note": "Curated exercise library for the routine generator (PLAN §14c). Ids shared with templates/gym.json (rdl, bss, kick, abd, row, dbrow, ...) keep the exercise history when a generated program is accepted. Names and how-tos live in src/i18n (exercises.*).",
+  "schemaVersion": 1,
+  "kind": "exercises",
+  "exercises": [
+    {
+      "id": "goblet-squat",
+      "nameKey": "exercises.gobletSquat.name",
+      "howKey": "exercises.gobletSquat.how",
+      "muscles": {
+        "primary": [
+          "cuadriceps"
+        ],
+        "secondary": [
+          "gluteo",
+          "core"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "squat",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "knee"
+      ],
+      "substitutions": [
+        "box-squat",
+        "press",
+        "back-squat",
+        "stepup"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "back-squat",
+      "nameKey": "exercises.backSquat.name",
+      "howKey": "exercises.backSquat.how",
+      "muscles": {
+        "primary": [
+          "cuadriceps"
+        ],
+        "secondary": [
+          "gluteo",
+          "core"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "squat",
+      "minLevel": "intermediate",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "knee",
+        "lower_back"
+      ],
+      "substitutions": [
+        "goblet-squat",
+        "press",
+        "box-squat",
+        "bss"
+      ],
+      "incrementKg": 5
+    },
+    {
+      "id": "press",
+      "nameKey": "exercises.press.name",
+      "howKey": "exercises.press.how",
+      "muscles": {
+        "primary": [
+          "cuadriceps"
+        ],
+        "secondary": [
+          "gluteo"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "squat",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "knee"
+      ],
+      "substitutions": [
+        "goblet-squat",
+        "box-squat",
+        "back-squat",
+        "stepup"
+      ],
+      "incrementKg": 5
+    },
+    {
+      "id": "box-squat",
+      "nameKey": "exercises.boxSquat.name",
+      "howKey": "exercises.boxSquat.how",
+      "muscles": {
+        "primary": [
+          "cuadriceps"
+        ],
+        "secondary": [
+          "gluteo"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "squat",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "goblet-squat",
+        "press",
+        "back-squat",
+        "stepup"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "bss",
+      "nameKey": "exercises.bss.name",
+      "howKey": "exercises.bss.how",
+      "muscles": {
+        "primary": [
+          "cuadriceps",
+          "gluteo"
+        ],
+        "secondary": [
+          "isquios"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "lunge",
+      "minLevel": "intermediate",
+      "compound": true,
+      "unilateral": true,
+      "bodyweight": false,
+      "contraindications": [
+        "knee"
+      ],
+      "substitutions": [
+        "stepup",
+        "reverse-lunge",
+        "box-squat",
+        "goblet-squat"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "stepup",
+      "nameKey": "exercises.stepup.name",
+      "howKey": "exercises.stepup.how",
+      "muscles": {
+        "primary": [
+          "gluteo",
+          "cuadriceps"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "lunge",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": true,
+      "bodyweight": false,
+      "contraindications": [
+        "knee"
+      ],
+      "substitutions": [
+        "reverse-lunge",
+        "bss",
+        "box-squat",
+        "goblet-squat"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "reverse-lunge",
+      "nameKey": "exercises.reverseLunge.name",
+      "howKey": "exercises.reverseLunge.how",
+      "muscles": {
+        "primary": [
+          "cuadriceps",
+          "gluteo"
+        ],
+        "secondary": [
+          "isquios"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "lunge",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": true,
+      "bodyweight": false,
+      "contraindications": [
+        "knee"
+      ],
+      "substitutions": [
+        "stepup",
+        "bss",
+        "box-squat",
+        "goblet-squat"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "ht-heavy",
+      "nameKey": "exercises.htHeavy.name",
+      "howKey": "exercises.htHeavy.how",
+      "muscles": {
+        "primary": [
+          "gluteo"
+        ],
+        "secondary": [
+          "isquios"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "hip_thrust",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "ht-mid",
+        "dumbbell-hip-thrust",
+        "glute-bridge",
+        "single-leg-bridge"
+      ],
+      "incrementKg": 5
+    },
+    {
+      "id": "ht-mid",
+      "nameKey": "exercises.htMid.name",
+      "howKey": "exercises.htMid.how",
+      "muscles": {
+        "primary": [
+          "gluteo"
+        ],
+        "secondary": [
+          "isquios",
+          "cuadriceps"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "hip_thrust",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "ht-heavy",
+        "dumbbell-hip-thrust",
+        "glute-bridge",
+        "single-leg-bridge"
+      ],
+      "incrementKg": 5
+    },
+    {
+      "id": "dumbbell-hip-thrust",
+      "nameKey": "exercises.dumbbellHipThrust.name",
+      "howKey": "exercises.dumbbellHipThrust.how",
+      "muscles": {
+        "primary": [
+          "gluteo"
+        ],
+        "secondary": [
+          "isquios"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "hip_thrust",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "glute-bridge",
+        "ht-heavy",
+        "ht-mid",
+        "single-leg-bridge"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "glute-bridge",
+      "nameKey": "exercises.gluteBridge.name",
+      "howKey": "exercises.gluteBridge.how",
+      "muscles": {
+        "primary": [
+          "gluteo"
+        ],
+        "secondary": [
+          "isquios"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "hip_thrust",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "dumbbell-hip-thrust",
+        "ht-heavy",
+        "ht-mid",
+        "single-leg-bridge"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "single-leg-bridge",
+      "nameKey": "exercises.singleLegBridge.name",
+      "howKey": "exercises.singleLegBridge.how",
+      "muscles": {
+        "primary": [
+          "gluteo"
+        ],
+        "secondary": [
+          "isquios"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "hip_thrust",
+      "minLevel": "intermediate",
+      "compound": true,
+      "unilateral": true,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "glute-bridge",
+        "dumbbell-hip-thrust",
+        "ht-heavy",
+        "ht-mid"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "rdl",
+      "nameKey": "exercises.rdl.name",
+      "howKey": "exercises.rdl.how",
+      "muscles": {
+        "primary": [
+          "isquios",
+          "gluteo"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "hip_hinge",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "lower_back"
+      ],
+      "substitutions": [
+        "cable-pull-through",
+        "sldl",
+        "rdl-barbell",
+        "deadlift"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "rdl-barbell",
+      "nameKey": "exercises.rdlBarbell.name",
+      "howKey": "exercises.rdlBarbell.how",
+      "muscles": {
+        "primary": [
+          "isquios",
+          "gluteo"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "hip_hinge",
+      "minLevel": "intermediate",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "lower_back"
+      ],
+      "substitutions": [
+        "sldl",
+        "rdl",
+        "deadlift",
+        "cable-pull-through"
+      ],
+      "incrementKg": 5
+    },
+    {
+      "id": "sldl",
+      "nameKey": "exercises.sldl.name",
+      "howKey": "exercises.sldl.how",
+      "muscles": {
+        "primary": [
+          "isquios",
+          "gluteo"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "hip_hinge",
+      "minLevel": "intermediate",
+      "compound": true,
+      "unilateral": true,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "cable-pull-through",
+        "rdl-barbell",
+        "rdl",
+        "deadlift"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "deadlift",
+      "nameKey": "exercises.deadlift.name",
+      "howKey": "exercises.deadlift.how",
+      "muscles": {
+        "primary": [
+          "isquios",
+          "gluteo"
+        ],
+        "secondary": [
+          "espalda"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "hip_hinge",
+      "minLevel": "advanced",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "lower_back"
+      ],
+      "substitutions": [
+        "rdl-barbell",
+        "sldl",
+        "rdl",
+        "cable-pull-through"
+      ],
+      "incrementKg": 5
+    },
+    {
+      "id": "cable-pull-through",
+      "nameKey": "exercises.cablePullThrough.name",
+      "howKey": "exercises.cablePullThrough.how",
+      "muscles": {
+        "primary": [
+          "gluteo",
+          "isquios"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "hip_hinge",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "sldl",
+        "rdl",
+        "rdl-barbell",
+        "deadlift"
+      ],
+      "incrementKg": 2.5
+    },
+    {
+      "id": "leg-curl",
+      "nameKey": "exercises.legCurl.name",
+      "howKey": "exercises.legCurl.how",
+      "muscles": {
+        "primary": [
+          "isquios"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "knee_flexion",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "sliding-leg-curl"
+      ],
+      "incrementKg": 2.5
+    },
+    {
+      "id": "sliding-leg-curl",
+      "nameKey": "exercises.slidingLegCurl.name",
+      "howKey": "exercises.slidingLegCurl.how",
+      "muscles": {
+        "primary": [
+          "isquios"
+        ],
+        "secondary": [
+          "gluteo"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "knee_flexion",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [],
+      "substitutions": [
+        "leg-curl"
+      ]
+    },
+    {
+      "id": "legext",
+      "nameKey": "exercises.legext.name",
+      "howKey": "exercises.legext.how",
+      "muscles": {
+        "primary": [
+          "cuadriceps"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "knee_extension",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "knee"
+      ],
+      "substitutions": [
+        "goblet-squat",
+        "press",
+        "box-squat",
+        "stepup"
+      ],
+      "incrementKg": 2.5
+    },
+    {
+      "id": "chest-press-machine",
+      "nameKey": "exercises.chestPressMachine.name",
+      "howKey": "exercises.chestPressMachine.how",
+      "muscles": {
+        "primary": [
+          "pecho"
+        ],
+        "secondary": [
+          "hombro",
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "horizontal_push",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "db-floor-press",
+        "push-up",
+        "incline-push-up",
+        "fist-push-up"
+      ],
+      "incrementKg": 5
+    },
+    {
+      "id": "bench-press",
+      "nameKey": "exercises.benchPress.name",
+      "howKey": "exercises.benchPress.how",
+      "muscles": {
+        "primary": [
+          "pecho"
+        ],
+        "secondary": [
+          "hombro",
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "horizontal_push",
+      "minLevel": "intermediate",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "shoulder",
+        "wrist"
+      ],
+      "substitutions": [
+        "chest-press-machine",
+        "db-floor-press",
+        "push-up",
+        "incline-push-up"
+      ],
+      "incrementKg": 2.5
+    },
+    {
+      "id": "db-floor-press",
+      "nameKey": "exercises.dbFloorPress.name",
+      "howKey": "exercises.dbFloorPress.how",
+      "muscles": {
+        "primary": [
+          "pecho"
+        ],
+        "secondary": [
+          "hombro",
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "horizontal_push",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "chest-press-machine",
+        "push-up",
+        "incline-push-up",
+        "fist-push-up"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "push-up",
+      "nameKey": "exercises.pushUp.name",
+      "howKey": "exercises.pushUp.how",
+      "muscles": {
+        "primary": [
+          "pecho"
+        ],
+        "secondary": [
+          "hombro",
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "horizontal_push",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [
+        "wrist",
+        "shoulder"
+      ],
+      "substitutions": [
+        "incline-push-up",
+        "fist-push-up",
+        "db-floor-press",
+        "chest-press-machine"
+      ]
+    },
+    {
+      "id": "incline-push-up",
+      "nameKey": "exercises.inclinePushUp.name",
+      "howKey": "exercises.inclinePushUp.how",
+      "muscles": {
+        "primary": [
+          "pecho"
+        ],
+        "secondary": [
+          "hombro",
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "horizontal_push",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [
+        "wrist"
+      ],
+      "substitutions": [
+        "db-floor-press",
+        "chest-press-machine",
+        "push-up",
+        "fist-push-up"
+      ]
+    },
+    {
+      "id": "fist-push-up",
+      "nameKey": "exercises.fistPushUp.name",
+      "howKey": "exercises.fistPushUp.how",
+      "muscles": {
+        "primary": [
+          "pecho"
+        ],
+        "secondary": [
+          "hombro",
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "horizontal_push",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [
+        "shoulder"
+      ],
+      "substitutions": [
+        "db-floor-press",
+        "chest-press-machine",
+        "push-up",
+        "incline-push-up"
+      ]
+    },
+    {
+      "id": "pec-deck",
+      "nameKey": "exercises.pecDeck.name",
+      "howKey": "exercises.pecDeck.how",
+      "muscles": {
+        "primary": [
+          "pecho"
+        ],
+        "secondary": [
+          "hombro"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "chest_fly",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "shoulder"
+      ],
+      "substitutions": [
+        "chest-press-machine",
+        "db-floor-press",
+        "fist-push-up",
+        "push-up"
+      ],
+      "incrementKg": 2.5
+    },
+    {
+      "id": "shoulder-press-machine",
+      "nameKey": "exercises.shoulderPressMachine.name",
+      "howKey": "exercises.shoulderPressMachine.how",
+      "muscles": {
+        "primary": [
+          "hombro"
+        ],
+        "secondary": [
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "vertical_push",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "neutral-grip-db-press",
+        "landmine-press",
+        "db-shoulder-press",
+        "ohp-barbell"
+      ],
+      "incrementKg": 5
+    },
+    {
+      "id": "db-shoulder-press",
+      "nameKey": "exercises.dbShoulderPress.name",
+      "howKey": "exercises.dbShoulderPress.how",
+      "muscles": {
+        "primary": [
+          "hombro"
+        ],
+        "secondary": [
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "vertical_push",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "shoulder"
+      ],
+      "substitutions": [
+        "neutral-grip-db-press",
+        "shoulder-press-machine",
+        "landmine-press",
+        "pike-push-up"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "ohp-barbell",
+      "nameKey": "exercises.ohpBarbell.name",
+      "howKey": "exercises.ohpBarbell.how",
+      "muscles": {
+        "primary": [
+          "hombro"
+        ],
+        "secondary": [
+          "triceps",
+          "core"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "vertical_push",
+      "minLevel": "intermediate",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "shoulder",
+        "lower_back"
+      ],
+      "substitutions": [
+        "landmine-press",
+        "shoulder-press-machine",
+        "db-shoulder-press",
+        "neutral-grip-db-press"
+      ],
+      "incrementKg": 2.5
+    },
+    {
+      "id": "landmine-press",
+      "nameKey": "exercises.landminePress.name",
+      "howKey": "exercises.landminePress.how",
+      "muscles": {
+        "primary": [
+          "hombro"
+        ],
+        "secondary": [
+          "pecho",
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "vertical_push",
+      "minLevel": "intermediate",
+      "compound": true,
+      "unilateral": true,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "shoulder-press-machine",
+        "neutral-grip-db-press",
+        "ohp-barbell",
+        "db-shoulder-press"
+      ],
+      "incrementKg": 2.5
+    },
+    {
+      "id": "neutral-grip-db-press",
+      "nameKey": "exercises.neutralGripDbPress.name",
+      "howKey": "exercises.neutralGripDbPress.how",
+      "muscles": {
+        "primary": [
+          "hombro"
+        ],
+        "secondary": [
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "vertical_push",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "shoulder-press-machine",
+        "landmine-press",
+        "db-shoulder-press",
+        "pike-push-up"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "pike-push-up",
+      "nameKey": "exercises.pikePushUp.name",
+      "howKey": "exercises.pikePushUp.how",
+      "muscles": {
+        "primary": [
+          "hombro"
+        ],
+        "secondary": [
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "vertical_push",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [
+        "shoulder",
+        "wrist"
+      ],
+      "substitutions": [
+        "db-shoulder-press",
+        "neutral-grip-db-press",
+        "prone-y-raise",
+        "rear-delt-fly"
+      ]
+    },
+    {
+      "id": "row",
+      "nameKey": "exercises.row.name",
+      "howKey": "exercises.row.how",
+      "muscles": {
+        "primary": [
+          "espalda"
+        ],
+        "secondary": [
+          "espalda_alta",
+          "biceps",
+          "hombro_posterior"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "horizontal_pull",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "chest-supported-row",
+        "inverted-row",
+        "dbrow",
+        "facepull"
+      ],
+      "incrementKg": 2.5
+    },
+    {
+      "id": "dbrow",
+      "nameKey": "exercises.dbrow.name",
+      "howKey": "exercises.dbrow.how",
+      "muscles": {
+        "primary": [
+          "espalda"
+        ],
+        "secondary": [
+          "espalda_alta",
+          "biceps"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "horizontal_pull",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": true,
+      "bodyweight": false,
+      "contraindications": [
+        "lower_back"
+      ],
+      "substitutions": [
+        "chest-supported-row",
+        "inverted-row",
+        "row",
+        "rear-delt-fly"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "chest-supported-row",
+      "nameKey": "exercises.chestSupportedRow.name",
+      "howKey": "exercises.chestSupportedRow.how",
+      "muscles": {
+        "primary": [
+          "espalda"
+        ],
+        "secondary": [
+          "espalda_alta",
+          "biceps",
+          "hombro_posterior"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "horizontal_pull",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "inverted-row",
+        "row",
+        "dbrow",
+        "rear-delt-fly"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "inverted-row",
+      "nameKey": "exercises.invertedRow.name",
+      "howKey": "exercises.invertedRow.how",
+      "muscles": {
+        "primary": [
+          "espalda"
+        ],
+        "secondary": [
+          "espalda_alta",
+          "biceps",
+          "hombro_posterior"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "horizontal_pull",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [],
+      "substitutions": [
+        "chest-supported-row",
+        "row",
+        "dbrow",
+        "prone-y-raise"
+      ]
+    },
+    {
+      "id": "facepull",
+      "nameKey": "exercises.facepull.name",
+      "howKey": "exercises.facepull.how",
+      "muscles": {
+        "primary": [
+          "hombro_posterior",
+          "espalda_alta"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "rear_delt",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "rear-delt-fly",
+        "prone-y-raise",
+        "row",
+        "chest-supported-row"
+      ],
+      "incrementKg": 1
+    },
+    {
+      "id": "rear-delt-fly",
+      "nameKey": "exercises.rearDeltFly.name",
+      "howKey": "exercises.rearDeltFly.how",
+      "muscles": {
+        "primary": [
+          "hombro_posterior"
+        ],
+        "secondary": [
+          "espalda_alta"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "rear_delt",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "prone-y-raise",
+        "facepull",
+        "chest-supported-row",
+        "inverted-row"
+      ],
+      "incrementKg": 1
+    },
+    {
+      "id": "prone-y-raise",
+      "nameKey": "exercises.proneYRaise.name",
+      "howKey": "exercises.proneYRaise.how",
+      "muscles": {
+        "primary": [
+          "hombro_posterior",
+          "espalda_alta"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "rear_delt",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [],
+      "substitutions": [
+        "rear-delt-fly",
+        "facepull",
+        "inverted-row",
+        "chest-supported-row"
+      ]
+    },
+    {
+      "id": "lat-pulldown",
+      "nameKey": "exercises.latPulldown.name",
+      "howKey": "exercises.latPulldown.how",
+      "muscles": {
+        "primary": [
+          "espalda"
+        ],
+        "secondary": [
+          "espalda_alta",
+          "biceps"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "vertical_pull",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "pull-up",
+        "db-pullover"
+      ],
+      "incrementKg": 2.5
+    },
+    {
+      "id": "pull-up",
+      "nameKey": "exercises.pullUp.name",
+      "howKey": "exercises.pullUp.how",
+      "muscles": {
+        "primary": [
+          "espalda"
+        ],
+        "secondary": [
+          "biceps",
+          "espalda_alta"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "bodyweight"
+      ],
+      "pattern": "vertical_pull",
+      "minLevel": "intermediate",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [
+        "shoulder"
+      ],
+      "substitutions": [
+        "lat-pulldown",
+        "prone-pulldown",
+        "db-pullover"
+      ]
+    },
+    {
+      "id": "db-pullover",
+      "nameKey": "exercises.dbPullover.name",
+      "howKey": "exercises.dbPullover.how",
+      "muscles": {
+        "primary": [
+          "espalda"
+        ],
+        "secondary": [
+          "pecho",
+          "triceps"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "vertical_pull",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "shoulder"
+      ],
+      "substitutions": [
+        "lat-pulldown",
+        "prone-pulldown",
+        "pull-up"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "prone-pulldown",
+      "nameKey": "exercises.pronePulldown.name",
+      "howKey": "exercises.pronePulldown.how",
+      "muscles": {
+        "primary": [
+          "espalda"
+        ],
+        "secondary": [
+          "espalda_alta",
+          "hombro_posterior"
+        ]
+      },
+      "equipment": [
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "vertical_pull",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [],
+      "substitutions": [
+        "pull-up",
+        "db-pullover"
+      ]
+    },
+    {
+      "id": "deadbug",
+      "nameKey": "exercises.deadbug.name",
+      "howKey": "exercises.deadbug.how",
+      "muscles": {
+        "primary": [
+          "core"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "core_anti_extension",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": true,
+      "bodyweight": true,
+      "contraindications": [],
+      "substitutions": [
+        "plank",
+        "bird-dog",
+        "pallof-press",
+        "side-plank"
+      ]
+    },
+    {
+      "id": "plank",
+      "nameKey": "exercises.plank.name",
+      "howKey": "exercises.plank.how",
+      "muscles": {
+        "primary": [
+          "core"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "core_anti_extension",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [],
+      "substitutions": [
+        "deadbug",
+        "bird-dog",
+        "pallof-press",
+        "side-plank"
+      ],
+      "timeSec": [
+        30,
+        45
+      ]
+    },
+    {
+      "id": "pallof-press",
+      "nameKey": "exercises.pallofPress.name",
+      "howKey": "exercises.pallofPress.how",
+      "muscles": {
+        "primary": [
+          "core"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "core_anti_rotation",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": true,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "bird-dog",
+        "side-plank",
+        "deadbug",
+        "plank"
+      ],
+      "incrementKg": 2.5
+    },
+    {
+      "id": "bird-dog",
+      "nameKey": "exercises.birdDog.name",
+      "howKey": "exercises.birdDog.how",
+      "muscles": {
+        "primary": [
+          "core"
+        ],
+        "secondary": [
+          "gluteo"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "core_anti_rotation",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": true,
+      "bodyweight": true,
+      "contraindications": [],
+      "substitutions": [
+        "pallof-press",
+        "side-plank",
+        "deadbug",
+        "plank"
+      ]
+    },
+    {
+      "id": "side-plank",
+      "nameKey": "exercises.sidePlank.name",
+      "howKey": "exercises.sidePlank.how",
+      "muscles": {
+        "primary": [
+          "core"
+        ],
+        "secondary": [
+          "gluteo_medio"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "core_anti_rotation",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": true,
+      "bodyweight": true,
+      "contraindications": [
+        "shoulder"
+      ],
+      "substitutions": [
+        "bird-dog",
+        "pallof-press",
+        "deadbug",
+        "plank"
+      ],
+      "timeSec": [
+        20,
+        40
+      ]
+    },
+    {
+      "id": "standing-calf-raise",
+      "nameKey": "exercises.standingCalfRaise.name",
+      "howKey": "exercises.standingCalfRaise.how",
+      "muscles": {
+        "primary": [
+          "gemelos"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "calves",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "db-calf-raise",
+        "bodyweight-calf-raise"
+      ],
+      "incrementKg": 5
+    },
+    {
+      "id": "db-calf-raise",
+      "nameKey": "exercises.dbCalfRaise.name",
+      "howKey": "exercises.dbCalfRaise.how",
+      "muscles": {
+        "primary": [
+          "gemelos"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "calves",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": true,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "bodyweight-calf-raise",
+        "standing-calf-raise"
+      ],
+      "incrementKg": 2
+    },
+    {
+      "id": "bodyweight-calf-raise",
+      "nameKey": "exercises.bodyweightCalfRaise.name",
+      "howKey": "exercises.bodyweightCalfRaise.how",
+      "muscles": {
+        "primary": [
+          "gemelos"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "calves",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [],
+      "substitutions": [
+        "db-calf-raise",
+        "standing-calf-raise"
+      ]
+    },
+    {
+      "id": "abd",
+      "nameKey": "exercises.abd.name",
+      "howKey": "exercises.abd.how",
+      "muscles": {
+        "primary": [
+          "gluteo_medio"
+        ],
+        "secondary": [
+          "gluteo"
+        ]
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "glute_med",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "side-lying-abduction"
+      ],
+      "incrementKg": 5
+    },
+    {
+      "id": "side-lying-abduction",
+      "nameKey": "exercises.sideLyingAbduction.name",
+      "howKey": "exercises.sideLyingAbduction.how",
+      "muscles": {
+        "primary": [
+          "gluteo_medio"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "glute_med",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": true,
+      "bodyweight": true,
+      "contraindications": [],
+      "substitutions": [
+        "abd"
+      ]
+    },
+    {
+      "id": "kick",
+      "nameKey": "exercises.kick.name",
+      "howKey": "exercises.kick.how",
+      "muscles": {
+        "primary": [
+          "gluteo"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "glute_iso",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": true,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "donkey-kick"
+      ],
+      "incrementKg": 1
+    },
+    {
+      "id": "donkey-kick",
+      "nameKey": "exercises.donkeyKick.name",
+      "howKey": "exercises.donkeyKick.how",
+      "muscles": {
+        "primary": [
+          "gluteo"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "glute_iso",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": true,
+      "bodyweight": true,
+      "contraindications": [],
+      "substitutions": [
+        "kick"
+      ]
+    },
+    {
+      "id": "curl",
+      "nameKey": "exercises.curl.name",
+      "howKey": "exercises.curl.how",
+      "muscles": {
+        "primary": [
+          "biceps"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "biceps",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "shoulder"
+      ],
+      "substitutions": [
+        "hammer-curl"
+      ],
+      "incrementKg": 1
+    },
+    {
+      "id": "hammer-curl",
+      "nameKey": "exercises.hammerCurl.name",
+      "howKey": "exercises.hammerCurl.how",
+      "muscles": {
+        "primary": [
+          "biceps"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "biceps",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "curl"
+      ],
+      "incrementKg": 1
+    },
+    {
+      "id": "tri",
+      "nameKey": "exercises.tri.name",
+      "howKey": "exercises.tri.how",
+      "muscles": {
+        "primary": [
+          "triceps"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym"
+      ],
+      "pattern": "triceps",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "overhead-triceps-extension",
+        "bench-dip"
+      ],
+      "incrementKg": 1
+    },
+    {
+      "id": "overhead-triceps-extension",
+      "nameKey": "exercises.overheadTricepsExtension.name",
+      "howKey": "exercises.overheadTricepsExtension.how",
+      "muscles": {
+        "primary": [
+          "triceps"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "triceps",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [
+        "shoulder",
+        "wrist"
+      ],
+      "substitutions": [
+        "tri",
+        "bench-dip"
+      ],
+      "incrementKg": 1
+    },
+    {
+      "id": "bench-dip",
+      "nameKey": "exercises.benchDip.name",
+      "howKey": "exercises.benchDip.how",
+      "muscles": {
+        "primary": [
+          "triceps"
+        ],
+        "secondary": [
+          "pecho",
+          "hombro"
+        ]
+      },
+      "equipment": [
+        "gym",
+        "dumbbells",
+        "bodyweight"
+      ],
+      "pattern": "triceps",
+      "minLevel": "beginner",
+      "compound": true,
+      "unilateral": false,
+      "bodyweight": true,
+      "contraindications": [
+        "shoulder",
+        "wrist"
+      ],
+      "substitutions": [
+        "overhead-triceps-extension",
+        "tri"
+      ]
+    },
+    {
+      "id": "lateral-raise",
+      "nameKey": "exercises.lateralRaise.name",
+      "howKey": "exercises.lateralRaise.how",
+      "muscles": {
+        "primary": [
+          "hombro"
+        ],
+        "secondary": []
+      },
+      "equipment": [
+        "gym",
+        "dumbbells"
+      ],
+      "pattern": "lateral_raise",
+      "minLevel": "beginner",
+      "compound": false,
+      "unilateral": false,
+      "bodyweight": false,
+      "contraindications": [],
+      "substitutions": [
+        "rear-delt-fly",
+        "prone-y-raise",
+        "facepull",
+        "neutral-grip-db-press"
+      ],
+      "incrementKg": 1
+    }
+  ]
+}
