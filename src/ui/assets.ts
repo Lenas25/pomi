@@ -4,22 +4,7 @@ import type { ImageSourcePropType } from 'react-native';
 // (same names, same sizes) replaces the placeholders without code changes.
 // Metro resolves @2x/@3x variants automatically from the base name.
 
-export const MASCOT_POSES = [
-  'hola',
-  'enfocado',
-  'agua',
-  'celebra',
-  'descansa',
-  'curioso',
-  'tranqui',
-  'mide',
-  'camina',
-  'vacio',
-] as const;
-
-export type MascotPose = (typeof MASCOT_POSES)[number];
-
-export const mascotImages: Record<MascotPose, ImageSourcePropType> = {
+export const mascotImages = {
   hola: require('../../assets/mascot/pomi-hola.png'),
   enfocado: require('../../assets/mascot/pomi-enfocado.png'),
   agua: require('../../assets/mascot/pomi-agua.png'),
@@ -30,4 +15,7 @@ export const mascotImages: Record<MascotPose, ImageSourcePropType> = {
   mide: require('../../assets/mascot/pomi-mide.png'),
   camina: require('../../assets/mascot/pomi-camina.png'),
   vacio: require('../../assets/mascot/pomi-vacio.png'),
-};
+} as const satisfies Record<string, ImageSourcePropType>;
+
+/** Derived from the registry, so adding an image is the only step needed to add a pose. */
+export type MascotPose = keyof typeof mascotImages;

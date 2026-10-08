@@ -35,6 +35,38 @@ function minimalModule(extra: Record<string, unknown> = {}) {
   return { schemaVersion: 2, kind: 'module', id: 'm', name: 'M', icon: 'Barbell', ...extra };
 }
 
+describe('unknown keys', () => {
+  it('rejects a typo key and reports its full path', () => {
+    const json = clone(shipped.gym) as unknown as {
+      programs: { routines: { steps: Record<string, unknown>[] }[] }[];
+    };
+    const step = json.programs[0]?.routines[0]?.steps.find((candidate) => candidate.type === 'sets');
+    if (!step) throw new Error('gym template needs a sets step');
+    step.repz = '8';
+    const errors = errorsOf(json);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ code: 'unknownKey' });
+    expect(errors[0]?.path).toMatch(/^programs\[0\]\.routines\[0\]\.steps\[\d+\]\.repz$/);
+  });
+
+  it('describes the typo in plain language with the path', () => {
+    const [error] = errorsOf(minimalModule({ nmae: 'x' }));
+    if (!error) throw new Error('expected an error');
+    expect(error.path).toBe('nmae');
+    expect(describeImportError(error, (key, options) => (key === 'importErrors.unknownKey' ? `unknown ${options?.path}` : key))).toBe(
+      'unknown nmae',
+    );
+  });
+
+  it('ignores author comment keys that start with "_" at any depth', () => {
+    const json = minimalModule({
+      _note: 'top',
+      habits: [{ type: 'check', id: 'h', name: 'H', _why: 'because' }],
+    });
+    expect(importTemplate(json).ok).toBe(true);
+  });
+});
+
 describe('shipped templates', () => {
   it.each(Object.entries(shipped))('accepts %s', (_name, json) => {
     const result = importTemplate(json);
@@ -227,6 +259,7 @@ describe('error descriptions', () => {
       'invalidSchedule',
       'invalidScale',
       'duplicateId',
+      'unknownKey',
       'unknown',
     ];
     const translate = translatorFor(es);

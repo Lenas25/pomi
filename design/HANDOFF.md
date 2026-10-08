@@ -1,7 +1,7 @@
 # Pomi: handoff de diseño para desarrollo
 
 > Especificación visual y de interacción para construir la UI de Pomi en React Native (Expo).
-> Usa siempre los **tokens** de `design/tokens.json` y `design/theme.ts`, nunca valores sueltos.
+> Usa siempre los **tokens** de `design/tokens.json` (consumidos solo a través de `src/ui/theme.tsx`), nunca valores sueltos.
 > Marca, voz y mascota: ver `design/BRAND.md`.
 
 ## 1. Overview

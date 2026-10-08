@@ -30,8 +30,13 @@ export function Button({
   size = 'md',
 }: ButtonProps) {
   const theme = useTheme();
-  const press = usePressScale(theme.motion.pressScale.button, theme.opacity.pressed);
   const inactive = disabled || loading;
+  // Disabled and loading both dim the button; press feedback multiplies on top of that.
+  const press = usePressScale(
+    theme.motion.pressScale.button,
+    theme.opacity.pressed,
+    inactive ? theme.opacity.disabled : 1,
+  );
 
   const palette: Record<
     ButtonVariant,
@@ -43,54 +48,51 @@ export function Button({
       foreground: theme.color.text,
       border: theme.color.border,
     },
-    ghost: { background: 'transparent', foreground: theme.color.text },
+    ghost: { background: theme.color.transparent, foreground: theme.color.text },
     danger: { background: theme.color.error, foreground: theme.color.onPrimary },
   };
   const { background, foreground, border } = palette[variant];
 
+  // The Pressable itself is the hit area, so it carries the minimum touch size.
   const container: ViewStyle = {
-    minHeight: theme.control[size],
+    minHeight: Math.max(theme.control[size], theme.touch.min),
     minWidth: theme.touch.min,
     borderRadius: theme.radius.pill,
     backgroundColor: background,
-    borderColor: border ?? 'transparent',
+    borderColor: border ?? theme.color.transparent,
     borderWidth: theme.stroke.hairline,
     paddingHorizontal: theme.space[6],
     alignItems: 'center',
     justifyContent: 'center',
-    opacity: disabled ? theme.opacity.disabled : 1,
   };
 
   return (
     <AnimatedPressable
       accessibilityRole="button"
-      accessibilityLabel={label}
       accessibilityState={{ disabled: inactive, busy: loading }}
       disabled={inactive}
       onPress={onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
-      style={press.animatedStyle}
+      style={[container, press.animatedStyle]}
     >
-      <View style={container}>
-        {/* Label stays mounted while loading so the button keeps its width. */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.space[2],
-            opacity: loading ? 0 : 1,
-          }}
-        >
-          {IconComponent ? <IconComponent color={foreground} /> : null}
-          <Text style={[theme.text('body-strong'), { color: foreground }]}>{label}</Text>
-        </View>
-        {loading ? (
-          <View style={{ position: 'absolute' }}>
-            <ActivityIndicator color={foreground} />
-          </View>
-        ) : null}
+      {/* Label stays mounted while loading so the button keeps its width. */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.space[2],
+          opacity: loading ? 0 : 1,
+        }}
+      >
+        {IconComponent ? <IconComponent color={foreground} /> : null}
+        <Text style={[theme.text('body-strong'), { color: foreground }]}>{label}</Text>
       </View>
+      {loading ? (
+        <View style={{ position: 'absolute' }}>
+          <ActivityIndicator color={foreground} />
+        </View>
+      ) : null}
     </AnimatedPressable>
   );
 }

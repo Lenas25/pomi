@@ -65,6 +65,8 @@ export function describeImportError(error: ImportError, translate: Translate): s
       return translate('importErrors.invalidScale', base);
     case 'duplicateId':
       return translate('importErrors.duplicateId', base);
+    case 'unknownKey':
+      return translate('importErrors.unknownKey', base);
     case 'unknown':
       return translate('importErrors.unknown', base);
   }

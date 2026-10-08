@@ -7,12 +7,15 @@ import { usePressScale } from './usePressScale';
 
 export type CardVariant = 'default' | 'highlight' | 'celebrate';
 
-type CardProps = {
+type CardBaseProps = {
   children: ReactNode;
   variant?: CardVariant;
-  onPress?: () => void;
-  accessibilityLabel?: string;
 };
+
+/** A pressable card is a button: it must say what it does, since its content may be arbitrary. */
+type CardProps =
+  | (CardBaseProps & { onPress?: undefined; accessibilityLabel?: string })
+  | (CardBaseProps & { onPress: () => void; accessibilityLabel: string });
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -43,7 +46,7 @@ export function Card({ children, variant = 'default', onPress, accessibilityLabe
       onPress={onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
-      style={[container, press.animatedStyle]}
+      style={[container, { minHeight: theme.touch.min }, press.animatedStyle]}
     >
       {children}
     </AnimatedPressable>

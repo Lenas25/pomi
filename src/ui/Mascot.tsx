@@ -16,7 +16,6 @@ export function Mascot({ pose, size = 'md' }: MascotProps) {
       source={mascotImages[pose]}
       accessible={false}
       importantForAccessibility="no-hide-descendants"
-      accessibilityElementsHidden
       style={{ width: dimension, height: dimension }}
       resizeMode="contain"
     />

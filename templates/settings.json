@@ -3,8 +3,7 @@
   "kind": "settings",
   "language": "es",
   "theme": {
-    "mode": "dark",
-    "accent": "rosa"
+    "mode": "dark"
   },
   "_note": "Valores de ejemplo de la autora. En la app reales, estos datos salen del onboarding.",
   "profile": {

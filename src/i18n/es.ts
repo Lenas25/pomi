@@ -70,6 +70,8 @@ export const es = {
     invalidScale:
       'La escala en «{{path}}» debe ir de un número menor a uno mayor, por ejemplo [1, 5].',
     duplicateId: 'Hay identificadores repetidos en «{{path}}». Cada uno debe ser único.',
+    unknownKey:
+      'La app no conoce el campo «{{path}}». Revisa si está mal escrito; los campos que empiezan con «_» se ignoran.',
     unknown: 'Hay un problema en «{{path}}».',
     types: {
       string: 'un texto',

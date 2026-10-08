@@ -1,5 +1,12 @@
 import tokens from '../../design/tokens.json';
-import { fonts, makeTheme, resolveMode, textStyle } from './theme';
+import {
+  fonts,
+  makeTheme,
+  resolveFontFamily,
+  resolveMode,
+  textStyle,
+  type TextVariant,
+} from './theme';
 
 describe('textStyle', () => {
   it('maps headings to Fredoka with the token weight', () => {
@@ -25,6 +32,26 @@ describe('textStyle', () => {
       });
     }
     expect(textStyle('body').fontVariant).toBeUndefined();
+  });
+});
+
+describe('textStyle over the whole scale', () => {
+  const variants = Object.keys(tokens.font.scale) as TextVariant[];
+
+  it.each(variants)('resolves a loaded font for "%s"', (variant) => {
+    const entry = tokens.font.scale[variant];
+    const expected = resolveFontFamily(entry.family, entry.weight);
+    expect(expected).toBeDefined();
+    expect(textStyle(variant)).toMatchObject({
+      fontFamily: expected,
+      fontSize: entry.size,
+      lineHeight: entry.line,
+    });
+  });
+
+  it('does not silently fall back for an unknown weight or family', () => {
+    expect(resolveFontFamily('heading', '100')).toBeUndefined();
+    expect(resolveFontFamily('serif', '400')).toBeUndefined();
   });
 });
 

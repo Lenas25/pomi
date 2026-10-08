@@ -11,9 +11,11 @@ import type { MascotPose } from './assets';
 import { Mascot, type MascotSize } from './Mascot';
 import { useTheme } from './theme';
 
+const MAX_MESSAGE_LENGTH = 40;
+
 type MascotBubbleProps = {
   pose: MascotPose;
-  /** Max 40 characters (BRAND §9). Must come from i18n. */
+  /** Max 40 characters (BRAND §9; a warning is logged in development). Must come from i18n. */
   message: string;
   size?: MascotSize;
 };
@@ -23,6 +25,14 @@ export function MascotBubble({ pose, message, size = 'md' }: MascotBubbleProps) 
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
   const progress = useSharedValue(0);
+
+  useEffect(() => {
+    if (__DEV__ && message.length > MAX_MESSAGE_LENGTH) {
+      console.warn(
+        `MascotBubble message is ${message.length} characters; BRAND §9 allows at most ${MAX_MESSAGE_LENGTH}.`,
+      );
+    }
+  }, [message]);
 
   useEffect(() => {
     progress.value = withTiming(1, {
@@ -40,6 +50,7 @@ export function MascotBubble({ pose, message, size = 'md' }: MascotBubbleProps) 
     <Animated.View style={[{ alignItems: 'center', gap: theme.space[2] }, appear]}>
       <Mascot pose={pose} size={size} />
       <View
+        accessibilityLiveRegion="polite"
         style={{
           backgroundColor: theme.color.surfaceRaised,
           borderColor: theme.color.text,

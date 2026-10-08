@@ -27,6 +27,7 @@ export type ImportErrorCode =
   | 'invalidSchedule'
   | 'invalidScale'
   | 'duplicateId'
+  | 'unknownKey'
   | 'unknown';
 
 export type ImportError = {
@@ -74,6 +75,17 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/** Removes author comment keys (`_note`, ...) at every depth, without mutating the input. */
+function stripCommentKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripCommentKeys);
+  if (!isPlainObject(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !key.startsWith('_'))
+      .map(([key, inner]) => [key, stripCommentKeys(inner)]),
+  );
+}
+
 function mapCustomMessage(message: string): ImportErrorCode | null {
   switch (message) {
     case CUSTOM_CODES.time:
@@ -109,6 +121,12 @@ function issueToErrors(
   if (valueAt(input, fullPath) === undefined) return make('missing');
 
   switch (issue.code) {
+    case 'unrecognized_keys':
+      return issue.keys.map((key) => ({
+        code: 'unknownKey' as const,
+        path: formatPath([...fullPath, key]),
+        params: {},
+      }));
     case 'invalid_type':
       return make('wrongType', { expected: String(issue.expected) });
     case 'invalid_value':
@@ -157,10 +175,11 @@ export function importTemplate(json: unknown): ImportResult {
     };
   }
 
-  const parsed = KIND_SCHEMAS[kind].safeParse(json);
+  const clean = stripCommentKeys(json);
+  const parsed = KIND_SCHEMAS[kind].safeParse(clean);
   if (parsed.success) return { ok: true, template: parsed.data };
 
-  const errors = parsed.error.issues.flatMap((issue) => issueToErrors(issue, json, []));
+  const errors = parsed.error.issues.flatMap((issue) => issueToErrors(issue, clean, []));
   return { ok: false, errors: errors.slice(0, MAX_ERRORS) };
 }
 

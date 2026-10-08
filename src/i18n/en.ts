@@ -72,6 +72,8 @@ export const en: Messages = {
     invalidScale:
       'The scale at "{{path}}" must go from a lower to a higher number, for example [1, 5].',
     duplicateId: 'There are repeated identifiers in "{{path}}". Each one must be unique.',
+    unknownKey:
+      'The app does not know the field "{{path}}". Check for a typo; fields starting with "_" are ignored.',
     unknown: 'There is a problem at "{{path}}".',
     types: {
       string: 'text',

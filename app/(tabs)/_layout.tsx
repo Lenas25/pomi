@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Barbell,
@@ -9,7 +10,7 @@ import {
   type Icon,
 } from 'phosphor-react-native';
 
-import { t, type TranslationKey } from '../../src/i18n';
+import { useT, type TranslationKey } from '../../src/i18n';
 import { useTheme } from '../../src/ui/theme';
 
 type TabRoute = { name: string; titleKey: TranslationKey; icon: Icon };
@@ -22,12 +23,14 @@ const TAB_ROUTES: readonly TabRoute[] = [
   { name: 'ajustes', titleKey: 'tabs.ajustes', icon: GearSix },
 ];
 
-// HANDOFF §2: tab bar is 64 dp tall plus the bottom safe area.
-const TAB_BAR_HEIGHT = 64;
-
 export default function TabsLayout() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const t = useT();
+  // HANDOFF §2: `layout.tabBarHeight` plus the bottom safe area. It grows with the system font
+  // scale so large text does not clip the labels.
+  const barHeight = Math.round(theme.layout.tabBarHeight * Math.max(1, fontScale));
 
   return (
     <Tabs
@@ -37,7 +40,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: theme.color.textMuted,
         tabBarLabelStyle: theme.text('caption'),
         tabBarStyle: {
-          height: TAB_BAR_HEIGHT + insets.bottom,
+          height: barHeight + insets.bottom,
           backgroundColor: theme.color.surface,
           borderTopColor: theme.color.border,
         },

@@ -4,7 +4,8 @@ import { z } from 'zod';
  * Template schema (schemaVersion 2). Extends PLAN §6.2.
  *
  * Custom validation messages are stable codes (`custom:*`) that the importer maps to i18n keys.
- * Unknown keys (e.g. `_note`) are ignored on purpose: authors use them for comments.
+ * Every object is strict: an unknown key (usually a typo such as `repz`) is an error. Keys that
+ * start with `_` (e.g. `_note`) are author comments; the importer strips them before validating.
  */
 
 export const TEMPLATE_SCHEMA_VERSION = 2;
@@ -31,7 +32,7 @@ export const anchorNameSchema = z.enum(['wake', 'bed', 'gymMorning', 'gymEvening
 
 // --- When / Condition / Schedule -------------------------------------------------------------
 
-export const conditionSchema = z.object({
+export const conditionSchema = z.strictObject({
   days: z.array(weekdaySchema).optional(),
   flag: z.string().min(1).optional(),
   flagValue: z.boolean().optional(),
@@ -63,16 +64,16 @@ const stepBase = {
   when: whenSchema.optional(),
 };
 
-export const checkStepSchema = z.object({ type: z.literal('check'), ...stepBase });
+export const checkStepSchema = z.strictObject({ type: z.literal('check'), ...stepBase });
 
-export const waitStepSchema = z.object({
+export const waitStepSchema = z.strictObject({
   type: z.literal('wait'),
   ...stepBase,
   waitSec: positiveInt,
   waitReason: z.string().optional(),
 });
 
-export const setsStepSchema = z.object({
+export const setsStepSchema = z.strictObject({
   type: z.literal('sets'),
   ...stepBase,
   sets: positiveInt,
@@ -86,14 +87,14 @@ export const setsStepSchema = z.object({
   incrementKg: z.number().positive().optional(),
 });
 
-export const timedStepSchema = z.object({
+export const timedStepSchema = z.strictObject({
   type: z.literal('timed'),
   ...stepBase,
   totalSec: positiveInt,
-  segments: z.array(z.object({ atSec: nonNegativeInt, label: z.string().min(1) })),
+  segments: z.array(z.strictObject({ atSec: nonNegativeInt, label: z.string().min(1) })),
 });
 
-export const counterStepSchema = z.object({
+export const counterStepSchema = z.strictObject({
   type: z.literal('counter'),
   ...stepBase,
   target: positiveInt,
@@ -110,7 +111,7 @@ export const stepSchema = z.discriminatedUnion('type', [
 
 // --- Programs --------------------------------------------------------------------------------
 
-export const programRulesSchema = z.object({
+export const programRulesSchema = z.strictObject({
   progression: z.enum(['double']),
   /** Reps-in-reserve target range, e.g. [1, 2]. */
   rirTarget: z.tuple([z.number().int().min(0).max(5), z.number().int().min(0).max(5)]),
@@ -118,13 +119,13 @@ export const programRulesSchema = z.object({
   deloadPct: z.number().min(0).max(100),
 });
 
-const routineSchema = z.object({
+const routineSchema = z.strictObject({
   id: idSchema,
   name: nameSchema,
   steps: z.array(stepSchema).min(1),
 });
 
-export const programSchema = z.object({
+export const programSchema = z.strictObject({
   id: idSchema,
   name: nameSchema,
   rotation: z.boolean().default(true),
@@ -142,7 +143,7 @@ export const programSchema = z.object({
 
 export const habitTargetSchema = z.union([
   positiveInt,
-  z.object({ formula: z.enum(['water', 'steps']) }),
+  z.strictObject({ formula: z.enum(['water', 'steps']) }),
 ]);
 
 const habitBase = {
@@ -162,8 +163,8 @@ const habitBase = {
 };
 
 export const habitSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('check'), ...habitBase }),
-  z.object({
+  z.strictObject({ type: z.literal('check'), ...habitBase }),
+  z.strictObject({
     type: z.literal('counter'),
     ...habitBase,
     unit: z.string().optional(),
@@ -173,20 +174,20 @@ export const habitSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-export const reminderSchema = z.object({
+export const reminderSchema = z.strictObject({
   id: idSchema,
   text: z.string().min(1),
   schedule: scheduleSchema,
 });
 
-export const metricSchema = z.object({
+export const metricSchema = z.strictObject({
   id: idSchema,
   name: nameSchema,
   unit: z.string().min(1),
   frequency: z.enum(['daily', 'weekly', 'monthly']),
 });
 
-export const photosSchema = z.object({
+export const photosSchema = z.strictObject({
   frequency: z.enum(['weekly', 'monthly']),
   poses: z.array(z.string().min(1)).min(1),
   guide: z.string().optional(),
@@ -195,28 +196,28 @@ export const photosSchema = z.object({
 const questionBase = { id: idSchema, label: z.string().min(1), optional: z.boolean().optional() };
 
 export const checkinQuestionSchema = z.discriminatedUnion('type', [
-  z.object({
+  z.strictObject({
     type: z.literal('time'),
     ...questionBase,
     prefill: z.enum(['bed', 'wake']).optional(),
   }),
-  z.object({
+  z.strictObject({
     type: z.literal('scale'),
     ...questionBase,
     scale: z
       .tuple([z.number().int(), z.number().int()])
       .refine(([min, max]) => min < max, { message: CUSTOM_CODES.scale }),
   }),
-  z.object({ type: z.literal('text'), ...questionBase }),
+  z.strictObject({ type: z.literal('text'), ...questionBase }),
 ]);
 
-export const checkinsSchema = z.object({
+export const checkinsSchema = z.strictObject({
   morning: z.array(checkinQuestionSchema).optional(),
   night: z.array(checkinQuestionSchema).optional(),
   monthly: z.array(checkinQuestionSchema).optional(),
 });
 
-export const notesSchema = z.object({
+export const notesSchema = z.strictObject({
   prompt: z.string().min(1),
   optional: z.boolean().optional(),
 });
@@ -237,15 +238,15 @@ const moduleBody = {
 };
 
 /** A module without the file envelope (`schemaVersion`/`kind`), as stored inside bundles. */
-export const moduleBodySchema = z.object(moduleBody);
+export const moduleBodySchema = z.strictObject(moduleBody);
 
-export const moduleTemplateSchema = z.object({
+export const moduleTemplateSchema = z.strictObject({
   schemaVersion: z.literal(TEMPLATE_SCHEMA_VERSION),
   kind: z.literal('module'),
   ...moduleBody,
 });
 
-export const modulesTemplateSchema = z.object({
+export const modulesTemplateSchema = z.strictObject({
   schemaVersion: z.literal(TEMPLATE_SCHEMA_VERSION),
   kind: z.literal('modules'),
   modules: z.array(moduleBodySchema).min(1),
@@ -256,7 +257,7 @@ export const modulesTemplateSchema = z.object({
 export const themeModeSchema = z.enum(['system', 'light', 'dark']);
 export const languageSchema = z.enum(['es', 'en']);
 
-export const profileDataSchema = z.object({
+export const profileDataSchema = z.strictObject({
   weightKg: z.number().positive().optional(),
   heightCm: z.number().positive().optional(),
   ageYears: positiveInt.optional(),
@@ -265,7 +266,7 @@ export const profileDataSchema = z.object({
   level: z.string().min(1).optional(),
 });
 
-export const anchorsSchema = z.object({
+export const anchorsSchema = z.strictObject({
   wake: timeSchema.optional(),
   sleepTargetH: z.number().positive().max(24).optional(),
   gymMorning: timeSchema.optional(),
@@ -273,24 +274,23 @@ export const anchorsSchema = z.object({
 });
 
 export const gymDaysSchema = z.array(
-  z.object({
+  z.strictObject({
     days: z.array(weekdaySchema).min(1),
     anchor: z.enum(['gymMorning', 'gymEvening']),
   }),
 );
 
-export const checkinPrefsSchema = z.object({
+export const checkinPrefsSchema = z.strictObject({
   morning: z.boolean(),
   night: z.boolean(),
   monthlyReviewDay: z.number().int().min(1).max(28),
 });
 
-export const settingsTemplateSchema = z.object({
+export const settingsTemplateSchema = z.strictObject({
   schemaVersion: z.literal(TEMPLATE_SCHEMA_VERSION),
   kind: z.literal('settings'),
   language: languageSchema.optional(),
-  // `accent` is superseded (themes are system/light/dark only) but tolerated in old files.
-  theme: z.object({ mode: themeModeSchema.optional() }).optional(),
+  theme: z.strictObject({ mode: themeModeSchema.optional() }).optional(),
   profile: profileDataSchema.optional(),
   anchors: anchorsSchema.optional(),
   gymDays: gymDaysSchema.optional(),

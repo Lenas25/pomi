@@ -13,7 +13,7 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useDatabaseReady } from '../src/db/useDatabaseReady';
-import { t } from '../src/i18n';
+import { useT } from '../src/i18n';
 import { EmptyState } from '../src/ui/EmptyState';
 import { Screen } from '../src/ui/Screen';
 import { IconProvider } from '../src/ui/icons';
@@ -36,6 +36,7 @@ function RootStack() {
 }
 
 function DatabaseError() {
+  const t = useT();
   return (
     <Screen>
       <EmptyState title={t('database.errorTitle')} body={t('database.errorBody')} />
@@ -54,6 +55,11 @@ export default function RootLayout() {
     Nunito_900Black,
   });
   const dbStatus = useDatabaseReady();
+  useEffect(() => {
+    if (__DEV__ && fontError)
+      console.warn('Failed to load fonts; falling back to system fonts.', fontError);
+  }, [fontError]);
+
   const ready = (fontsLoaded || fontError !== null) && dbStatus !== 'loading';
 
   useEffect(() => {

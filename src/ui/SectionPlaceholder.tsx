@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { useT } from '../i18n';
 import type { MascotPose } from './assets';
 import { EmptyState } from './EmptyState';
 import { Screen } from './Screen';
@@ -29,6 +29,7 @@ type SectionPlaceholderProps = {
 
 /** Minimal route shell used until each screen is built in its own milestone. */
 export function SectionPlaceholder({ section, pose }: SectionPlaceholderProps) {
+  const t = useT();
   // Tab screens skip the bottom inset (the tab bar handles it); other routes keep it.
   const edges = TAB_SECTIONS.includes(section)
     ? undefined

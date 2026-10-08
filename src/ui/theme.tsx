@@ -1,4 +1,4 @@
-// Pomi theme. Single implementation; `design/theme.ts` re-exports this module.
+// Pomi theme: the ONLY theme module the app imports (`src/ui/theme`).
 // `design/tokens.json` is the single source of truth for every value used here.
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useColorScheme, type TextStyle, type ViewStyle } from 'react-native';
@@ -22,18 +22,39 @@ export const fonts = {
   numeric: { '900': 'Nunito_900Black' },
 } as const;
 
+type FontFamilyKey = keyof typeof fonts;
+
+/** Shape every `font.scale` entry in tokens.json must have; the assignment below checks it at compile time. */
 type ScaleEntry = {
   size: number;
   line: number;
   weight: string;
-  family: keyof typeof fonts;
+  family: string;
   tabular?: boolean;
 };
 
+const scale: Record<TextVariant, ScaleEntry> = tokens.font.scale;
+
+function isFontFamilyKey(value: string): value is FontFamilyKey {
+  return Object.hasOwn(fonts, value);
+}
+
+/** The loaded font name for a family + weight, or `undefined` when the combination is not loaded. */
+export function resolveFontFamily(family: string, weight: string): string | undefined {
+  if (!isFontFamilyKey(family)) return undefined;
+  const weights: Record<string, string> = fonts[family];
+  return weights[weight];
+}
+
 export function textStyle(variant: TextVariant): TextStyle {
-  const entry = tokens.font.scale[variant] as ScaleEntry;
-  const familyMap: Record<string, string> = fonts[entry.family];
-  const fontFamily = familyMap[entry.weight] ?? Object.values(familyMap)[0];
+  const entry = scale[variant];
+  let fontFamily = resolveFontFamily(entry.family, entry.weight);
+  if (fontFamily === undefined) {
+    const message = `Font "${entry.family}" has no weight "${entry.weight}" (text variant "${variant}")`;
+    // Fail loudly in development; in production fall back to the body font instead of crashing.
+    if (__DEV__) throw new Error(message);
+    fontFamily = fonts.body['400'];
+  }
   return {
     fontFamily,
     fontSize: entry.size,
@@ -66,6 +87,7 @@ export function makeTheme(mode: Mode) {
     touch: tokens.touch,
     control: tokens.control,
     layout: tokens.layout,
+    icon: tokens.icon,
     stroke: tokens.stroke,
     opacity: tokens.opacity,
     motion: tokens.motion,
