@@ -48,6 +48,17 @@ const [, tEs] = LANGUAGES[0]!;
 const NOW = new Date(2026, 9, 7, 2, 0);
 const TODAY = '2026-10-06';
 
+const finding = (id: number, createdAt: number) => ({
+  id,
+  kind: 'sleepGym' as const,
+  textKey: 'insights.sleepGym.more' as const,
+  params: { minutes: 35 },
+  days: 24,
+  value: 35,
+  createdAt,
+  seen: true,
+});
+
 const data: ReportData = {
   today: TODAY,
   startedOn: '2026-08-01',
@@ -108,6 +119,10 @@ const data: ReportData = {
       ],
     },
   ],
+  findings: [
+    finding(2, new Date(2026, 9, 3, 10).getTime()),
+    finding(1, new Date(2026, 7, 20, 10).getTime()),
+  ],
   photos: Array.from({ length: 8 }, (_, index) => ({
     date: `2026-10-0${index + 1}`,
     pose: index % 2 === 0 ? 'frente' : 'perfil',
@@ -155,7 +170,7 @@ describe('templates', () => {
       expect(applied.sections).not.toContain('findings');
       expect(applied.foodNotes).toBe(template === 'nutritionist');
     }
-    expect(AVAILABLE_SECTIONS).not.toContain('findings');
+    expect(AVAILABLE_SECTIONS).toContain('findings');
   });
 
   it('toggling a section keeps the template (the AI instruction stays)', () => {
@@ -293,7 +308,7 @@ describe('text and HTML renderers', () => {
           data,
           selection({
             foodNotes: true,
-            sections: ['gym', 'habits', 'sleep', 'measures', 'photos'],
+            sections: ['gym', 'habits', 'sleep', 'measures', 'photos', 'findings'],
           }),
           NOW,
         ),
@@ -313,6 +328,23 @@ describe('text and HTML renderers', () => {
       expect(output).not.toMatch(/Sueño|Hábitos|Fotos|Agua|Pasos|lentejas|frente|perfil|\.jpg/);
       expect(output).not.toContain('Pausa activa');
     }
+  });
+
+  it('findings: only the insights inside the period, with prudent wording and their evidence', () => {
+    const model = buildReport(data, selection({ sections: ['findings'] }), NOW);
+    const section = model.sections[0];
+    if (section?.kind !== 'findings') throw new Error('findings expected');
+    expect(section.items.map((item) => item.id)).toEqual([2]);
+    const text = renderText(model, { t: tEs, language: 'es', includesPhotos: false });
+    expect(text).toContain(
+      'Notamos que los días que entrenas duermes en promedio 35 minutos más. (Basado en 24 días)',
+    );
+    expect(renderHtml(model, { t: tEs, language: 'es' })).toContain('Basado en 24 días');
+    const english = renderText(model, { t: translator(en), language: 'en', includesPhotos: false });
+    expect(english).toContain('We noticed that');
+    const old = buildReport(data, selection({ sections: ['findings'], period: 'all' }), NOW);
+    expect(old.sections[0]).toMatchObject({ empty: false });
+    expect(buildReport(data, selection({ sections: ['gym'] }), NOW).sections).toHaveLength(1);
   });
 
   it('the AI template adds the instruction line', () => {

@@ -15,6 +15,7 @@ import {
 } from '../domain/review/buildWeeklyReview';
 import { dayKeyFor } from '../domain/time';
 import { loadHabitsData } from '../habits/habitsData';
+import { insightsBetweenDays, parseInsightRow, type StoredInsight } from '../insights/payload';
 import { parsePayload, type SuggestionPayload } from '../suggestions/payload';
 import { toHistory, waterHabit } from '../suggestions/loadData';
 import { isKindAvailable } from '../domain/suggestions/buildSuggestions';
@@ -33,6 +34,8 @@ export type ReviewScreenData = {
   review: WeeklyReview;
   /** Pending suggestions, oldest first. */
   suggestions: { id: number; payload: SuggestionPayload }[];
+  /** The insight found during the reviewed week, if any (PLAN §12: at most one per week). */
+  insight?: StoredInsight | undefined;
 };
 
 function ratingsOf(
@@ -127,8 +130,21 @@ export async function loadReview(repos: Repositories, now: Date): Promise<Review
     },
   };
 
+  const insight = await repos.insights
+    .all()
+    .then(
+      (rows) =>
+        insightsBetweenDays(
+          rows.flatMap((row) => parseInsightRow(row) ?? []),
+          weekStart,
+          weekEnd,
+        )[0],
+    )
+    .catch(() => undefined);
+
   return {
     review: buildWeeklyReview(data, weekStart, today),
+    insight,
     suggestions: pending.flatMap((row) => {
       const payload = parsePayload(row.payload);
       return payload ? [{ id: row.id, payload }] : [];

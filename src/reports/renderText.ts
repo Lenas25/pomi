@@ -1,8 +1,11 @@
 // Plain-text renderer (the "Texto" format and the preview). Every sentence comes from i18n.
 import type { Language, Translate } from '../i18n';
 
+import { insightTexts } from '../insights/text';
+
 import { formatMinutes, formatNumber, formatSigned } from './format';
 import type {
+  FindingsReport,
   GymReport,
   HabitsReport,
   MeasuresReport,
@@ -142,6 +145,14 @@ function photosLines(section: PhotosReport, { t, includesPhotos }: TextContext):
   return lines;
 }
 
+function findingsLines(section: FindingsReport, { t, language }: TextContext): string[] {
+  if (section.empty) return [t('reports.empty')];
+  return section.items.map((item) => {
+    const { text, evidence } = insightTexts(item, t, language);
+    return `- ${text} (${evidence})`;
+  });
+}
+
 function linesOf(section: ReportSection, context: TextContext): string[] {
   switch (section.kind) {
     case 'gym':
@@ -154,6 +165,8 @@ function linesOf(section: ReportSection, context: TextContext): string[] {
       return measuresLines(section, context);
     case 'photos':
       return photosLines(section, context);
+    case 'findings':
+      return findingsLines(section, context);
   }
 }
 

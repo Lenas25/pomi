@@ -720,7 +720,8 @@ export const es = {
     insights: {
       title: 'Lo que descubrimos de ti',
       emptyTitle: 'Aún no hay hallazgos',
-      emptyBody: 'Cuando llegue esa parte de Pomi, los verás aquí.',
+      emptyBody:
+        'Aparecen cuando llevas al menos 21 días con registros. Un hallazgo por semana, como máximo.',
     },
   },
   monthly: {
@@ -1031,6 +1032,37 @@ export const es = {
     loadError: 'No pudimos cargar tu día',
     retry: 'Reintentar',
   },
+  insights: {
+    title: 'Lo que descubrimos de ti',
+    basedOn: 'Basado en {{days}} días',
+    card: {
+      label: 'Un hallazgo',
+      open: 'Ver todos los hallazgos',
+    },
+    sleepGym: {
+      more: 'Notamos que los días que entrenas duermes en promedio {{minutes}} minutos más.',
+      less: 'Notamos que los días que entrenas duermes en promedio {{minutes}} minutos menos.',
+    },
+    energySleep: {
+      higher:
+        'Notamos que, después de noches de 7 horas o más, tu energía del día es en promedio {{points}} puntos más alta.',
+      lower:
+        'Notamos que, después de noches de 7 horas o más, tu energía del día es en promedio {{points}} puntos más baja.',
+    },
+    gymSleepQuality: {
+      better:
+        'Notamos que, después de noches que valoras con 4 o 5, igualas o superas tu sesión anterior en {{points}} puntos porcentuales más de tus ejercicios que después de noches de 1 o 2.',
+      worse:
+        'Notamos que, después de noches que valoras con 4 o 5, igualas o superas tu sesión anterior en {{points}} puntos porcentuales menos de tus ejercicios que después de noches de 1 o 2.',
+    },
+    stepsWeek: {
+      more: 'Notamos que entre semana caminas en promedio {{steps}} pasos más que los fines de semana.',
+      less: 'Notamos que entre semana caminas en promedio {{steps}} pasos menos que los fines de semana.',
+    },
+    bestWeekday: {
+      top: 'Notamos que los {{day}} sueles moverte más: {{percent}} % de esos días, frente a {{otherPercent}} % del resto.',
+    },
+  },
   suggestions: {
     card: {
       label: 'Sugerencia de Pomi',
@@ -1101,6 +1133,7 @@ export const es = {
     },
   },
   review: {
+    insightTitle: 'Un hallazgo de la semana',
     title: 'Tu semana',
     range: '{{from}} – {{to}}',
     summaryTitle: 'Cómo fue',
@@ -1246,7 +1279,7 @@ export const es = {
       sleep: 'Horas dormidas y regularidad.',
       measures: 'Peso y medidas.',
       photos: 'Tus fotos del período. Nunca van por defecto.',
-      findings: 'Llegarán con los hallazgos.',
+      findings: 'Lo que Pomi descubrió de ti en el período, con los días en que se basa.',
     },
     foodNotes: 'Incluir mis notas de comida',
     foodNotesHint: 'Es texto tuyo y puede ser personal. Está apagado salvo para el nutricionista.',

@@ -24,6 +24,18 @@ const data: ReportData = {
   sleepTargetH: 8,
   metrics: [],
   photos: [{ date: '2026-10-05', pose: 'frente', name: 'a.jpg' }],
+  findings: [
+    {
+      id: 1,
+      kind: 'stepsWeek',
+      textKey: 'insights.stepsWeek.more',
+      params: { steps: 1800 },
+      days: 30,
+      value: 1800,
+      createdAt: new Date(2026, 9, 5, 9).getTime(),
+      seen: true,
+    },
+  ],
 };
 
 async function renderView(onShare = jest.fn(async () => 'shared' as const)) {
@@ -41,7 +53,8 @@ describe('ShareView', () => {
   it('starts with the custom template: no photos, no food notes, nothing is sent yet', async () => {
     const { onShare } = await renderView();
     expect(screen.getByRole('switch', { name: 'Fotos' }).props.value).toBe(false);
-    expect(screen.getByRole('switch', { name: 'Hallazgos' }).props.disabled).toBe(true);
+    expect(screen.getByRole('switch', { name: 'Hallazgos' }).props.value).toBe(false);
+    expect(screen.getByRole('switch', { name: 'Hallazgos' }).props.disabled).toBeFalsy();
     expect(onShare).not.toHaveBeenCalled();
   });
 
@@ -86,6 +99,16 @@ describe('ShareView', () => {
       await screen.findByText('No pudimos preparar el reporte. Inténtalo de nuevo.'),
     ).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Volver y editar' })).toBeTruthy();
+  });
+
+  it('findings are opt-in and the preview shows them with their evidence', async () => {
+    await renderView();
+    await fireEvent(screen.getByRole('switch', { name: 'Hallazgos' }), 'valueChange', true);
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver qué se enviará' }));
+    expect(
+      screen.getByText(/Notamos que entre semana caminas en promedio 1\.?800 pasos más/),
+    ).toBeTruthy();
+    expect(screen.getByText(/Basado en 30 días/)).toBeTruthy();
   });
 
   it('photos only appear in the PDF preview, and only after they are switched on', async () => {

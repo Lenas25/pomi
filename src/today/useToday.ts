@@ -13,6 +13,8 @@ import { greetingKey, identityPhrase } from '../domain/today/identity';
 import { dayKeyFor, minutesIntoDay } from '../domain/time';
 import { buildTimeline, isAllDone, type TimelineEntry } from '../domain/today/timeline';
 import { useLocaleStore, useT } from '../i18n';
+import { insightTexts } from '../insights/text';
+import { runWeeklyInsights } from '../insights/run';
 import { runDailySuggestions } from '../suggestions/run';
 import { useSuggestionActions } from '../suggestions/useSuggestionActions';
 import { suggestionTexts } from '../suggestions/text';
@@ -69,6 +71,7 @@ export function useToday() {
     try {
       // Once per day (guarded in the engine); a failure here must never block Hoy.
       await runDailySuggestions(getDatabase(), getRepositories()).catch(() => []);
+      await runWeeklyInsights(getDatabase(), getRepositories()).catch(() => []);
       const data = await loadTodayData(getRepositories(), new Date());
       if (ticket === generation.current) {
         setNow(new Date());
@@ -121,6 +124,9 @@ export function useToday() {
       identity: t(phrase.key, phrase.params),
       suggestion: data.suggestion
         ? { id: data.suggestion.id, ...suggestionTexts(data.suggestion.payload, t, language) }
+        : null,
+      insight: data.insight
+        ? { id: data.insight.id, ...insightTexts(data.insight, t, language) }
         : null,
     };
   }, [load, now, t, language]);
@@ -226,6 +232,14 @@ export function useToday() {
               : 'checkin:night'
             : 'habits';
       navigate({ type: 'navigate', target });
+    },
+    /** Marks the shown insight as seen. No reload: the card stays until Hoy is loaded again. */
+    markInsightSeen: async (id: number): Promise<void> => {
+      try {
+        await getRepositories().insights.markSeen(id, Date.now());
+      } catch (error) {
+        if (__DEV__) console.warn('Could not mark the insight as seen', error);
+      }
     },
     dismissCompanionCard: async (): Promise<void> => {
       if (load.status !== 'ready') return;

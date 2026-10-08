@@ -53,6 +53,8 @@ export type JobDeps = {
   lastHeavyRunAt: () => Promise<number | undefined>;
   saveHeavyRunAt: (ms: number) => Promise<void>;
   suggestions: () => Promise<unknown>;
+  /** Weekly insights run (its own once-per-ISO-week guard); optional. */
+  insights?: () => Promise<unknown>;
   sync: () => Promise<unknown>;
   nudge: () => Promise<unknown>;
   /** After the nudge: detects revoked Health Connect permissions (turns the nudge off, relaxes the cadence). */
@@ -79,6 +81,7 @@ export async function runBackgroundJob(deps: JobDeps): Promise<'success' | 'fail
     // Stamped first: a run that crashes midway is not retried every 15 minutes.
     await deps.saveHeavyRunAt(nowMs).catch((error: unknown) => report('stamp', error));
     await deps.suggestions().catch((error: unknown) => report('suggestions', error));
+    await deps.insights?.().catch((error: unknown) => report('insights', error));
     // Same mutex as the foreground triggers; its own failure never skips the nudge.
     await deps.sync().catch((error: unknown) => {
       heavyFailed = true;

@@ -6,6 +6,8 @@ import { format, parseISO } from 'date-fns';
 import { useLocaleStore, useT } from '../i18n';
 import { formatKg } from '../gym/sessionViewModel';
 import { CompanionSection } from '../companion/CompanionSection';
+import { InsightsList } from '../insights/InsightsList';
+import type { StoredInsight } from '../insights/payload';
 import { StoredPhoto } from '../photos/StoredPhoto';
 import { BarChart } from '../ui/BarChart';
 import { Button } from '../ui/Button';
@@ -250,6 +252,29 @@ const poseName = (pose: string) => pose.charAt(0).toUpperCase() + pose.slice(1);
 /** The newest photos shown in the grid (the rest stay on the phone). */
 const GRID_PHOTOS = 12;
 
+/** "Lo que descubrimos de ti" (PLAN §12): every finding so far, newest first. */
+function InsightsSection({ insights }: { insights: readonly StoredInsight[] | undefined }) {
+  const theme = useTheme();
+  const t = useT();
+  return (
+    <View style={{ gap: theme.space[3] }}>
+      <SectionTitle>{t('progress.insights.title')}</SectionTitle>
+      {insights && insights.length > 0 ? (
+        <InsightsList insights={insights} />
+      ) : (
+        <Card>
+          <EmptyState
+            compact
+            pose="curioso"
+            title={t('progress.insights.emptyTitle')}
+            body={t('progress.insights.emptyBody')}
+          />
+        </Card>
+      )}
+    </View>
+  );
+}
+
 function MonthlySection({ done }: { done: boolean }) {
   const t = useT();
   const theme = useTheme();
@@ -438,17 +463,9 @@ export function ProgressScreen() {
               <CompanionSection companion={state.data.companion} />
             ) : null}
 
-            <View style={{ gap: theme.space[3] }}>
-              <SectionTitle>{t('progress.insights.title')}</SectionTitle>
-              <Card>
-                <EmptyState
-                  compact
-                  pose="curioso"
-                  title={t('progress.insights.emptyTitle')}
-                  body={t('progress.insights.emptyBody')}
-                />
-              </Card>
-            </View>
+            <InsightsSection
+              insights={state.status === 'ready' ? state.data.insights : undefined}
+            />
 
             <Button
               label={t('share.cta')}

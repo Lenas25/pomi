@@ -8,6 +8,7 @@ import { toMorningCheckin } from '../domain/habits/checkins';
 import { dayKeyFor } from '../domain/time';
 import { exerciseIdOfStep } from '../domain/generator/program';
 import { t } from '../i18n';
+import { parseInsightRow } from '../insights/payload';
 import { loadExerciseLibrary } from '../templates/exercises';
 import { waterHabit } from '../suggestions/loadData';
 
@@ -67,14 +68,16 @@ export async function loadReportData(repos: Repositories, now: Date): Promise<Re
   const active = modules.filter((module) => module.active);
   const stepsFrom = startedOn !== undefined && startedOn < from ? startedOn : from;
 
-  const [sessionRows, logs, steps, notes, morning, photos] = await Promise.all([
+  const [sessionRows, logs, steps, notes, morning, photos, insightRows] = await Promise.all([
     repos.workouts.sessionsInRange(from, today),
     repos.habitLogs.inRange(from, today),
     repos.steps.inRange(stepsFrom, today),
     repos.foodNotes.inRange(from, today),
     repos.checkins.inRange(from, today, 'morning'),
     repos.photos.all(),
+    repos.insights.all(),
   ]);
+  const findings = insightRows.flatMap((row) => parseInsightRow(row) ?? []);
 
   const exerciseNames = exerciseNamesFor(modules);
   for (const { sets } of sessionRows) {
@@ -160,6 +163,7 @@ export async function loadReportData(repos: Repositories, now: Date): Promise<Re
           })),
         })),
     ),
+    findings,
     photos: photos.map((photo) => ({ date: photo.date, pose: photo.pose, name: photo.uri })),
   };
 }

@@ -4,6 +4,7 @@ import { createActivityRepository } from './activity';
 import { createCheckinsRepository } from './checkins';
 import { createFoodNotesRepository } from './foodNotes';
 import { createHabitLogsRepository } from './habits';
+import { createInsightsRepository } from './insights';
 import { createMetricsRepository } from './metrics';
 import { createPhotosRepository } from './photos';
 import { createProfileRepository } from './profile';
@@ -28,6 +29,7 @@ export function createRepositories(db: Db, now: () => number = Date.now) {
     metrics: createMetricsRepository(db),
     photos: createPhotosRepository(db),
     suggestions: createSuggestionsRepository(db),
+    insights: createInsightsRepository(db),
   };
 }
 

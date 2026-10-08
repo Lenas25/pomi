@@ -721,7 +721,8 @@ export const en: Messages = {
     insights: {
       title: 'What we found about you',
       emptyTitle: 'No findings yet',
-      emptyBody: 'When that part of Pomi arrives, you will see them here.',
+      emptyBody:
+        'They show up once you have at least 21 days of records. One finding a week at most.',
     },
   },
   monthly: {
@@ -1026,6 +1027,37 @@ export const en: Messages = {
     loadError: "We couldn't load your day",
     retry: 'Try again',
   },
+  insights: {
+    title: 'What we found about you',
+    basedOn: 'Based on {{days}} days',
+    card: {
+      label: 'A finding',
+      open: 'See all findings',
+    },
+    sleepGym: {
+      more: 'We noticed that on the days you work out you sleep {{minutes}} minutes more on average.',
+      less: 'We noticed that on the days you work out you sleep {{minutes}} minutes less on average.',
+    },
+    energySleep: {
+      higher:
+        'We noticed that after nights of 7 hours or more, your energy during the day is {{points}} points higher on average.',
+      lower:
+        'We noticed that after nights of 7 hours or more, your energy during the day is {{points}} points lower on average.',
+    },
+    gymSleepQuality: {
+      better:
+        'We noticed that after nights you rate 4 or 5, you match or beat your previous session on {{points}} percentage points more of your exercises than after nights rated 1 or 2.',
+      worse:
+        'We noticed that after nights you rate 4 or 5, you match or beat your previous session on {{points}} percentage points fewer of your exercises than after nights rated 1 or 2.',
+    },
+    stepsWeek: {
+      more: 'We noticed that on weekdays you walk {{steps}} more steps on average than on weekends.',
+      less: 'We noticed that on weekdays you walk {{steps}} fewer steps on average than on weekends.',
+    },
+    bestWeekday: {
+      top: 'We noticed that on {{day}} you tend to move more: {{percent}}% of those days, against {{otherPercent}}% of the rest.',
+    },
+  },
   suggestions: {
     card: {
       label: 'Suggestion from Pomi',
@@ -1096,6 +1128,7 @@ export const en: Messages = {
     },
   },
   review: {
+    insightTitle: 'A finding from the week',
     title: 'Your week',
     range: '{{from}} – {{to}}',
     summaryTitle: 'How it went',
@@ -1242,7 +1275,7 @@ export const en: Messages = {
       sleep: 'Hours slept and regularity.',
       measures: 'Weight and measurements.',
       photos: 'Your photos from the period. Never on by default.',
-      findings: 'They arrive with the findings.',
+      findings: 'What Pomi found about you in the period, with the days behind each finding.',
     },
     foodNotes: 'Include my food notes',
     foodNotesHint:

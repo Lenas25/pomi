@@ -51,6 +51,7 @@ function dataWith(
     gymGoal,
     reviewEntry: false,
     suggestion: undefined,
+    insight: undefined,
     companionCard: undefined,
     identity: { gymDates: [], plannedGymDays: 4, waterDays: null, firstDay: false, ...overrides },
   };
@@ -63,6 +64,7 @@ function mockToday(
     status?: 'done' | 'upcoming';
     empty?: boolean;
     suggestion?: { id: number; text: string; reason: string; evidence: string };
+    insight?: { id: number; text: string; evidence: string };
     notice?: { id: number; variant: 'info' | 'error'; title: string; subtitle: string };
   } = {},
 ) {
@@ -85,6 +87,7 @@ function mockToday(
     declineSuggestion: jest.fn(async () => undefined),
     clearNotice: jest.fn(),
     dismissCompanionCard: jest.fn(async () => undefined),
+    markInsightSeen: jest.fn(async () => undefined),
   };
   mockedUseToday.mockReturnValue({
     load,
@@ -95,6 +98,7 @@ function mockToday(
       greeting: 'Buenos días',
       identity: 'Un paso a la vez. Hoy cuenta.',
       suggestion: options.suggestion ?? null,
+      insight: options.insight ?? null,
     },
     suggestionBusy: false,
     notice: options.notice ?? null,
@@ -251,6 +255,22 @@ describe('TodayScreen', () => {
     expect(jest.mocked(router.push)).toHaveBeenCalledWith('/progreso');
     await fireEvent.press(screen.getByRole('button', { name: 'Ahora no' }));
     expect(handlers.dismissCompanionCard).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a new insight (celebrate card), marks it seen once and opens Progreso', async () => {
+    const handlers = mockToday(dataWith(), {
+      insight: {
+        id: 9,
+        text: 'Notamos que los días que entrenas duermes en promedio 35 minutos más.',
+        evidence: 'Basado en 24 días',
+      },
+    });
+    await renderThemed(<TodayScreen />);
+    expect(screen.getByText(/Notamos que los días que entrenas/)).toBeTruthy();
+    expect(screen.getByText('Basado en 24 días')).toBeTruthy();
+    expect(handlers.markInsightSeen).toHaveBeenCalledWith(9);
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver todos los hallazgos' }));
+    expect(jest.mocked(router.push)).toHaveBeenCalledWith('/progreso');
   });
 
   it('shows no companion card by default', async () => {

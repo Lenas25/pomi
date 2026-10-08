@@ -2,10 +2,12 @@
 // one <h1>, a <section> with an <h2> per block, real tables (<caption>, <th scope>), image alt
 // text, no color-only meaning, and colors from the design tokens (`palette.ts`), never literals.
 import type { Language, Translate } from '../i18n';
+import { insightTexts } from '../insights/text';
 
 import { formatMinutes, formatNumber, formatSigned } from './format';
 import { REPORT_PALETTE, REPORT_RADIUS, REPORT_SPACE, REPORT_TYPE } from './palette';
 import type {
+  FindingsReport,
   GymReport,
   HabitsReport,
   MeasuresReport,
@@ -200,6 +202,15 @@ function photosHtml(
   );
 }
 
+function findingsHtml(section: FindingsReport, { t, language }: HtmlContext): string {
+  if (section.empty) return paragraph(t('reports.empty'));
+  const items = section.items.map((item) => {
+    const { text, evidence } = insightTexts(item, t, language);
+    return `<li>${e(`${text} (${evidence})`)}</li>`;
+  });
+  return `<ul>${items.join('')}</ul>`;
+}
+
 function sectionBody(section: ReportSection, context: HtmlContext): string {
   switch (section.kind) {
     case 'gym':
@@ -212,6 +223,8 @@ function sectionBody(section: ReportSection, context: HtmlContext): string {
       return measuresHtml(section, context);
     case 'photos':
       return photosHtml(section, context);
+    case 'findings':
+      return findingsHtml(section, context);
   }
 }
 

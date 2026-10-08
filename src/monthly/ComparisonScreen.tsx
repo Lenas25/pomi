@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 
 import { getRepositories } from '../db';
 import { buildMonthlyComparison, hasComparison } from '../domain/progress/monthly';
 import { dayKeyFor } from '../domain/time';
 import { formatKg } from '../gym/sessionViewModel';
 import { useLocaleStore, useT } from '../i18n';
+import { InsightsList } from '../insights/InsightsList';
+import { insightsBetweenDays } from '../insights/payload';
 import { StoredPhoto } from '../photos/StoredPhoto';
 import { loadProgressData, type ProgressData } from '../progress/loadProgress';
 import { Card } from '../ui/Card';
@@ -96,6 +98,12 @@ export function ComparisonScreen() {
   const { data } = load;
   const names = data.exerciseNames;
   const { consistency } = comparison;
+  // The findings of the last 30 days (the "now" side of the comparison).
+  const monthInsights = insightsBetweenDays(
+    data.insights ?? [],
+    format(subDays(parseISO(today), 29), 'yyyy-MM-dd'),
+    today,
+  );
 
   if (!hasComparison(comparison)) {
     return (
@@ -232,12 +240,14 @@ export function ComparisonScreen() {
           </View>
         </Card>
 
-        <Card>
-          <View style={{ gap: theme.space[2] }}>
-            {section(t('comparison.insightsTitle'))}
-            {note(t('comparison.insightsEmpty'))}
-          </View>
-        </Card>
+        <View style={{ gap: theme.space[2] }}>
+          {section(t('comparison.insightsTitle'))}
+          {monthInsights.length > 0 ? (
+            <InsightsList insights={monthInsights} />
+          ) : (
+            <Card>{note(t('comparison.insightsEmpty'))}</Card>
+          )}
+        </View>
 
         <Button label={t('comparison.close')} variant="ghost" onPress={() => router.back()} />
       </View>

@@ -17,6 +17,7 @@ import { loadGymGoal, type GymGoal } from './gymGoal';
 import { loadHabitsData } from '../habits/habitsData';
 import { buildHabitsView } from '../habits/habitsView';
 
+import { parseInsightRow, type StoredInsight } from '../insights/payload';
 import { parsePayload, type SuggestionPayload } from '../suggestions/payload';
 import { todayStateFor, type LiveFacts, type TodayState } from './todayView';
 
@@ -40,6 +41,8 @@ export type TodayData = {
   reviewEntry: boolean;
   /** The oldest pending suggestion (Hoy shows at most one card). */
   suggestion: { id: number; payload: SuggestionPayload } | undefined;
+  /** The newest insight nobody has seen (PLAN §12); only when no suggestion is pending. */
+  insight: StoredInsight | undefined;
   /**
    * The ONE companion card of Hoy ("Tu ritmo": sleep debt, social jetlag or an afternoon water gap),
    * only when no suggestion is pending and it was not put away today. HANDOFF §8: one insight card.
@@ -54,6 +57,17 @@ function firstReadable(rows: readonly SuggestionRow[]): TodayData['suggestion'] 
     if (payload) return { id: row.id, payload };
   }
   return undefined;
+}
+
+/** An insight card must never block Hoy either: any failure is "no insight". */
+async function loadUnseenInsight(repos: Repositories): Promise<StoredInsight | undefined> {
+  try {
+    const row = await repos.insights.latestUnseen();
+    return row ? (parseInsightRow(row) ?? undefined) : undefined;
+  } catch (error) {
+    if (__DEV__) console.warn('Could not read the insight', error);
+    return undefined;
+  }
 }
 
 /** A companion card must never block Hoy: any failure is "no card". */
@@ -127,7 +141,9 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     : undefined;
 
   const suggestion = firstReadable(pending);
-  const companionCard = suggestion ? undefined : await loadCompanionCard(repos, today);
+  // The single card slot (HANDOFF §8): pending suggestion > new insight > companion card.
+  const insight = suggestion ? undefined : await loadUnseenInsight(repos);
+  const companionCard = suggestion || insight ? undefined : await loadCompanionCard(repos, today);
 
   return {
     today,
@@ -141,6 +157,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     gymGoal,
     reviewEntry: getDay(midnight) === 0 && (prefs?.weeklyReview ?? true),
     suggestion,
+    insight,
     companionCard,
     identity: {
       gymDates,

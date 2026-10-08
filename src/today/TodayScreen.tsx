@@ -23,6 +23,7 @@ import {
   entryTitle,
   isBedtimeEntry,
 } from './labels';
+import { InsightCard } from './InsightCard';
 import { InsightSlot } from './slots';
 import { useToday } from './useToday';
 
@@ -95,6 +96,20 @@ export function TodayScreen() {
             }}
             onDecline={() => {
               if (view.suggestion) void today.declineSuggestion(view.suggestion.id);
+            }}
+          />
+        ) : null}
+        {view.insight ? (
+          <InsightCard
+            key={view.insight.id}
+            text={view.insight.text}
+            evidence={view.insight.evidence}
+            title={t('insights.title')}
+            cardLabel={t('insights.card.label')}
+            openLabel={t('insights.card.open')}
+            onOpen={() => router.push('/progreso')}
+            onSeen={() => {
+              if (view.insight) void today.markInsightSeen(view.insight.id);
             }}
           />
         ) : null}

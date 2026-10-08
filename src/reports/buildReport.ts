@@ -4,12 +4,13 @@ import { eachDayOfInterval, getDay, parseISO } from 'date-fns';
 
 import { circularRange, sleepDurationMin } from '../domain/formulas/sleep';
 import { strengthSeries, type SessionSets } from '../domain/progress/strength';
-import { clockToMinutes } from '../domain/time';
+import { clockToMinutes, dayKeyFor } from '../domain/time';
 
 import { inPeriod, periodFor } from './period';
 import {
   MAX_NOTE_LENGTH,
   type GymExerciseReport,
+  type FindingsReport,
   type GymReport,
   type HabitsReport,
   type MeasuresReport,
@@ -211,11 +212,20 @@ function photosSection(data: ReportData, period: ReportPeriod): PhotosReport {
   };
 }
 
+// --- Findings -----------------------------------------------------------------------------------
+
+function findingsSection(data: ReportData, period: ReportPeriod): FindingsReport {
+  const items = data.findings.filter((finding) =>
+    inPeriod(dayKeyFor(new Date(finding.createdAt)), period),
+  );
+  return { kind: 'findings', empty: items.length === 0, items: [...items] };
+}
+
 // --- The report ---------------------------------------------------------------------------------
 
 /**
  * Builds the model for `selection`. `now` fixes the period through `dayKeyFor` (logical days).
- * Sections that are not selected are never built; `findings` has no engine yet and is skipped.
+ * Sections that are not selected are never built; `findings` are the stored insights (PLAN §12) inside the period.
  */
 export function buildReport(data: ReportData, selection: ReportSelection, now: Date): ReportModel {
   const period = periodFor(selection.period, now, data.startedOn);
@@ -226,6 +236,7 @@ export function buildReport(data: ReportData, selection: ReportSelection, now: D
   if (chosen.has('sleep')) sections.push(sleepSection(data, period));
   if (chosen.has('measures')) sections.push(measuresSection(data, period));
   if (chosen.has('photos')) sections.push(photosSection(data, period));
+  if (chosen.has('findings')) sections.push(findingsSection(data, period));
   return {
     template: selection.template,
     period,

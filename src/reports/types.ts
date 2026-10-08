@@ -5,8 +5,9 @@ import type { GymDays } from '../templates/schema';
 import type { MorningCheckin } from '../domain/formulas/sleep';
 import type { SessionSets } from '../domain/progress/strength';
 import type { MetricPoint } from '../domain/progress/metrics';
+import type { StoredInsight } from '../insights/payload';
 
-/** What can be shared, in the order it is written. `findings` arrives with the v3 engine. */
+/** What can be shared, in the order it is written. */
 export const REPORT_SECTIONS = [
   'gym',
   'habits',
@@ -17,13 +18,14 @@ export const REPORT_SECTIONS = [
 ] as const;
 export type ReportSectionId = (typeof REPORT_SECTIONS)[number];
 
-/** Sections the person can pick today (the findings engine does not exist yet). */
+/** Sections the person can pick. */
 export const AVAILABLE_SECTIONS: readonly ReportSectionId[] = [
   'gym',
   'habits',
   'sleep',
   'measures',
   'photos',
+  'findings',
 ];
 
 export const REPORT_TEMPLATES = ['trainer', 'nutritionist', 'ai', 'custom'] as const;
@@ -84,6 +86,8 @@ export type ReportData = {
   sleepTargetH: number | undefined;
   metrics: readonly ReportMetricData[];
   photos: readonly { date: string; pose: string; name: string }[];
+  /** Every readable insight (PLAN §12), newest first. */
+  findings: readonly StoredInsight[];
 };
 
 // --- The model ----------------------------------------------------------------------------------
@@ -158,7 +162,15 @@ export type PhotosReport = {
   total: number;
 };
 
-export type ReportSection = GymReport | HabitsReport | SleepReport | MeasuresReport | PhotosReport;
+export type FindingsReport = {
+  kind: 'findings';
+  empty: boolean;
+  /** Insights found inside the period, newest first (prudent wording and "basado en N días"). */
+  items: StoredInsight[];
+};
+
+export type ReportSection =
+  GymReport | HabitsReport | SleepReport | MeasuresReport | PhotosReport | FindingsReport;
 
 export type ReportModel = {
   template: ReportTemplateId;

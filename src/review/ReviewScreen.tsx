@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { useLocaleStore, useT } from '../i18n';
+import { InsightsList } from '../insights/InsightsList';
 import { suggestionTexts } from '../suggestions/text';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -44,7 +45,7 @@ export function ReviewScreen() {
   }
   if (load.status === 'loading') return <Screen>{null}</Screen>;
 
-  const { review, suggestions: pending } = load.data;
+  const { review, suggestions: pending, insight } = load.data;
 
   return (
     <Screen scroll edges={['top', 'bottom', 'left', 'right']}>
@@ -79,6 +80,18 @@ export function ReviewScreen() {
             ))}
           </View>
         </Card>
+
+        {insight ? (
+          <View style={{ gap: theme.space[2] }}>
+            <Text
+              accessibilityRole="header"
+              style={[theme.text('title-sm'), { color: theme.color.text }]}
+            >
+              {t('review.insightTitle')}
+            </Text>
+            <InsightsList insights={[insight]} />
+          </View>
+        ) : null}
 
         <View style={{ gap: theme.space[2] }}>
           <Text

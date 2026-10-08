@@ -24,6 +24,7 @@ import { getHealthAdapter } from '../health';
 import { nudgePermissionState } from '../sedentary/enable';
 import { nudgeNeedsFrequentWorker } from '../sedentary/runNudge';
 import { runSedentaryNudgeForReal } from '../sedentary/nudgeTask';
+import { runWeeklyInsights } from '../insights/run';
 import { runDailySuggestions } from '../suggestions/run';
 
 import { intervalFor, runBackgroundJob, shouldRegister } from './backgroundPolicy';
@@ -58,6 +59,8 @@ TaskManager.defineTask(NOTIFICATION_SYNC_TASK, async () => {
     saveHeavyRunAt: (ms) => repos().settings.set('backgroundLastHeavyRunAt', ms),
     // Once per day: look for suggestions while the app is closed (the card waits on Hoy).
     suggestions: () => runDailySuggestions(getDatabase(), getRepositories()),
+    // Once per ISO week (guarded in the engine).
+    insights: () => runWeeklyInsights(getDatabase(), getRepositories()),
     sync: runNotificationSync,
     nudge: runSedentaryNudgeForReal,
     permissionCheck: checkNudgePermissionLoss,

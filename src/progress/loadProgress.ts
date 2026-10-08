@@ -3,6 +3,7 @@
 import { format, parseISO, startOfMonth, subDays } from 'date-fns';
 
 import { loadCompanion } from '../companion/loadCompanion';
+import { parseInsightRow, type StoredInsight } from '../insights/payload';
 import type { Repositories } from '../db/repositories';
 import type { PhotoRow } from '../db/repositories/photos';
 import type { Companion } from '../domain/companion';
@@ -46,6 +47,8 @@ export type ProgressData = {
   monthlyDone: boolean;
   /** "Tu ritmo" (PLAN §14b); `null` when it could not be computed (it never blocks Progreso). */
   companion?: Companion | null | undefined;
+  /** Every readable insight, newest first (PLAN §12). */
+  insights?: StoredInsight[] | undefined;
 };
 
 const key = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -99,6 +102,14 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
     return null;
   });
 
+  const insights = await repos.insights
+    .all()
+    .then((rows) => rows.flatMap((row) => parseInsightRow(row) ?? []))
+    .catch((error: unknown) => {
+      if (__DEV__) console.warn('Could not read the insights', error);
+      return [];
+    });
+
   return {
     today,
     startedOn,
@@ -117,5 +128,6 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
     photoGuide: photoSpec?.guide,
     monthlyDone: monthly.length > 0,
     companion,
+    insights,
   };
 }

@@ -79,7 +79,11 @@ export function chronotypeOf(midSleep: number): Chronotype {
   return shifted > evening ? 'evening' : 'intermediate';
 }
 
-function energyBySleep(
+/**
+ * Energy after nights of 7 h or more vs shorter ones. The ONE implementation: "Tu ritmo" and the
+ * insights engine (PLAN §12) both call it.
+ */
+export function energyBySleep(
   nights: readonly MorningCheckin[],
   energy: ReadonlyMap<string, number>,
 ): Rhythm['energy'] {

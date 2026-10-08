@@ -465,7 +465,7 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 
 ### v3: descubrirte
 
-- [ ] Motor de hallazgos (sección 12).
+- [x] Motor de hallazgos (sección 12): `buildInsights` puro, semanal, máximo 1 por semana ISO, mínimo 21 días y 7 por grupo, umbrales por variable, tarjeta en Hoy, lista en Progreso, carta semanal, `/comparacion` y sección «Hallazgos» del reporte.
 - [ ] Volumen semanal por músculo.
 - [ ] Editor de programas de gym dentro de la app.
 - [ ] Inglés completo; CSV y JSON en reportes; importar programas de un entrenador.

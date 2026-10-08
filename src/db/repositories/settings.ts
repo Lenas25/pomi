@@ -103,6 +103,8 @@ export const settingsSchemas = {
   deloadWeek: deloadWeekSchema,
   /** Last day (`yyyy-MM-dd`) the suggestions engine ran (it runs once per day). */
   suggestionsLastRun: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** Monday (`yyyy-MM-dd`) of the ISO week the insights engine last ran (it runs once per week). */
+  insightsLastRun: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Day the gym plan (`gymDays`) last changed: accepted suggestion, onboarding or a manual edit. */
   gymDaysChangedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Day the steps goal (`goals.stepsGoal`) last changed, whichever way it changed. */
