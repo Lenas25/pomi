@@ -8,8 +8,10 @@ import {
   Info,
   MoonStars,
   ShieldCheck,
+  Sparkle,
 } from 'phosphor-react-native';
 
+import { useAiStatus } from '../../src/ai/useAiStatus';
 import { useT } from '../../src/i18n';
 import { FreeDaysSettings } from '../../src/settings/FreeDaysSettings';
 import { ScheduleSettings } from '../../src/settings/ScheduleSettings';
@@ -22,6 +24,11 @@ import { useTheme } from '../../src/ui/theme';
 export default function Ajustes() {
   const t = useT();
   const theme = useTheme();
+  const { status: ai } = useAiStatus();
+  const aiBody =
+    ai.loaded && ai.ready && ai.connection
+      ? t('ai.connect.entryOn', { provider: t(`ai.connect.providers.${ai.connection.provider}`) })
+      : t('ai.connect.entryOff');
 
   return (
     <Screen>
@@ -96,6 +103,23 @@ export default function Ajustes() {
               </Text>
               <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
                 {t('settings.backup.body')}
+              </Text>
+            </View>
+          </View>
+        </Card>
+
+        <Card
+          onPress={() => router.push('/conectar-ia')}
+          accessibilityLabel={t('ai.connect.entryTitle')}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
+            <Sparkle color={theme.color.text} />
+            <View style={{ flex: 1 }}>
+              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
+                {t('ai.connect.entryTitle')}
+              </Text>
+              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+                {aiBody}
               </Text>
             </View>
           </View>

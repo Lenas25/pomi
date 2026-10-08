@@ -3,6 +3,7 @@ import { Alert, Pressable, Text, View, useWindowDimensions } from 'react-native'
 import { router, useFocusEffect } from 'expo-router';
 import { format, parseISO } from 'date-fns';
 
+import { useAiStatus } from '../ai/useAiStatus';
 import { useLocaleStore, useT } from '../i18n';
 import { formatKg } from '../gym/sessionViewModel';
 import { CompanionSection } from '../companion/CompanionSection';
@@ -388,6 +389,7 @@ export function ProgressScreen() {
   const { width } = useWindowDimensions();
   const twoColumns = width >= theme.layout.twoColumnMin;
   const { state, load, saveMetric, removePhoto } = useProgress();
+  const { status: ai } = useAiStatus();
   const [selectedStepId, setSelectedStepId] = useState<string | undefined>();
 
   // Coming back to the tab (or from a workout / check-in) refreshes the numbers.
@@ -474,6 +476,22 @@ export function ProgressScreen() {
             <InsightsSection
               insights={state.status === 'ready' ? state.data.insights : undefined}
             />
+
+            {ai.loaded && ai.ready ? (
+              <Card
+                onPress={() => router.push('/preguntale-a-pomi')}
+                accessibilityLabel={t('ai.ask.entryTitle')}
+              >
+                <View style={{ gap: theme.space[1] }}>
+                  <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
+                    {t('ai.ask.entryTitle')}
+                  </Text>
+                  <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+                    {t('ai.ask.entryBody')}
+                  </Text>
+                </View>
+              </Card>
+            ) : null}
 
             <Button
               label={t('share.cta')}

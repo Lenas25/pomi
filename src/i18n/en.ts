@@ -2122,6 +2122,124 @@ export const en: Messages = {
       failed: 'We could not save the routine. Please try again.',
     },
   },
+  ai: {
+    prompt: {
+      role: 'You are the AI that supports a person inside Pomi, a local app for the gym and healthy habits.',
+      scope:
+        'You only talk about their healthy-life topics: sleep, water, movement and steps, gym, mood and energy, and their food notes if they share them.',
+      language: 'Always answer in English, warm and direct.',
+      noMedical:
+        'You never give medical advice, diagnoses, doses or treatments. If they ask something medical or mention symptoms, kindly suggest seeing a health professional.',
+      prudent:
+        'Use prudent language ("it seems", "we noticed that"): never claim causes from this data.',
+      numbers:
+        'Use ONLY the numbers in the data the app sends you. Do not calculate, estimate or invent new figures; if something is missing, say so.',
+      changes:
+        'You may propose routine or plan changes only as text. You cannot change anything: the person decides and applies them in the app (Gym > Edit program or the suggestions).',
+      tone: 'No guilt or punishment: no lost streaks and no comparisons with other people.',
+      brief: 'Keep answers short: 3 to 6 sentences or a brief list.',
+      offTopic:
+        'If the question is outside those topics, kindly say you can only help with their sleep, water, movement, gym and mood.',
+      questionLabel: 'Question:',
+      dataLabel: 'App data (aggregates computed on the phone, JSON):',
+      ping: 'Reply only: ok',
+    },
+    errors: {
+      noKey: 'Your API key is missing. Add it in Settings > Connect your AI.',
+      noModel: 'The model name is missing. Type it in Settings > Connect your AI.',
+      unauthorized:
+        'The provider rejected the key (401/403). Check that it is copied right and active.',
+      modelNotFound:
+        'We could not find that model or address (404). Check the model name and the URL.',
+      rateLimited: 'The provider asks you to wait (429): usage limit or balance. Try again later.',
+      badRequest: 'The provider did not accept the request. Check the chosen model.',
+      server: 'The provider’s server had a problem. Try again in a while.',
+      badResponse: 'The provider’s answer is not in the expected format.',
+      emptyAnswer: 'The model answered with nothing. Try again or raise the answer length.',
+      network:
+        'We could not reach the server. Check your internet connection (or that your own server is on and on the same network).',
+      timeout: 'The provider took more than 30 seconds. Try again.',
+    },
+    connect: {
+      entryTitle: 'Connect your AI',
+      entryOff: 'Optional: use your own AI provider. Off.',
+      entryOn: 'Connected: {{provider}}',
+      title: 'Connect your AI',
+      intro:
+        'Pomi works fully without AI. If you want, you can connect the provider you already use to ask questions about your data.',
+      privacyTitle: 'What leaves your phone',
+      privacyBody:
+        'Pomi has no server: the app talks straight to your provider. Only summaries are sent (averages, totals, trends) and before every send you see exactly what leaves. Photos never leave; your notes only if you switch them on for that message. Your provider receives that data and applies its own privacy rules.',
+      costTitle: 'The cost is yours',
+      costBody:
+        'Every question uses your account and balance with the provider. Pomi charges nothing and never sees your key.',
+      enable: 'I want to connect my AI',
+      provider: 'Provider',
+      providers: {
+        openai: 'OpenAI',
+        gemini: 'Google Gemini',
+        moonshot: 'Moonshot Kimi',
+        minimax: 'MiniMax',
+        openrouter: 'OpenRouter',
+        anthropic: 'Anthropic',
+        custom: 'Own URL',
+      },
+      customHint:
+        'For your own server (Ollama, LM Studio or vLLM). On your local network http is allowed.',
+      baseUrl: 'Base URL (OpenAI-compatible)',
+      baseUrlPlaceholder: 'http://192.168.1.20:11434/v1',
+      model: 'Model',
+      modelHint: 'Type the exact id of a model your account offers.',
+      apiKey: 'API key',
+      apiKeyOptional: 'API key (optional)',
+      apiKeyStored: 'A key is saved in the phone’s secure storage. Type another one to replace it.',
+      apiKeyNote:
+        'It is kept only in the phone’s secure storage: never in your data or the backup.',
+      maxTokens: 'Maximum answer length',
+      tokens: '{{count}} tokens',
+      save: 'Save',
+      saved: 'Saved.',
+      test: 'Test connection',
+      testOk: 'Connection works. Your AI answered.',
+      disconnect: 'Disconnect and delete the key',
+      disconnected: 'Disconnected. The key was deleted from the phone.',
+      urlEmpty: 'Type your server’s URL.',
+      urlInvalid: 'That URL is not valid. Example: http://192.168.1.20:11434/v1',
+      httpsRequired: 'Use https. Plain http is only allowed for this phone or your local network.',
+      modelEmpty: 'Type the model name.',
+      keyEmpty: 'Type your API key.',
+      keyTooLong: 'That key is too long.',
+      saveFailed: 'We could not save. Try again.',
+    },
+    ask: {
+      entryTitle: 'Ask Pomi',
+      entryBody: 'Ask your connected AI a question about your data.',
+      title: 'Ask Pomi',
+      intro:
+        'Ask about your sleep, water, movement, gym or mood. The numbers come from the app; the AI only explains them.',
+      question: 'Your question',
+      placeholder: 'How is my sleep going this month?',
+      includeFood: 'Include my food notes in this message',
+      includeNotes: 'Include my day notes in this message',
+      review: 'Review what will be sent',
+      previewTitle: 'This will leave your phone',
+      previewHint: 'It is exactly the text {{provider}} receives. Photos are never sent.',
+      instructions: 'Instructions for the AI',
+      send: 'Send',
+      edit: 'Change the question',
+      empty: 'No questions yet. What you talk about here is kept only on your phone.',
+      you: 'You',
+      pomi: 'AI',
+      clear: 'Clear history',
+      cleared: 'History cleared.',
+      changesNote:
+        'The AI may propose changes, but it never touches your plan: you decide and make them in the app.',
+      disclaimer: 'Not medical advice.',
+      notConnected: 'Your AI is not connected. Turn it on in Settings > Connect your AI.',
+      loadFailed: 'We could not read your data. Try again.',
+      questionEmpty: 'Type a question.',
+    },
+  },
   database: {
     errorTitle: 'We could not open your data',
     errorBody:

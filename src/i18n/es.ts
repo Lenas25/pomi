@@ -2124,6 +2124,125 @@ export const es = {
       failed: 'No pudimos guardar la rutina. Inténtalo de nuevo.',
     },
   },
+  ai: {
+    prompt: {
+      role: 'Eres la IA que acompaña a una persona dentro de Pomi, una app local de gym y hábitos saludables.',
+      scope:
+        'Solo hablas de sus temas de vida saludable: sueño, agua, movimiento y pasos, gym, ánimo y energía, y sus notas de comida si te las comparte.',
+      language: 'Responde siempre en español, con tuteo, cálido y directo.',
+      noMedical:
+        'No das consejo médico, diagnósticos, dosis ni tratamientos. Si te preguntan algo médico o hay síntomas, sugiere con amabilidad consultar a un profesional de salud.',
+      prudent:
+        'Usa lenguaje prudente ("parece", "notamos que"): nunca afirmes causas a partir de estos datos.',
+      numbers:
+        'Usa SOLO los números de los datos que te envía la app. No calcules, estimes ni inventes cifras nuevas; si un dato falta, dilo.',
+      changes:
+        'Puedes proponer cambios de rutina o de plan solo como texto. No puedes cambiar nada: la persona decide y los aplica en la app (Gym > Editar programa o las sugerencias).',
+      tone: 'Sin culpa ni castigo: nada de rachas perdidas ni comparaciones con otras personas.',
+      brief: 'Respuestas cortas: 3 a 6 frases o una lista breve.',
+      offTopic:
+        'Si la pregunta está fuera de esos temas, responde con amabilidad que solo puedes ayudar con su sueño, agua, movimiento, gym y ánimo.',
+      questionLabel: 'Pregunta:',
+      dataLabel: 'Datos de la app (agregados calculados en el teléfono, JSON):',
+      ping: 'Responde solo: ok',
+    },
+    errors: {
+      noKey: 'Falta tu clave de API. Agrégala en Ajustes > Conectar mi IA.',
+      noModel: 'Falta el nombre del modelo. Escríbelo en Ajustes > Conectar mi IA.',
+      unauthorized:
+        'El proveedor rechazó la clave (401/403). Revisa que esté bien copiada y activa.',
+      modelNotFound:
+        'No encontramos ese modelo o la dirección (404). Revisa el nombre del modelo y la URL.',
+      rateLimited: 'El proveedor pide esperar (429): límite de uso o saldo. Prueba más tarde.',
+      badRequest: 'El proveedor no aceptó la solicitud. Revisa el modelo elegido.',
+      server: 'El servidor del proveedor tuvo un problema. Prueba en un rato.',
+      badResponse: 'La respuesta del proveedor no tiene el formato esperado.',
+      emptyAnswer: 'El modelo respondió vacío. Prueba de nuevo o sube el límite de respuesta.',
+      network:
+        'No pudimos llegar al servidor. Revisa tu conexión a internet (o que tu servidor propio esté encendido y en la misma red).',
+      timeout: 'El proveedor tardó más de 30 segundos. Prueba de nuevo.',
+    },
+    connect: {
+      entryTitle: 'Conectar mi IA',
+      entryOff: 'Opcional: usa tu propio proveedor de IA. Apagado.',
+      entryOn: 'Conectada: {{provider}}',
+      title: 'Conectar mi IA',
+      intro:
+        'Pomi funciona completo sin IA. Si quieres, puedes conectar el proveedor que ya usas para hacerle preguntas sobre tus datos.',
+      privacyTitle: 'Qué sale de tu teléfono',
+      privacyBody:
+        'Pomi no tiene servidor: la app habla directo con tu proveedor. Solo se envían resúmenes (promedios, totales, tendencias) y antes de cada envío ves exactamente qué sale. Las fotos nunca salen; tus notas solo si las activas en ese mensaje. Tu proveedor recibe esos datos y aplica sus propias reglas de privacidad.',
+      costTitle: 'El costo es tuyo',
+      costBody:
+        'Cada pregunta usa tu cuenta y tu saldo con el proveedor. Pomi no cobra nada ni ve tu clave.',
+      enable: 'Quiero conectar mi IA',
+      provider: 'Proveedor',
+      providers: {
+        openai: 'OpenAI',
+        gemini: 'Google Gemini',
+        moonshot: 'Moonshot Kimi',
+        minimax: 'MiniMax',
+        openrouter: 'OpenRouter',
+        anthropic: 'Anthropic',
+        custom: 'URL propia',
+      },
+      customHint:
+        'Para un servidor tuyo (Ollama, LM Studio o vLLM). En tu red local se permite http.',
+      baseUrl: 'URL base (compatible con OpenAI)',
+      baseUrlPlaceholder: 'http://192.168.1.20:11434/v1',
+      model: 'Modelo',
+      modelHint: 'Escribe el id exacto del modelo que ofrece tu cuenta.',
+      apiKey: 'Clave de API',
+      apiKeyOptional: 'Clave de API (opcional)',
+      apiKeyStored:
+        'Hay una clave guardada en el almacén seguro del teléfono. Escribe otra para cambiarla.',
+      apiKeyNote:
+        'Se guarda solo en el almacén seguro del teléfono: nunca en tus datos ni en el respaldo.',
+      maxTokens: 'Largo máximo de la respuesta',
+      tokens: '{{count}} tokens',
+      save: 'Guardar',
+      saved: 'Guardado.',
+      test: 'Probar conexión',
+      testOk: 'Conexión correcta. Tu IA respondió.',
+      disconnect: 'Desconectar y borrar la clave',
+      disconnected: 'Desconectada. La clave se borró del teléfono.',
+      urlEmpty: 'Escribe la URL de tu servidor.',
+      urlInvalid: 'Esa URL no es válida. Ejemplo: http://192.168.1.20:11434/v1',
+      httpsRequired: 'Usa https. Solo se permite http para tu teléfono o tu red local.',
+      modelEmpty: 'Escribe el nombre del modelo.',
+      keyEmpty: 'Escribe tu clave de API.',
+      keyTooLong: 'Esa clave es demasiado larga.',
+      saveFailed: 'No pudimos guardar. Prueba de nuevo.',
+    },
+    ask: {
+      entryTitle: 'Pregúntale a Pomi',
+      entryBody: 'Haz una pregunta sobre tus datos a tu IA conectada.',
+      title: 'Pregúntale a Pomi',
+      intro:
+        'Pregunta sobre tu sueño, agua, movimiento, gym o ánimo. Las cifras salen de la app; la IA solo las explica.',
+      question: 'Tu pregunta',
+      placeholder: '¿Cómo voy con el sueño este mes?',
+      includeFood: 'Incluir mis notas de comida en este mensaje',
+      includeNotes: 'Incluir mis notas del día en este mensaje',
+      review: 'Revisar qué se envía',
+      previewTitle: 'Esto saldrá de tu teléfono',
+      previewHint: 'Es exactamente el texto que recibe {{provider}}. Las fotos nunca se envían.',
+      instructions: 'Instrucciones para la IA',
+      send: 'Enviar',
+      edit: 'Cambiar la pregunta',
+      empty: 'Aún no hay preguntas. Lo que hables aquí se guarda solo en tu teléfono.',
+      you: 'Tú',
+      pomi: 'IA',
+      clear: 'Borrar historial',
+      cleared: 'Historial borrado.',
+      changesNote:
+        'La IA puede proponer cambios, pero no toca tu plan: tú decides y los haces en la app.',
+      disclaimer: 'No es consejo médico.',
+      notConnected: 'Tu IA no está conectada. Actívala en Ajustes > Conectar mi IA.',
+      loadFailed: 'No pudimos leer tus datos. Prueba de nuevo.',
+      questionEmpty: 'Escribe una pregunta.',
+    },
+  },
   database: {
     errorTitle: 'No pudimos abrir tus datos',
     errorBody:

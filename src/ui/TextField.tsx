@@ -15,6 +15,9 @@ type TextFieldProps = Pick<
   | 'returnKeyType'
   | 'blurOnSubmit'
   | 'multiline'
+  | 'secureTextEntry'
+  | 'autoCapitalize'
+  | 'autoCorrect'
 > & {
   label: string;
   /** Error text; also flips the border to the error color and is announced. */

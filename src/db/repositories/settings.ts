@@ -22,6 +22,8 @@ import {
   SCREENS_OFF_BEFORE_MAX,
   SCREENS_OFF_BEFORE_MIN,
 } from '../../domain/notifications/prefs';
+import { AI_PROVIDERS, MAX_OUTPUT_TOKEN_CHOICES } from '../../domain/ai/providers';
+import { MAX_HISTORY_MESSAGES, MAX_STORED_TEXT } from '../../domain/ai/history';
 import { settings } from '../schema';
 import type { Db } from '../types';
 
@@ -142,6 +144,33 @@ export const sedentaryHistorySchema = z.strictObject({
   lastAt: z.number().optional(),
 });
 
+/**
+ * "Conectar mi IA" (PLAN §14d). NEVER holds the API key: that lives only in the secure store
+ * (`src/ai/keyStore.ts`), so the JSON backup cannot carry it.
+ */
+export const aiConnectionSchema = z.strictObject({
+  enabled: z.boolean(),
+  provider: z.enum(AI_PROVIDERS),
+  customBaseUrl: z.string().max(300).optional(),
+  model: z.string().max(200),
+  maxOutputTokens: z
+    .number()
+    .int()
+    .min(Math.min(...MAX_OUTPUT_TOKEN_CHOICES))
+    .max(Math.max(...MAX_OUTPUT_TOKEN_CHOICES)),
+});
+
+/** The on-device chat history of "Pregúntale a Pomi" (newest last). */
+export const aiChatSchema = z
+  .array(
+    z.strictObject({
+      role: z.enum(['user', 'assistant']),
+      text: z.string().max(MAX_STORED_TEXT),
+      at: z.number().nonnegative(),
+    }),
+  )
+  .max(MAX_HISTORY_MESSAGES);
+
 /** Every key the app stores, with the shape of its value. Values are validated on read. */
 export const settingsSchemas = {
   anchors: anchorsSchema,
@@ -206,6 +235,8 @@ export const settingsSchemas = {
   companionCardDismissed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   /** Last notification responses already applied (dedupes the background task vs the listener). */
   handledNotificationResponses: z.array(z.string()),
+  aiConnection: aiConnectionSchema,
+  aiChat: aiChatSchema,
   /** The person opened the system screen for exact alarms / battery (Android gives no way to read them). */
   permissionHints: z.strictObject({
     alarms: z.boolean().optional(),
