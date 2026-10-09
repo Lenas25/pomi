@@ -75,3 +75,48 @@ export function MiniBar({
     </View>
   );
 }
+
+/** Decorative tile visual: a few vertical bars scaled to the largest value (weekly bars, volume). */
+export function MiniBars({
+  values,
+  color,
+  trackColor,
+  highlightLast = false,
+}: {
+  values: readonly number[];
+  color: string;
+  trackColor: string;
+  /** Draws every bar but the last one in `trackColor` (the current week stands out). */
+  highlightLast?: boolean;
+}) {
+  const theme = useTheme();
+  const max = Math.max(0, ...values);
+  return (
+    <View
+      testID="mini-bars"
+      accessible={false}
+      style={{
+        height: theme.space[8],
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: theme.space[1],
+      }}
+    >
+      {values.map((value, index) => {
+        const ratio = max > 0 ? Math.max(0, value) / max : 0;
+        const last = index === values.length - 1;
+        return (
+          <View
+            key={index}
+            style={{
+              flex: 1,
+              height: `${Math.max(8, Math.round(ratio * 100))}%`,
+              borderRadius: theme.radius.sm,
+              backgroundColor: highlightLast && !last ? trackColor : ratio > 0 ? color : trackColor,
+            }}
+          />
+        );
+      })}
+    </View>
+  );
+}

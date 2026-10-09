@@ -24,6 +24,9 @@ import {
   type SetsStep,
   type StoredSet,
 } from './sessionViewModel';
+import { plannedPerWeek } from '../domain/progress/weekly';
+import { loadGymGoal, type GymGoal } from '../today/gymGoal';
+import { historyEntries, sessionsThisWeek, type HistoryEntry } from './gymHistory';
 import { createKeyedQueue, memoizeUntilFailure } from './asyncControl';
 import { loadVolumeData, type VolumeData } from '../volume/loadVolume';
 import { createSetActions, nextLabelFor } from './setActions';
@@ -42,6 +45,12 @@ export type GymTabState =
       resumableRoutineId: string | null;
       /** Weekly volume per muscle; `null` when it could not be computed (never blocks the tab). */
       volume: VolumeData | null;
+      /** "Meta de hoy" of the first main exercise of today's routine. */
+      goal: GymGoal | undefined;
+      /** Sessions with sets this ISO week, and gym days planned per week (0 = no plan). */
+      week: { done: number; planned: number };
+      /** Recent sessions with logged sets, newest first. */
+      history: HistoryEntry[];
     };
 
 /** Loads the program, today's routine (rotation) and any resumable session; call `reload` on focus. */
@@ -63,6 +72,9 @@ export function useGymTab(): GymTabState & { reload: () => void } {
               todayRoutineId: null,
               resumableRoutineId: null,
               volume: null,
+              goal: undefined,
+              week: { done: 0, planned: 0 },
+              history: [],
             });
           }
           return;
@@ -80,16 +92,29 @@ export function useGymTab(): GymTabState & { reload: () => void } {
         const openWithSets = open
           ? recent.find((entry) => entry.session.id === open.id && entry.sets.length > 0)
           : undefined;
+        const todayRoutineId = todaysRoutineId(routineIds, toRotationSessions(recent), today);
+        const weekday = getDay(parseISO(today));
+        const goal = await loadGymGoal(
+          repos,
+          program.routines.find((routine) => routine.id === todayRoutineId),
+          program.rules,
+          weekday,
+          activeDeloadPct(await repos.settings.get('deloadWeek'), today),
+        ).catch(() => undefined);
+        const planned = plannedPerWeek((await repos.settings.get('gymDays')) ?? []);
         if (!cancelled) {
           setState({
             status: 'ready',
             program,
-            todayRoutineId: todaysRoutineId(routineIds, toRotationSessions(recent), today),
+            todayRoutineId,
             resumableRoutineId:
               openWithSets && routineIds.includes(openWithSets.session.routineId)
                 ? openWithSets.session.routineId
                 : null,
             volume,
+            goal,
+            week: { done: sessionsThisWeek(recent, today), planned },
+            history: historyEntries(recent, program),
           });
         }
       } catch (error) {

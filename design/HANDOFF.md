@@ -110,6 +110,10 @@ Tipografía: ver `BRAND.md` sección 5 (`display`, `title-lg`, `title-md`, `titl
 1. `SectionHeader` verde + `BentoGrid` con baldosas teñidas por categoría: Agua 2x1 (gotas + "+1"), Pasos 1x1 (barra), Sueño 1x1 (duración y calidad de anoche), un 1x1 por hábito de check (Pausa activa, Caminar después de comer), Comida 1x1 (nota sí/no), Movimiento 1x1 ("¿Te moviste hoy?" en hoja).
 2. Detalle (scroll permitido): `/habitos/agua` (gotas, 10 días, curva por hora, metas), `/habitos/pasos` (conteo, Health Connect / entrada manual, línea base, meta), `/habitos/sueno` (promedio, noches, deuda, jetlag social, check-ins, ciclos), `/habitos/[id]` (marcar, cómo hacerlo, 10 días), `/habitos/comida` (nota y notas recientes).
 
+### Gym (hub bento)
+1. `SectionHeader` coral (nombre del programa) + `BentoGrid`: "Hoy toca" 2x2 (rutina, meta de hoy del primer ejercicio, botón `energy` Empezar/Continuar), Semana 1x1 (sesiones hechas/planeadas), Volumen 1x1 (mini barras por músculo), Programa 2x1 (nombre + nº de rutinas), Crear rutina 1x1 (generador), Historial 1x1 (fecha de la última sesión).
+2. Detalle: `/gym/programa` (rutinas, empezar cualquiera; pie fijo con Editar programa e Importar), `/gym/volumen` (series por músculo esta semana + semanas), `/gym/historial` (sesiones recientes con series y volumen).
+
 ### Sesión de gym
 1. Encabezado: "Día 1: Glúteos e isquios" + progreso de series.
 2. Calentamiento plegable (checks).
