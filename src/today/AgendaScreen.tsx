@@ -23,6 +23,7 @@ import {
   isBedtimeEntry,
 } from './labels';
 import { useToday } from './useToday';
+import { hiddenScrollIndicators } from '../ui/scroll';
 
 function goBack() {
   if (router.canGoBack()) router.back();
@@ -72,7 +73,10 @@ export function AgendaScreen() {
 
   return (
     <Screen header={header} edges={['top', 'bottom', 'left', 'right']}>
-      <ScrollView contentContainerStyle={{ gap: theme.space[2], paddingVertical: theme.space[4] }}>
+      <ScrollView
+        {...hiddenScrollIndicators}
+        contentContainerStyle={{ gap: theme.space[2], paddingVertical: theme.space[4] }}
+      >
         {entries.length === 0 ? (
           <EmptyState title={t('empty.hoy.title')} body={t('empty.hoy.body')} />
         ) : (

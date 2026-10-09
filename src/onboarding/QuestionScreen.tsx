@@ -24,6 +24,7 @@ import {
   TOTAL_QUESTIONS,
   type QuestionId,
 } from './flow';
+import { hiddenScrollIndicators } from '../ui/scroll';
 
 const NextContext = createContext<() => void>(() => undefined);
 
@@ -122,6 +123,7 @@ export function QuestionScreen({
           </View>
 
           <ScrollView
+            {...hiddenScrollIndicators}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ gap: theme.space[5], paddingVertical: theme.space[4] }}
             style={{ flex: 1 }}

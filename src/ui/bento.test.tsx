@@ -4,7 +4,7 @@ import { Drop } from 'phosphor-react-native';
 import { StyleSheet } from 'react-native';
 
 import { BentoGrid } from './BentoGrid';
-import { bentoBands, bentoColumns, packBento } from './bentoLayout';
+import { bentoBands, bentoColumns, packBento, tileMinHeight } from './bentoLayout';
 import { BentoTile } from './BentoTile';
 import { makeTheme, ThemeProvider } from './theme';
 
@@ -77,6 +77,48 @@ describe('bentoBands', () => {
   });
 });
 
+describe('tileMinHeight (no clipped text)', () => {
+  const theme = makeTheme('light');
+  const metrics = {
+    padding: theme.space[4],
+    gap: theme.space[1],
+    titleLine: 24,
+    valueLine: 34,
+    captionLine: 18,
+    captionMaxLines: 2,
+  };
+  const full = { value: true, caption: true };
+
+  it('fits the title, the value and two caption lines at font scale 1', () => {
+    // 2 x 16 padding + 24 + 34 + 2 x 18 + 2 gaps of 4.
+    expect(tileMinHeight(full, metrics, 1)).toBe(134);
+    expect(tileMinHeight({ value: false, caption: true }, metrics, 1)).toBe(96);
+    expect(tileMinHeight({ value: false, caption: false }, metrics, 1)).toBe(56);
+  });
+
+  it('scales the text lines (not the padding) at 1.3 and never shrinks below 1', () => {
+    expect(tileMinHeight(full, metrics, 1.3)).toBe(Math.ceil(32 + 94 * 1.3 + 8));
+    expect(tileMinHeight(full, metrics, 0.85)).toBe(134);
+  });
+
+  it.each([
+    [360, 1],
+    [360, 1.3],
+    [412, 1],
+    [412, 1.3],
+  ])(
+    'at %i dp and font %s the row is at least the tile content (grows, never clips)',
+    (width, fontScale) => {
+      const columns = bentoColumns(width, fontScale, theme.bento);
+      expect(columns).toBe(width === 360 && fontScale >= 1.3 ? 1 : 2);
+      // A full tile needs more than the grid's row floor, so its own minimum must drive the row.
+      expect(tileMinHeight(full, metrics, fontScale)).toBeGreaterThan(
+        Math.round(theme.bento.rowHeight * fontScale),
+      );
+    },
+  );
+});
+
 describe('BentoGrid + BentoTile', () => {
   it('renders tiles that open their detail page and speak a summary', async () => {
     const onPress = jest.fn();
@@ -122,6 +164,10 @@ describe('BentoGrid + BentoTile', () => {
     const style = StyleSheet.flatten(tile.props.style);
     expect(style.backgroundColor).toBe(theme.section.agua.soft);
     expect(style.minHeight).toBeGreaterThanOrEqual(48);
+    // Grows from its content (basis auto) and never hides overflowing text.
+    expect(style.flexGrow).toBe(1);
+    expect(style.flex).toBeUndefined();
+    expect(style.overflow).toBeUndefined();
     expect(
       StyleSheet.flatten(screen.getByRole('button', { name: 'Sueño: 7 horas' }).props.style)
         .backgroundColor,

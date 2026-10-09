@@ -2,7 +2,7 @@ import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { Plus } from 'phosphor-react-native';
 
 import { SECTION_ICONS } from './sections';
-import { useTheme, type SectionKey } from './theme';
+import { useTheme, type SectionKey, type Theme } from './theme';
 
 export type TabBarTab = { name: string; section: SectionKey; label: string };
 
@@ -19,8 +19,23 @@ type TabBarProps = {
 };
 
 /**
+ * Active tab pill. Dark mode: the solid section fill with a navy icon (the dark `soft` tints are
+ * near-black browns/greens that read as muddy on the bar). Light mode: the soft tint with the
+ * section text color. Both keep the icon at >= 4.5:1 on its pill (tested).
+ */
+export function tabPillColors(
+  theme: Theme,
+  section: SectionKey,
+): { background: string; icon: string } {
+  const colors = theme.section[section];
+  return theme.mode === 'dark'
+    ? { background: colors.fill, icon: colors.onFill }
+    : { background: colors.soft, icon: colors.text };
+}
+
+/**
  * Pomi Splash tab bar: 4 tabs + a raised center action. Active tab = filled icon in the section
- * color on a soft pill + label in the section text color; inactive = regular icon and label in
+ * color pill (`tabPillColors`) + label in the section text color; inactive = regular icon and label in
  * `textMuted` (≥ 8:1). Labels stay on one line and shrink a little instead of clipping at 1.3×.
  */
 export function TabBar({
@@ -40,6 +55,7 @@ export function TabBar({
   const renderTab = (tab: TabBarTab) => {
     const focused = tab.name === activeName;
     const colors = theme.section[tab.section];
+    const pill = tabPillColors(theme, tab.section);
     const TabIcon = SECTION_ICONS[tab.section];
     return (
       <Pressable
@@ -64,12 +80,12 @@ export function TabBar({
             borderRadius: theme.radius.pill,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: focused ? colors.soft : theme.color.transparent,
+            backgroundColor: focused ? pill.background : theme.color.transparent,
           }}
         >
           <TabIcon
             weight={focused ? 'fill' : 'regular'}
-            color={focused ? colors.text : theme.color.textMuted}
+            color={focused ? pill.icon : theme.color.textMuted}
           />
         </View>
         <Text

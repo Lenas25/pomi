@@ -17,6 +17,7 @@ import { expoPhotoFs } from './expoPhotoFs';
 import { appendPage, cursorOf, withoutRows } from './photoPaging';
 import { deleteAllPhotos, deletePhoto } from './photoStore';
 import { StoredPhoto } from './StoredPhoto';
+import { hiddenScrollIndicators } from '../ui/scroll';
 
 /** Photos per page: three columns, six rows. */
 export const PHOTOS_PAGE_SIZE = 18;
@@ -259,6 +260,7 @@ export function PhotosScreen() {
   return (
     <Screen edges={['top', 'bottom', 'left', 'right']}>
       <FlatList
+        {...hiddenScrollIndicators}
         data={rows}
         keyExtractor={(photo) => String(photo.id)}
         renderItem={renderItem}

@@ -11,6 +11,7 @@ import { X } from 'phosphor-react-native';
 
 import { bezierFromToken } from './easing';
 import { useTheme } from './theme';
+import { hiddenScrollIndicators } from './scroll';
 
 type BottomSheetProps = {
   visible: boolean;
@@ -110,6 +111,7 @@ export function BottomSheet({ visible, onClose, title, closeLabel, children }: B
             </Pressable>
           </View>
           <ScrollView
+            {...hiddenScrollIndicators}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ gap: theme.space[3] }}
           >

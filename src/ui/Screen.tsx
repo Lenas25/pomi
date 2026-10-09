@@ -3,6 +3,7 @@ import { ScrollView, View } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { useTheme } from './theme';
+import { hiddenScrollIndicators } from './scroll';
 
 type ScreenProps = {
   children: ReactNode;
@@ -48,7 +49,7 @@ export function Screen({
     <SafeAreaView edges={safeEdges} style={{ flex: 1, backgroundColor: theme.color.bg }}>
       {header}
       {scroll ? (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={content}>
+        <ScrollView {...hiddenScrollIndicators} style={{ flex: 1 }} contentContainerStyle={content}>
           {children}
         </ScrollView>
       ) : (

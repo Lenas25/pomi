@@ -37,6 +37,7 @@ import type { StoredSet } from './sessionViewModel';
 import { SessionSummaryCard, StepRow, WarmupSection, type NonSetsStep } from './StepBlocks';
 import { clearDoneSteps, getDoneSteps, saveDoneSteps, sessionStepsKey } from './sessionStepsStore';
 import { useGymSession, type SessionExercise } from './useGym';
+import { hiddenScrollIndicators } from '../ui/scroll';
 
 const FINISHED_SHEET_MS = 5000;
 const NO_LOGS: readonly StoredSet[] = [];
@@ -422,6 +423,7 @@ export function GymSessionScreen() {
         style={{ width: pageWidth }}
       >
         <ScrollView
+          {...hiddenScrollIndicators}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             gap: theme.space[3],
@@ -453,6 +455,7 @@ export function GymSessionScreen() {
 
       {summary ? (
         <ScrollView
+          {...hiddenScrollIndicators}
           contentContainerStyle={{
             gap: theme.space[3],
             paddingTop: theme.space[3],
@@ -525,6 +528,7 @@ export function GymSessionScreen() {
             }}
           >
             <FlatList
+              {...hiddenScrollIndicators}
               ref={listRef}
               testID="session-pager"
               data={pages}
@@ -541,7 +545,6 @@ export function GymSessionScreen() {
               initialScrollIndex={current}
               horizontal
               pagingEnabled
-              showsHorizontalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               initialNumToRender={pages.length}
               removeClippedSubviews={false}

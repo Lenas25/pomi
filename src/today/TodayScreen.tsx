@@ -39,6 +39,7 @@ import { InsightCard } from './InsightCard';
 import { InsightSlot } from './slots';
 import { dayProgressCount, pickNowEntry } from './todayView';
 import { useToday } from './useToday';
+import { hiddenScrollIndicators } from '../ui/scroll';
 
 type View_ = NonNullable<ReturnType<typeof useToday>['view']>;
 type Today = ReturnType<typeof useToday>;
@@ -364,6 +365,7 @@ export function TodayScreen() {
       }
     >
       <ScrollView
+        {...hiddenScrollIndicators}
         contentContainerStyle={{ gap: theme.space[4], paddingVertical: theme.space[4] }}
         keyboardShouldPersistTaps="handled"
       >

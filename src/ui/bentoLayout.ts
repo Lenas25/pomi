@@ -114,3 +114,33 @@ export function bentoBands(cells: readonly BentoCell[], columns: 1 | 2, rows: nu
   }
   return bands;
 }
+
+/** What a tile shows, for `tileMinHeight`. */
+export type TileParts = { value: boolean; caption: boolean };
+
+/** Line heights and spacing (dp, at font scale 1) a tile is made of. */
+export type TileMetrics = {
+  padding: number;
+  gap: number;
+  titleLine: number;
+  valueLine: number;
+  captionLine: number;
+  /** Lines the caption may use (it ellipsizes after them). */
+  captionMaxLines: number;
+};
+
+/**
+ * Smallest height (dp) a tile needs so its text is never cut: padding + the title line + the
+ * value line + the caption's maximum lines, with every line scaled by the font scale (text grows,
+ * padding does not). The tile uses it as `minHeight`; flexbox can only make it taller.
+ */
+export function tileMinHeight(parts: TileParts, metrics: TileMetrics, fontScale: number): number {
+  const scale = Math.max(1, fontScale);
+  const lines = [
+    metrics.titleLine,
+    ...(parts.value ? [metrics.valueLine] : []),
+    ...(parts.caption ? [metrics.captionLine * metrics.captionMaxLines] : []),
+  ];
+  const text = lines.reduce((sum, line) => sum + line * scale, 0);
+  return Math.ceil(metrics.padding * 2 + text + metrics.gap * (lines.length - 1));
+}

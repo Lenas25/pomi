@@ -25,6 +25,7 @@ import { ActivityCard } from './ActivityCard';
 import type { HabitsView } from './habitsView';
 import type { SleepDetail } from './sleepStats';
 import { useHabits } from './useHabits';
+import { hiddenScrollIndicators } from '../ui/scroll';
 
 const ACTIVITY_KEYS = {
   gym: 'activity.gym',
@@ -291,7 +292,10 @@ export function HabitsScreen() {
 
   return (
     <Screen header={header}>
-      <ScrollView contentContainerStyle={{ paddingVertical: theme.space[4] }}>
+      <ScrollView
+        {...hiddenScrollIndicators}
+        contentContainerStyle={{ paddingVertical: theme.space[4] }}
+      >
         <BentoGrid items={tiles} />
       </ScrollView>
       <BottomSheet

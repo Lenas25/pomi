@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native';
 
 import { setLanguage } from '../i18n';
 import { SectionHeader } from './SectionHeader';
-import { TabBar, type TabBarTab } from './TabBar';
+import { TabBar, tabPillColors, type TabBarTab } from './TabBar';
 import { makeTheme, ThemeProvider } from './theme';
 
 const mockPush = jest.fn();
@@ -61,13 +61,36 @@ describe('TabBar', () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
-  it('marks the active tab: selected state + a pill in the section soft tint', async () => {
+  it('active pill: solid section fill + navy icon in dark, soft tint in light, all >= 4.5:1', () => {
+    const channel = (hex: string, at: number) => {
+      const c = parseInt(hex.slice(at, at + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const lum = (hex: string) =>
+      0.2126 * channel(hex, 1) + 0.7152 * channel(hex, 3) + 0.0722 * channel(hex, 5);
+    const ratio = (a: string, b: string) => {
+      const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x) as [number, number];
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    for (const mode of ['light', 'dark'] as const) {
+      const theme = makeTheme(mode);
+      for (const tab of TABS) {
+        const pill = tabPillColors(theme, tab.section);
+        expect(ratio(pill.icon, pill.background)).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+    expect(tabPillColors(makeTheme('dark'), 'gym').background).toBe(
+      makeTheme('dark').section.gym.fill,
+    );
+  });
+
+  it('marks the active tab: selected state + a pill in the section color', async () => {
     const { ui, onSelect } = renderBar('gym');
     await render(ui);
     expect(screen.getByRole('tab', { name: 'Gym' })).toBeSelected();
     expect(screen.getByRole('tab', { name: 'Hoy' })).not.toBeSelected();
     const pill = StyleSheet.flatten(screen.getByTestId('tab-pill-gym').props.style);
-    expect(pill.backgroundColor).toBe(makeTheme('dark').section.gym.soft);
+    expect(pill.backgroundColor).toBe(makeTheme('dark').section.gym.fill);
     await fireEvent.press(screen.getByRole('tab', { name: 'Progreso' }));
     expect(onSelect).toHaveBeenCalledWith('progreso');
   });

@@ -18,6 +18,7 @@ import { useTheme, type Theme } from '../ui/theme';
 import { formatSets, thisWeekRows } from '../volume/volumeView';
 import { localizeTargetParams } from './sessionViewModel';
 import { useGymTab, type GymTabState } from './useGym';
+import { hiddenScrollIndicators } from '../ui/scroll';
 
 export type GymReady = Extract<GymTabState, { status: 'ready' }>;
 
@@ -267,7 +268,10 @@ export function GymHubScreen() {
         <SectionHeader section="gym" title={t('tabs.gym')} subtitle={text(tab.program.name)} />
       }
     >
-      <ScrollView contentContainerStyle={{ paddingVertical: theme.space[4] }}>
+      <ScrollView
+        {...hiddenScrollIndicators}
+        contentContainerStyle={{ paddingVertical: theme.space[4] }}
+      >
         <BentoGrid items={tiles} />
       </ScrollView>
     </Screen>

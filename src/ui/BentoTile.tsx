@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 import type { Icon } from 'phosphor-react-native';
 
+import { tileMinHeight } from './bentoLayout';
 import { useTheme, type SectionKey, type Theme } from './theme';
 import { usePressScale } from './usePressScale';
 
@@ -36,6 +37,9 @@ export type TileAction = {
   disabled?: boolean;
 };
 
+/** The caption ellipsizes after this many lines. */
+const CAPTION_LINES = 2;
+
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
@@ -68,6 +72,7 @@ export function BentoTile({
   action,
 }: BentoTileProps) {
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
   const press = usePressScale(theme.motion.pressScale.card);
   const colors = theme.section[section];
   const hero = variant === 'hero';
@@ -75,6 +80,21 @@ export function BentoTile({
   const strong = hero ? colors.onFill : theme.color.text;
   const muted = hero ? colors.onFill : theme.color.textMuted;
   const actionColors = tileActionColors(theme, section, variant);
+  const minHeight = Math.max(
+    theme.touch.gym,
+    tileMinHeight(
+      { value: value !== undefined, caption: Boolean(caption) },
+      {
+        padding: theme.space[4],
+        gap: theme.space[1],
+        titleLine: theme.text('body-strong').lineHeight ?? 0,
+        valueLine: theme.text('metric-sm').lineHeight ?? 0,
+        captionLine: theme.text('caption').lineHeight ?? 0,
+        captionMaxLines: CAPTION_LINES,
+      },
+      fontScale,
+    ),
+  );
 
   const tile = (
     <AnimatedPressable
@@ -85,9 +105,10 @@ export function BentoTile({
       onPressOut={press.onPressOut}
       style={[
         {
-          flex: 1,
-          minHeight: theme.touch.gym,
-          overflow: 'hidden',
+          // Grow from the content (basis auto), never `flex: 1` (basis 0), which let the row stop
+          // at its minimum height and cut the caption.
+          flexGrow: 1,
+          minHeight,
           borderRadius: theme.radius.lg,
           padding: theme.space[4],
           paddingRight: action ? theme.touch.gym + theme.space[4] : theme.space[4],
@@ -99,7 +120,11 @@ export function BentoTile({
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
         {TileIcon ? <TileIcon weight="fill" color={accent} /> : null}
-        <Text numberOfLines={1} style={[theme.text('body-strong'), { color: accent, flex: 1 }]}>
+        <Text
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={[theme.text('body-strong'), { color: accent, flex: 1 }]}
+        >
           {title}
         </Text>
       </View>
@@ -114,7 +139,11 @@ export function BentoTile({
         </Text>
       ) : null}
       {caption ? (
-        <Text numberOfLines={2} style={[theme.text('caption'), { color: muted }]}>
+        <Text
+          numberOfLines={CAPTION_LINES}
+          ellipsizeMode="tail"
+          style={[theme.text('caption'), { color: muted }]}
+        >
           {caption}
         </Text>
       ) : null}
@@ -122,7 +151,7 @@ export function BentoTile({
         <View
           accessible={false}
           importantForAccessibility="no-hide-descendants"
-          style={{ flex: 1, justifyContent: 'flex-end' }}
+          style={{ flexGrow: 1, justifyContent: 'flex-end' }}
         >
           {visual}
         </View>
@@ -132,7 +161,7 @@ export function BentoTile({
   if (!action) return tile;
   const ActionIcon = action.icon;
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flexGrow: 1 }}>
       {tile}
       <Pressable
         accessibilityRole="button"

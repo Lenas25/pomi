@@ -31,6 +31,7 @@ import { useTheme, type Theme } from '../ui/theme';
 import type { ProgressData } from './loadProgress';
 import { buildProgressView, type ProgressView } from './progressView';
 import { useProgress } from './useProgress';
+import { hiddenScrollIndicators } from '../ui/scroll';
 
 type TileContext = {
   t: Translate;
@@ -324,7 +325,10 @@ export function ProgressScreen() {
 
   return (
     <Screen header={<SectionHeader section="progreso" title={t('progress.title')} />}>
-      <ScrollView contentContainerStyle={{ paddingVertical: theme.space[4], gap: theme.space[3] }}>
+      <ScrollView
+        {...hiddenScrollIndicators}
+        contentContainerStyle={{ paddingVertical: theme.space[4], gap: theme.space[3] }}
+      >
         {state.status === 'loading' && showSkeleton ? (
           <>
             <Skeleton height={theme.chart.height} />
