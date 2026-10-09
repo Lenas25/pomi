@@ -18,6 +18,7 @@ import { ScheduleSettings } from '../../src/settings/ScheduleSettings';
 import { SedentarySettings } from '../../src/sedentary/SedentarySettings';
 import { Card } from '../../src/ui/Card';
 import { Screen } from '../../src/ui/Screen';
+import { StepHeader } from '../../src/ui/StepHeader';
 import { useTheme } from '../../src/ui/theme';
 
 /** Settings: entries to the sub-screens plus the inline schedule, free days and sedentary cards. */
@@ -33,12 +34,18 @@ export default function Ajustes() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ gap: theme.space[3], paddingVertical: theme.space[4] }}>
-        <Text
-          accessibilityRole="header"
-          style={[theme.text('title-lg'), { color: theme.color.text }]}
+        {/* Ajustes is not a tab any more (opened from the section headers): it needs a way back. */}
+        <StepHeader
+          backLabel={t('onboarding.back')}
+          onBack={() => (router.canGoBack() ? router.back() : router.navigate('/hoy'))}
         >
-          {t('settings.title')}
-        </Text>
+          <Text
+            accessibilityRole="header"
+            style={[theme.text('title-lg'), { color: theme.color.text, flex: 1 }]}
+          >
+            {t('settings.title')}
+          </Text>
+        </StepHeader>
 
         <Card
           onPress={() => router.push('/permisos')}

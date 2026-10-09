@@ -23,7 +23,7 @@ Pomi es una app móvil de gym y hábitos. El usuario la abre varias veces al dí
 | Padding interno de tarjeta | `space-4` (16 dp) |
 | Ancho máximo de contenido | 560 dp, centrado (tablets) |
 | Zonas seguras | Respetar `SafeAreaView` arriba y abajo |
-| Barra de pestañas | Abajo, 5 pestañas: Hoy, Gym, Hábitos, Progreso, Ajustes. Alto 64 dp + zona segura |
+| Barra de pestañas | Abajo: Hoy, Gym, botón central elevado «Registrar» (56 dp, coral, abre la hoja de registro rápido), Hábitos, Progreso. Ajustes sale de la barra: engranaje en la cabecera de cada sección. Alto `layout.tabBarHeight` 72 dp × escala de fuente + zona segura. Activo: ícono relleno en el color de la sección sobre pastilla 56 × 32 con su tinte; inactivo: `textMuted` |
 
 ### Responsive
 
@@ -39,24 +39,40 @@ Fuente de verdad: `design/tokens.json`. Resumen:
 
 | Token | Claro | Oscuro | Uso |
 |---|---|---|---|
-| `color.bg` | `#F8F1E5` | `#0E1729` | Fondo de pantalla |
+| `color.bg` | `#F2FAFE` | `#0E1729` | Fondo de pantalla |
 | `color.surface` | `#FFFFFF` | `#17233D` | Tarjetas |
 | `color.surfaceRaised` | `#FFFFFF` | `#1F2D4D` | Hojas, modales, toast |
 | `color.text` | `#1A2846` | `#F8F1E5` | Texto principal |
 | `color.textMuted` | `#33436A` | `#B8C2D9` | Texto secundario |
-| `color.border` | `#E8DCC8` | `#2A3A5E` | Bordes y divisores |
+| `color.border` | `#D3E3EE` | `#2A3A5E` | Bordes y divisores |
 | `color.primary` | `#1A2846` | `#29B5E8` | Botón primario |
 | `color.onPrimary` | `#FFFFFF` | `#1A2846` | Texto del botón primario |
 | `color.brand` | `#29B5E8` | `#29B5E8` | Mascota, acentos, anillos de progreso |
 | `color.brandSoft` | `#E6F6FD` | `#1B3350` | Fondos destacados |
-| `color.energy` | `#F15A3B` | `#FF7A5C` | Gym, progreso, cronómetro |
-| `color.celebrate` | `#F6B634` | `#F6B634` | Celebraciones, hallazgos |
+| `color.energy` | `#F15A3B` | `#FF7A5C` | Acento gráfico de energía (anillo de descanso, barra actual; ≥ 3:1) |
+| `color.energyFill` | `#FF7A5C` | `#FF7A5C` | Relleno del CTA de energía (`Button variant="energy"`, botón «Registrar») |
+| `color.onEnergy` | `#1A2846` | `#1A2846` | Texto/ícono sobre `energyFill` (5,70:1) |
+| `color.celebrate` | `#FFC94D` | `#FFC94D` | Celebraciones, hallazgos (texto navy, 9,55:1) |
+| `color.celebrateSoft` | `#FFF0C7` | `#3A2E10` | Superficie de celebración |
+| `color.tabBar` | `#FFFFFF` | `#17233D` | Fondo de la tab bar |
 | `color.success` | `#1F9D6B` | `#4CD39C` | Confirmaciones |
 | `color.error` | `#C2362B` | `#FF7A6B` | Errores (siempre con ícono y texto) |
 | `space-1…12` | 4, 8, 12, 16, 20, 24, 32, 40, 48 dp | | Espaciado (escala de 4) |
 | `radius-sm/md/lg/xl/pill` | 10, 16, 24, 32, 999 | | Esquinas |
 | `shadow-soft` | y 4, blur 16, navy al 8% | sin sombra, borde `color.border` | Tarjetas |
 | `shadow-raised` | y 8, blur 24, navy al 12% | sin sombra, `surfaceRaised` | Toast, hojas |
+
+**Color por sección (`section.<clave>`, Pomi Splash, ver `BRAND.md` 4.5):** claves `hoy`, `gym`, `habitos`, `progreso`, `agua`, `sueno`, `movimiento`; cada una con `fill` (cabecera/bloque), `onFill` (navy), `soft` (tinte de superficie y pastilla del tab activo) y `text` (color de sección como texto/ícono sobre fondo o superficie).
+
+| Clave | `fill` (ambos) | `soft` claro / oscuro | `text` claro / oscuro |
+|---|---|---|---|
+| `hoy` | `#FFC94D` | `#FFF0C7` / `#3A2E10` | `#8A5A00` / `#FFC94D` |
+| `gym` | `#FF7A5C` | `#FFE1D9` / `#3A1F1A` | `#A82E19` / `#FF7A5C` |
+| `habitos`, `movimiento` | `#4CD39C` | `#D5F5E8` / `#123A2C` | `#0F7A55` / `#4CD39C` |
+| `progreso`, `sueno` | `#9EA0FF` | `#E4E4FD` / `#242552` | `#4A4CC9` / `#9EA0FF` |
+| `agua` | `#5CCBF2` | `#D2EFFB` / `#1B3350` | `#0A6E9E` / `#5CCBF2` |
+
+Componentes: `SectionHeader` (bloque `fill` bajo la barra de estado, título + subtítulo navy, engranaje de Ajustes), `Card variant="hero" | "tint"` con `section`, `Button variant="energy"`, `Screen` con `header` (a sangre) y `footer` (barra de acción fija, respeta la zona segura), `TabBar`, `BottomSheet`, `StepHeader` (atrás en un hueco fijo de 48 × 48), `BentoGrid` + `BentoTile` (hubs bento: 2 columnas, spans 1x1 / 2x1 / 1x2 / 2x2, alto de fila `bento.rowHeight` 112 dp × escala de fuente, `bento.gap` 12 dp, 1 columna si escala ≥ 1,3 y ancho < 380 dp; cada baldosa resume un área —número, anillo, mini gráfico, estado— y abre su página de detalle). Otros tokens nuevos: `timeline.timeColumn` (56 dp × escala de fuente, mínimo), `font.scale.metric-sm` (Nunito 900 28/34 tabular), `layout.tabPillWidth/Height` (56/32), `layout.tabActionSize` (56).
 
 Tipografía: ver `BRAND.md` sección 5 (`display`, `title-lg`, `title-md`, `title-sm`, `body`, `body-strong`, `caption`, `timer`, `metric`).
 

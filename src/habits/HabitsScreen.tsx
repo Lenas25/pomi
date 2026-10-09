@@ -11,6 +11,7 @@ import { Consistency } from '../ui/Consistency';
 import { EmptyState } from '../ui/EmptyState';
 import { HabitCounter } from '../ui/HabitCounter';
 import { Screen } from '../ui/Screen';
+import { SectionHeader } from '../ui/SectionHeader';
 import { TextField } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
 import { ActivityCard } from './ActivityCard';
@@ -378,16 +379,17 @@ export function HabitsScreen() {
 
   const { view, sleep } = state;
   return (
-    <Screen scroll>
+    <Screen
+      scroll
+      header={
+        <SectionHeader
+          section="habitos"
+          title={t('habits.title')}
+          subtitle={t('habits.consistencyHint')}
+        />
+      }
+    >
       <View style={{ gap: theme.space[5], paddingVertical: theme.space[4] }}>
-        <Text
-          accessibilityRole="header"
-          style={[theme.text('title-lg'), { color: theme.color.text }]}
-        >
-          {t('habits.title')}
-        </Text>
-        <Muted>{t('habits.consistencyHint')}</Muted>
-
         <ActivityCard
           answer={view.activityToday}
           onAnswer={(kind) => void habits.answerActivity(kind)}

@@ -18,6 +18,8 @@
 
 **Dirección recomendada:** "Pomi Splash" (cabecera azul de marca, CTAs coral, celebraciones sol, categorías con tinte). Alternativas: "Sunrise Pop" y "Deep Pool" (sección 6).
 
+> **Decisión final de la dueña (2026-10):** "Pomi Splash", oscuro primero, **sin cabecera azul**: cada sección pinta su cabecera con su propio color y texto navy (Hoy sol `#FFC94D`, Gym coral `#FF7A5C`, Hábitos verde `#4CD39C`, Progreso lavanda `#9EA0FF`; Agua `#5CCBF2`, Sueño `#9EA0FF`, Movimiento `#4CD39C`). Ver sección 8.
+
 **Puntuación audit.native (0–4):** Accesibilidad 3 · Rendimiento 3 · Apariencia y theming 2 (tokens sólidos, pero roles pobres y casi sin color) · Conformidad de plataforma 3 · Adaptabilidad 3 (ya hay `wide`/dos columnas) → **14/20, Bueno**, con la debilidad concentrada en jerarquía y color.
 
 ---
@@ -368,3 +370,24 @@ Por qué A: es la que trae a la UI lo que la marca ya es (mascota azul saturada)
 | 6 | Verificación en dispositivo: 360×640 (pantallas chicas) y fuente del sistema al 130%; las pantallas diarias deben degradar a scroll sin perder el footer fijo | todas | S |
 
 **Riesgos:** (1) "caber en pantalla" no puede romper la escala de fuente del sistema: el layout debe permitir scroll como respaldo, nunca recortar; (2) el cambio de fondo crema → sky-50 modifica una regla de marca y requiere la aprobación de la dueña; (3) el modo foco del gym cambia el modelo mental de la sesión: probar con una sesión real antes de cerrar.
+
+---
+
+## 8. Implementado (2026-10)
+
+| Commit | Alcance |
+|---|---|
+| `285ef5c` `fix: UI bugs found on device` | B1–B5 (sección 0.1) + texto repetido: columna de hora con `timeline.timeColumn` × escala de fuente, una línea y dígitos tabulares; `TimeStepper` en una fila `[− HH +] : [− MM +]` con solo la etiqueta humana visible; aviso "Sugerido" en el footer; `StepHeader` con hueco fijo de 48 × 48 (onboarding y check-in); `ThemedTextInput` (fuente explícita y plana en valor y placeholder, con test que impide `TextInput` crudos); Hábitos sin repetir el nombre en la constancia y "cuenta cuando lo completas" una vez; aviso de P1 en una línea + hoja "Más info". |
+| `feat: Pomi Splash tokens, section identity and new tab bar` | Paleta y roles nuevos (oscuro primero), `section.*` con `fill/onFill/soft/text`, `Button energy`, `Card hero/tint`, `SectionHeader` (Ajustes pasa al engranaje), `Screen` con `header` y `footer` fijo, tab bar nueva (Hoy · Gym · Registrar · Hábitos · Progreso) con hoja de registro rápido, `BRAND.md` 4.5 y `HANDOFF.md` §2–3 actualizados. |
+
+**Diferencias con la propuesta de las secciones 3.2–3.4:**
+- Sin `hero` azul: el bloque de cabecera es el color de la sección (decisión de la dueña). En claro se usan **los mismos rellenos**: con texto navy todos pasan AA (5,70–9,55:1), así que no hizo falta un tono más oscuro; el tono profundo (`*-700`, `coral-800`) se usa solo cuando el color de sección es texto o ícono sobre claro.
+- CTA de energía `#FF7A5C` con texto navy **en ambos modos** (no `#D63F25` con blanco en claro). `color.energy` (acento gráfico, ≥ 3:1) queda `#F15A3B` en claro porque `#FF7A5C` sobre blanco da 2,56:1.
+- Subtítulos de cabecera en navy (no `navy-700`: 3,81:1 sobre coral, 4,15:1 sobre lavanda).
+- La pastilla del tab activo cambia sin animación (cambio directo; también con reduce-motion).
+- "Nota de comida" y "Marcar hábito" del registro rápido llevan a Hábitos (donde viven esos controles); "+1 vaso" escribe directo; "Check-in" abre el de la mañana antes de las 15:00 y el de la noche después; "Iniciar sesión" abre la rutina de hoy (o la que está en curso), o Gym si no hay.
+- **Aclaración de la dueña:** el objetivo no es meter todo en una pantalla. Las pestañas principales serán **hubs bento** (baldosas de tamaños variados con un resumen: número grande, anillo, mini gráfico o estado) y cada baldosa abre una **página de detalle** con todos los datos (ahí el scroll está bien). Este commit agrega las primitivas `BentoGrid` y `BentoTile`; la conversión de Hoy/Gym/Hábitos/Progreso y sus rutas de detalle va en el siguiente lote.
+- Pendiente (P0-b 4–7 y P1): reestructurar Hoy, sesión de gym en modo foco, grilla de Hábitos, Gym tab; usar el `footer` fijo en esas pantallas.
+
+**Validación de layout (razonada, sin dispositivo), 360 × 780 y 412 × 915, escala 1,0 y 1,3:** tab bar 72 dp × escala (94 dp a 1,3) + zona segura, 5 huecos de 72 dp a 360 de ancho, etiquetas de una línea que se achican hasta 0,8 antes de recortarse ("Progreso" a 1,3 ≈ 76 dp); cabecera de sección: título `title-lg` hasta 2 líneas (≈ 224 dp útiles a 360 junto al ícono y el engranaje de 48 dp); `TimeStepper` ≈ 306 dp a 1,3 (cabe en 320) y pasa a dos líneas con `flexWrap` si no; columna de hora ≥ 56 dp × escala.
+

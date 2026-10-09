@@ -6,9 +6,10 @@ import { Card } from './Card';
 import { MascotBubble } from './MascotBubble';
 import { EmptyState } from './EmptyState';
 import { ThemeProvider, makeTheme } from './theme';
-import { AccessibilityInfo, Text } from 'react-native';
+import { AccessibilityInfo, StyleSheet, Text } from 'react-native';
 import { SuggestionCard } from './SuggestionCard';
 import { Toast } from './Toast';
+import { Screen } from './Screen';
 
 function renderThemed(ui: ReactElement) {
   return render(<ThemeProvider mode="light">{ui}</ThemeProvider>);
@@ -117,5 +118,53 @@ describe('SuggestionCard', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
     expect(onAccept).not.toHaveBeenCalled();
     expect(onDecline).not.toHaveBeenCalled();
+  });
+});
+
+describe('Pomi Splash variants', () => {
+  it('Button "energy" is coral with navy text', async () => {
+    await render(
+      <ThemeProvider mode="dark">
+        <Button label="Empezar" variant="energy" onPress={() => undefined} />
+      </ThemeProvider>,
+    );
+    const theme = makeTheme('dark');
+    const button = screen.getByRole('button', { name: 'Empezar' });
+    expect(StyleSheet.flatten(button.props.style).backgroundColor).toBe(theme.color.energyFill);
+    expect(StyleSheet.flatten(screen.getByText('Empezar').props.style).color).toBe(
+      theme.color.onEnergy,
+    );
+  });
+
+  it('Card "hero" takes the section fill and "tint" its soft tint', async () => {
+    const theme = makeTheme('light');
+    await render(
+      <ThemeProvider mode="light">
+        <Card variant="hero" section="gym" onPress={() => undefined} accessibilityLabel="hero">
+          <Text>a</Text>
+        </Card>
+        <Card variant="tint" section="agua" onPress={() => undefined} accessibilityLabel="tint">
+          <Text>b</Text>
+        </Card>
+      </ThemeProvider>,
+    );
+    const style = (name: string) =>
+      StyleSheet.flatten(screen.getByRole('button', { name }).props.style);
+    expect(style('hero').backgroundColor).toBe(theme.section.gym.fill);
+    expect(style('tint').backgroundColor).toBe(theme.section.agua.soft);
+  });
+
+  it('Screen pins the footer outside the scroll view', async () => {
+    await render(
+      <ThemeProvider mode="light">
+        <Screen scroll footer={<Button label="Guardar" onPress={() => undefined} />}>
+          <Text>content</Text>
+        </Screen>
+      </ThemeProvider>,
+    );
+    const footer = screen.getByTestId('screen-footer');
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeTruthy();
+    // The footer is a sibling of the scroll view, not inside it.
+    expect(footer.parent?.type).not.toBe('RCTScrollView');
   });
 });

@@ -62,9 +62,17 @@ Una mascota puede convertirse en presión (la mascota "decepcionada" que te pers
 | `coral-500` | `#F15A3B` | Coral vincha | Acento de energía: progreso, gym, destacados |
 | `coral-700` | `#C93A22` | Coral profundo | Texto o íconos coral sobre claro (contraste) |
 | `sun-400` | `#F6B634` | Amarillo sol | Celebración, logros del día, hallazgos |
-| `cream-50` | `#F8F1E5` | Crema | Fondo principal en modo claro |
+| `cream-50` | `#F8F1E5` | Crema | Texto principal en modo oscuro; ya no es el fondo claro (ver `sky-50`) |
+| `sky-50` | `#F2FAFE` | Cielo | Fondo principal en modo claro (Pomi Splash) |
 | `white` | `#FFFFFF` | Blanco | Superficies (tarjetas) en modo claro |
 | `blush-300` | `#F59AA0` | Rubor | Solo ilustración (mejillas). No usar en UI |
+| `sun-300` | `#FFC94D` | Sol brillante | Sección Hoy, celebración (siempre con texto navy) |
+| `coral-300` | `#FF7A5C` | Coral brillante | Sección Gym, CTA de energía (texto navy) |
+| `green-400` | `#4CD39C` | Verde menta | Sección Hábitos, categoría Movimiento |
+| `lavender-300` | `#9EA0FF` | Lavanda | Sección Progreso, categoría Sueño |
+| `blue-300` | `#5CCBF2` | Agua | Categoría Agua |
+| `sun-100` / `coral-100` / `green-100` / `lavender-100` / `blue-100` | `#FFF0C7` / `#FFE1D9` / `#D5F5E8` / `#E4E4FD` / `#D2EFFB` | Tintes claros | Superficies tintadas y pastilla del tab activo (claro) |
+| `sun-700` / `coral-800` / `green-700` / `lavender-700` / `blue-700` | `#8A5A00` / `#A82E19` / `#0F7A55` / `#4A4CC9` / `#0A6E9E` | Tonos profundos | Texto e íconos de sección sobre claro (≥ 4,5:1) |
 
 Valores aproximados tomados del arte. Antes de cerrar la marca, el diseñador debe confirmarlos en el archivo vectorial.
 
@@ -81,7 +89,25 @@ Valores aproximados tomados del arte. Antes de cerrar la marca, el diseñador de
 | Blanco sobre `blue-500` | ~2.4:1 | ❌ Nunca para texto |
 | `blue-500` o `sun-400` como texto sobre crema | menos de 3:1 | ❌ Nunca para texto |
 
-**Regla práctica:** el texto siempre es `navy-900` (claro) o `cream-50` (oscuro). El azul, el coral y el amarillo son **rellenos y acentos**, no colores de texto.
+**Regla práctica:** el texto siempre es `navy-900` (claro) o `cream-50` (oscuro). El azul, el coral y el amarillo son **rellenos y acentos**, no colores de texto. Excepción Pomi Splash: el color de sección como texto/ícono usa su tono profundo en claro (`*-700`/`coral-800`) y el tono brillante en oscuro, ambos verificados ≥ 4,5:1 (sección 4.5).
+
+### 4.5 Pomi Splash: color por sección (aprobado por la dueña, 2026-10)
+
+Oscuro primero. Cada sección tiene un color que **posee** su cabecera (bloque a sangre, texto navy), su pastilla en la tab bar y sus tarjetas tintadas. Sin cabecera azul.
+
+| Sección / categoría | Relleno (cabecera) | Texto sobre relleno | Tinte oscuro | Tinte claro | Texto de sección claro | Ícono |
+|---|---|---|---|---|---|---|
+| Hoy | `#FFC94D` | navy · 9,55:1 | `#3A2E10` | `#FFF0C7` | `#8A5A00` | `House` |
+| Gym | `#FF7A5C` | navy · 5,70:1 | `#3A1F1A` | `#FFE1D9` | `#A82E19` | `Barbell` |
+| Hábitos / Movimiento | `#4CD39C` | navy · 7,73:1 | `#123A2C` | `#D5F5E8` | `#0F7A55` | `CheckCircle` / `Footprints` |
+| Progreso / Sueño | `#9EA0FF` | navy · 6,22:1 | `#242552` | `#E4E4FD` | `#4A4CC9` | `ChartLineUp` / `MoonStars` |
+| Agua | `#5CCBF2` | navy · 7,86:1 | `#1B3350` | `#D2EFFB` | `#0A6E9E` | `Drop` |
+
+- **Claro usa los mismos rellenos:** con texto navy todos pasan AA (5,70–9,55:1), así que no hace falta un tono más oscuro para la cabecera. El tono profundo se usa solo cuando el color de sección es **texto o ícono** sobre claro.
+- **Contrastes de texto de sección (WCAG 2.x, calculados):** oscuro, color de sección sobre superficie `#17233D`: 10,20 / 6,09 / 8,26 / 6,64 / 8,39; sobre su tinte: 8,69 / 5,89 / 6,66 / 6,11 / 6,89. Claro, tono profundo sobre blanco: 5,93 / 6,84 / 5,34 / 6,63 / 5,62; sobre `sky-50`: 5,61 / 6,48 / 5,05 / 6,27 / 5,32; sobre su tinte: 5,23 / 5,55 / 4,59 / 5,31 / 4,68. Todos ≥ 4,5 (`src/ui/theme.test.ts` lo verifica).
+- **CTA de energía:** `#FF7A5C` con texto navy (5,70:1) en ambos modos. Blanco sobre `#FF7A5C` da 2,56:1: prohibido.
+- **Subtítulo en cabecera:** navy, nunca `navy-700` (sobre coral da 3,81:1 y sobre lavanda 4,15:1).
+- **Celebración:** `#FFC94D` en ambos modos, siempre con texto navy o contorno navy (sobre `sky-50` da 1,45:1: nunca como único portador de significado).
 
 ### 4.3 Semánticos
 
@@ -96,12 +122,14 @@ Valores aproximados tomados del arte. Antes de cerrar la marca, el diseñador de
 
 | Rol | Claro | Oscuro |
 |---|---|---|
-| Fondo | `cream-50` | `#0E1729` |
+| Fondo | `sky-50` (`#F2FAFE`) | `#0E1729` |
 | Superficie (tarjeta) | `white` | `#17233D` |
 | Superficie elevada | `white` + sombra | `#1F2D4D` |
 | Texto principal | `navy-900` | `cream-50` |
 | Texto secundario | `navy-700` | `#B8C2D9` |
-| Bordes | `#E8DCC8` | `#2A3A5E` |
+| Bordes | `#D3E3EE` | `#2A3A5E` |
+| CTA de energía | `#FF7A5C` / texto navy | `#FF7A5C` / texto navy |
+| Tab bar | `white` | `#17233D` |
 | Botón primario | `navy-900` / texto blanco | `blue-500` / texto `navy-900` |
 
 La mascota no cambia de color en modo oscuro. Sus contornos navy se mantienen, sobre un círculo `blue-50` al 12% si hace falta separarla del fondo.

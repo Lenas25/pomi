@@ -8,6 +8,20 @@ export const en: Messages = {
     progreso: 'Progress',
     ajustes: 'Settings',
   },
+  quickAdd: {
+    open: 'Log',
+    title: 'Log',
+    close: 'Close',
+    water: '+1 glass of water',
+    waterAdded: 'Done: {{value}} of {{target}} glasses today.',
+    waterAddedNoTarget: 'Done: {{value}} glasses today.',
+    noWater: 'Your water habit is not active.',
+    failed: 'Could not save. Try again.',
+    habit: 'Mark a habit',
+    checkin: 'Check-in',
+    food: 'Food note',
+    gym: 'Start gym session',
+  },
   empty: {
     hoy: {
       title: 'Your day will show up here',

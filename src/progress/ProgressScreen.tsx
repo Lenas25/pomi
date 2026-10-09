@@ -17,6 +17,7 @@ import { Chip } from '../ui/Chip';
 import { EmptyState } from '../ui/EmptyState';
 import { LineChart } from '../ui/LineChart';
 import { Screen } from '../ui/Screen';
+import { SectionHeader } from '../ui/SectionHeader';
 import { Skeleton } from '../ui/Skeleton';
 import { useTheme } from '../ui/theme';
 import { VolumeProgressSection } from '../volume/VolumeSection';
@@ -406,15 +407,8 @@ export function ProgressScreen() {
   const showSkeleton = useDelayedFlag(state.status === 'loading');
 
   return (
-    <Screen scroll wide>
+    <Screen scroll wide header={<SectionHeader section="progreso" title={t('progress.title')} />}>
       <View style={{ gap: theme.space[8], paddingVertical: theme.space[4] }}>
-        <Text
-          accessibilityRole="header"
-          style={[theme.text('title-lg'), { color: theme.color.text }]}
-        >
-          {t('progress.title')}
-        </Text>
-
         {state.status === 'loading' && showSkeleton ? (
           <View style={{ gap: theme.space[3] }}>
             <Skeleton height={theme.chart.height} />

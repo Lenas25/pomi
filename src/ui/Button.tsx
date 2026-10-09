@@ -5,7 +5,7 @@ import type { Icon } from 'phosphor-react-native';
 import { useTheme } from './theme';
 import { usePressScale } from './usePressScale';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'energy';
 export type ButtonSize = 'md' | 'lg';
 
 type ButtonProps = {
@@ -50,6 +50,8 @@ export function Button({
     },
     ghost: { background: theme.color.transparent, foreground: theme.color.text },
     danger: { background: theme.color.error, foreground: theme.color.onPrimary },
+    // The one thumb-zone CTA per screen: coral with navy text (5.70:1).
+    energy: { background: theme.color.energyFill, foreground: theme.color.onEnergy },
   };
   const { background, foreground, border } = palette[variant];
 

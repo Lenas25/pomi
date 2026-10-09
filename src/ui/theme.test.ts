@@ -79,3 +79,44 @@ describe('makeTheme', () => {
     expect(makeTheme('light').shadow.soft).toMatchObject({ shadowOpacity: 0.08 });
   });
 });
+
+/** WCAG 2.x contrast ratio between two `#RRGGBB` colors. */
+function contrast(a: string, b: string): number {
+  const luminance = (hex: string) => {
+    const [r, g, bl] = [1, 3, 5].map((i) => {
+      const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (bl ?? 0);
+  };
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return ((hi ?? 0) + 0.05) / ((lo ?? 0) + 0.05);
+}
+
+describe('Pomi Splash contrast (WCAG AA 4.5:1 for text)', () => {
+  const modes = ['light', 'dark'] as const;
+
+  it.each(modes)('%s: navy text on every section header fill', (mode) => {
+    for (const section of Object.values(makeTheme(mode).section)) {
+      expect(contrast(section.onFill, section.fill)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(modes)('%s: section text color on bg, surface and its soft tint', (mode) => {
+    const theme = makeTheme(mode);
+    for (const section of Object.values(theme.section)) {
+      expect(contrast(section.text, theme.color.bg)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(section.text, theme.color.surface)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(section.text, section.soft)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(modes)('%s: energy CTA label, tab bar labels and body text', (mode) => {
+    const { color } = makeTheme(mode);
+    expect(contrast(color.onEnergy, color.energyFill)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(color.textMuted, color.tabBar)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(color.text, color.bg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(color.text, color.surface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(color.onEnergy, color.celebrate)).toBeGreaterThanOrEqual(4.5);
+  });
+});

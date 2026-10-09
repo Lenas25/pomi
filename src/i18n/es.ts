@@ -6,6 +6,20 @@ export const es = {
     progreso: 'Progreso',
     ajustes: 'Ajustes',
   },
+  quickAdd: {
+    open: 'Registrar',
+    title: 'Registrar',
+    close: 'Cerrar',
+    water: '+1 vaso de agua',
+    waterAdded: 'Listo: {{value}} de {{target}} vasos hoy.',
+    waterAddedNoTarget: 'Listo: {{value}} vasos hoy.',
+    noWater: 'No tienes el hábito de agua activo.',
+    failed: 'No se pudo guardar. Inténtalo otra vez.',
+    habit: 'Marcar un hábito',
+    checkin: 'Check-in',
+    food: 'Nota de comida',
+    gym: 'Iniciar sesión de gym',
+  },
   empty: {
     hoy: {
       title: 'Tu día aparecerá aquí',

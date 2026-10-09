@@ -1,63 +1,66 @@
+import { useState, type ComponentProps } from 'react';
 import { Tabs } from 'expo-router';
-import { useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  Barbell,
-  CheckCircle,
-  ChartLineUp,
-  GearSix,
-  House,
-  type Icon,
-} from 'phosphor-react-native';
 
 import { useT, type TranslationKey } from '../../src/i18n';
-import { useTheme } from '../../src/ui/theme';
+import { QuickAddSheet } from '../../src/quickadd/QuickAddSheet';
+import { TabBar } from '../../src/ui/TabBar';
+import type { SectionKey } from '../../src/ui/theme';
 
-type TabRoute = { name: string; titleKey: TranslationKey; icon: Icon };
+type TabRoute = { name: string; titleKey: TranslationKey; section: SectionKey };
 
+/** Visible tabs. Ajustes is a hidden route opened from the gear in each section header. */
 const TAB_ROUTES: readonly TabRoute[] = [
-  { name: 'hoy', titleKey: 'tabs.hoy', icon: House },
-  { name: 'gym', titleKey: 'tabs.gym', icon: Barbell },
-  { name: 'habitos', titleKey: 'tabs.habitos', icon: CheckCircle },
-  { name: 'progreso', titleKey: 'tabs.progreso', icon: ChartLineUp },
-  { name: 'ajustes', titleKey: 'tabs.ajustes', icon: GearSix },
+  { name: 'hoy', titleKey: 'tabs.hoy', section: 'hoy' },
+  { name: 'gym', titleKey: 'tabs.gym', section: 'gym' },
+  { name: 'habitos', titleKey: 'tabs.habitos', section: 'habitos' },
+  { name: 'progreso', titleKey: 'tabs.progreso', section: 'progreso' },
 ];
 
+type TabBarRenderProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
+
 export default function TabsLayout() {
-  const theme = useTheme();
-  const insets = useSafeAreaInsets();
-  const { fontScale } = useWindowDimensions();
   const t = useT();
-  // HANDOFF §2: `layout.tabBarHeight` plus the bottom safe area. It grows with the system font
-  // scale so large text does not clip the labels.
-  const barHeight = Math.round(theme.layout.tabBarHeight * Math.max(1, fontScale));
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+
+  const renderTabBar = ({ state, navigation, insets }: TabBarRenderProps) => (
+    <>
+      <TabBar
+        tabs={TAB_ROUTES.map(({ name, titleKey, section }) => ({
+          name,
+          section,
+          label: t(titleKey),
+        }))}
+        activeName={state.routes[state.index]?.name}
+        onSelect={(name) => {
+          const route = state.routes.find((candidate) => candidate.name === name);
+          if (!route) return;
+          const focused = state.routes[state.index]?.key === route.key;
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+        }}
+        actionLabel={t('quickAdd.open')}
+        onAction={() => setQuickAddOpen(true)}
+        insetBottom={insets.bottom}
+      />
+      <QuickAddSheet visible={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
+    </>
+  );
 
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.color.primary,
-        tabBarInactiveTintColor: theme.color.textMuted,
-        tabBarLabelStyle: theme.text('caption'),
-        tabBarStyle: {
-          height: barHeight + insets.bottom,
-          backgroundColor: theme.color.surface,
-          borderTopColor: theme.color.border,
-        },
-      }}
+      // Android back from Ajustes (opened from a header) returns to the tab it came from.
+      backBehavior="history"
+      screenOptions={{ headerShown: false }}
+      tabBar={renderTabBar}
     >
-      {TAB_ROUTES.map(({ name, titleKey, icon: TabIcon }) => (
-        <Tabs.Screen
-          key={name}
-          name={name}
-          options={{
-            title: t(titleKey),
-            tabBarIcon: ({ color }) => (
-              <TabIcon color={typeof color === 'string' ? color : theme.color.text} />
-            ),
-          }}
-        />
+      {TAB_ROUTES.map(({ name, titleKey }) => (
+        <Tabs.Screen key={name} name={name} options={{ title: t(titleKey) }} />
       ))}
+      <Tabs.Screen name="ajustes" options={{ title: t('tabs.ajustes'), href: null }} />
     </Tabs>
   );
 }

@@ -10,6 +10,7 @@ import { Card } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 import { MascotBubble } from '../ui/MascotBubble';
 import { Screen } from '../ui/Screen';
+import { SectionHeader } from '../ui/SectionHeader';
 import { SuggestionCard } from '../ui/SuggestionCard';
 import { Toast } from '../ui/Toast';
 import { TimelineItem } from '../ui/TimelineItem';
@@ -61,23 +62,11 @@ export function TodayScreen() {
   const context = { routineName: data.routineName, facts: data.facts, gymGoal: data.gymGoal };
 
   return (
-    <Screen>
+    <Screen header={<SectionHeader section="hoy" title={view.greeting} subtitle={view.identity} />}>
       <ScrollView
         contentContainerStyle={{ gap: theme.space[4], paddingVertical: theme.space[4] }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ gap: theme.space[1] }}>
-          <Text
-            accessibilityRole="header"
-            style={[theme.text('title-lg'), { color: theme.color.text }]}
-          >
-            {view.greeting}
-          </Text>
-          <Text style={[theme.text('title-md'), { color: theme.color.textMuted }]}>
-            {view.identity}
-          </Text>
-        </View>
-
         {firstDay ? <MascotBubble pose="hola" message={t('today.firstBubble')} /> : null}
 
         {view.suggestion ? (

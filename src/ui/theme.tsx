@@ -10,6 +10,10 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 export type ColorRole = keyof typeof tokens.color.light;
 export type TextVariant = keyof typeof tokens.font.scale;
 export type SpaceKey = keyof typeof tokens.space;
+/** App sections and habit categories with their own color (Pomi Splash). */
+export type SectionKey = keyof typeof tokens.section.light;
+/** `fill` = header/tile block, `onFill` = text on it (navy), `soft` = tinted surface, `text` = section color as text/icon on bg/surface. */
+export type SectionColors = (typeof tokens.section.light)[SectionKey];
 
 export const fonts = {
   heading: { '600': 'Fredoka_600SemiBold', '700': 'Fredoka_700Bold' },
@@ -91,6 +95,7 @@ export function makeTheme(mode: Mode) {
   return {
     mode,
     color: tokens.color[mode],
+    section: tokens.section[mode] satisfies Record<SectionKey, SectionColors>,
     palette: tokens.color.palette,
     space: tokens.space,
     radius: tokens.radius,
@@ -103,6 +108,7 @@ export function makeTheme(mode: Mode) {
     chart: tokens.chart,
     photo: tokens.photo,
     timeline: tokens.timeline,
+    bento: tokens.bento,
     stroke: tokens.stroke,
     opacity: tokens.opacity,
     motion: tokens.motion,

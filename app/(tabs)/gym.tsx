@@ -10,6 +10,7 @@ import { Button } from '../../src/ui/Button';
 import { Card } from '../../src/ui/Card';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Screen } from '../../src/ui/Screen';
+import { SectionHeader } from '../../src/ui/SectionHeader';
 import { useTheme } from '../../src/ui/theme';
 import { useTemplateText } from '../../src/i18n/templateText';
 
@@ -64,19 +65,16 @@ export default function Gym() {
       ?.steps.filter((step) => step.type === 'sets').length ?? 0;
 
   return (
-    <Screen scroll>
+    <Screen
+      scroll
+      header={<SectionHeader section="gym" title={t('tabs.gym')} subtitle={text(program.name)} />}
+    >
       <View style={{ gap: theme.space[8], paddingVertical: theme.space[4] }}>
         <View style={{ gap: theme.space[3] }}>
-          <Text
-            accessibilityRole="header"
-            style={[theme.text('title-lg'), { color: theme.color.text }]}
-          >
-            {text(program.name)}
-          </Text>
           {today ? (
-            <Card variant="highlight">
+            <Card variant="tint" section="gym">
               <View style={{ gap: theme.space[3] }}>
-                <Text style={[theme.text('caption'), { color: theme.color.energyText }]}>
+                <Text style={[theme.text('caption'), { color: theme.section.gym.text }]}>
                   {resuming ? t('gym.tab.inProgress') : t('gym.tab.todayTitle')}
                 </Text>
                 <Text style={[theme.text('title-md'), { color: theme.color.text }]}>
@@ -88,6 +86,7 @@ export default function Gym() {
                 <Button
                   label={t(resuming ? 'gym.tab.resume' : 'gym.tab.start')}
                   size="lg"
+                  variant="energy"
                   icon={Play}
                   onPress={() => openSession(today.id)}
                 />
