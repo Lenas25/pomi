@@ -2030,6 +2030,9 @@ export const es = {
   },
   editor: {
     title: 'Editar programa',
+    draftTitle: 'Ajusta tu rutina',
+    draftIntro: 'Cambia lo que quieras. Nada se guarda hasta que la uses.',
+    draftBack: 'Volver a la propuesta',
     intro:
       'Cambia rutinas y ejercicios. El historial de un ejercicio se conserva mientras no lo quites ni lo cambies por otro.',
     loadError: 'No pudimos abrir tu programa.',
@@ -2179,10 +2182,10 @@ export const es = {
       body: 'Crea una en un par de minutos o importa la de tu entrenador desde Ajustes.',
     },
     back: 'Atrás',
+    stepOf: 'Paso {{n}} de {{total}}',
     parq: {
-      title: 'Antes de empezar',
-      intro:
-        'Siete preguntas rápidas de salud (PAR-Q+). Tus respuestas se quedan en tu teléfono y solo sirven para ajustar la propuesta.',
+      title: 'Tu salud',
+      intro: 'Siete preguntas rápidas (PAR-Q+). Tus respuestas no salen de tu teléfono.',
       progress: 'Pregunta {{n}} de {{total}}',
       yes: 'Sí',
       no: 'No',
@@ -2218,8 +2221,8 @@ export const es = {
         'Si durante una sesión sientes dolor en el pecho, mareo con desmayo o falta de aire intensa, para y busca atención.',
     },
     inputs: {
-      title: 'Tu rutina',
-      intro: 'Cuéntanos lo básico. Partimos de lo que respondiste al empezar.',
+      title: 'Tu objetivo',
+      intro: 'Partimos de lo que respondiste al empezar.',
       restricted:
         'Por tus respuestas, la propuesta será una rutina suave para principiantes, con máquinas y tu propio cuerpo.',
       joints: 'Marcaste un problema de hueso, articulación o tejido blando: elige la zona abajo.',
@@ -2288,8 +2291,13 @@ export const es = {
     },
     preview: {
       title: 'Tu propuesta',
-      intro:
-        'Es una propuesta: no se guarda nada hasta que la aceptes. Puedes cambiar ejercicios o quitarlos.',
+      intro: 'Toca una rutina para ver sus ejercicios. Nada se guarda hasta que la uses.',
+      plainDays: '{{days}} días',
+      cardDetail: '{{count}} ejercicios · ~{{minutes}} min',
+      whyShow: 'Ver por qué',
+      whyHide: 'Ocultar el porqué',
+      adjust: 'Ajustar',
+      changeAnswers: 'Cambiar respuestas',
       summary: '{{days}} días por semana, hasta {{minutes}} min por sesión',
       routines: 'Rutinas',
       session: '{{name}} · {{minutes}} min',
@@ -2329,7 +2337,7 @@ export const es = {
       },
       honesty:
         'El ejercicio por sí solo da cambios modestos de composición corporal: Pomi no promete bajar grasa solo con entrenar.',
-      accept: 'Aceptar y usar esta rutina',
+      accept: 'Usar esta rutina',
       accepting: 'Guardando…',
     },
     why: {

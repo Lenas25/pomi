@@ -8,14 +8,22 @@ type ChipProps = {
   accessibilityLabel?: string;
   selected: boolean;
   onPress: () => void;
+  /** `radio` for a single choice inside a `radiogroup` (default `checkbox`). */
+  role?: 'checkbox' | 'radio';
 };
 
-/** A toggle chip (checkbox semantics) with a 48 dp minimum touch target. */
-export function Chip({ label, accessibilityLabel, selected, onPress }: ChipProps) {
+/** A toggle chip (checkbox or radio semantics) with a 48 dp minimum touch target. */
+export function Chip({
+  label,
+  accessibilityLabel,
+  selected,
+  onPress,
+  role = 'checkbox',
+}: ChipProps) {
   const theme = useTheme();
   return (
     <Pressable
-      accessibilityRole="checkbox"
+      accessibilityRole={role}
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ checked: selected }}
       onPress={onPress}

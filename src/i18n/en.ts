@@ -2025,6 +2025,9 @@ export const en: Messages = {
   },
   editor: {
     title: 'Edit program',
+    draftTitle: 'Adjust your routine',
+    draftIntro: 'Change anything. Nothing is saved until you use it.',
+    draftBack: 'Back to the proposal',
     intro:
       'Change routines and exercises. An exercise keeps its history as long as you do not remove it or swap it for another one.',
     loadError: 'We could not open your program.',
@@ -2174,10 +2177,10 @@ export const en: Messages = {
       body: "Create one in a couple of minutes or import your trainer's from Settings.",
     },
     back: 'Back',
+    stepOf: 'Step {{n}} of {{total}}',
     parq: {
-      title: 'Before you start',
-      intro:
-        'Seven quick health questions (PAR-Q+). Your answers stay on your phone and only adjust the proposal.',
+      title: 'Your health',
+      intro: 'Seven quick questions (PAR-Q+). Your answers never leave your phone.',
       progress: 'Question {{n}} of {{total}}',
       yes: 'Yes',
       no: 'No',
@@ -2212,8 +2215,8 @@ export const en: Messages = {
         'If during a session you feel chest pain, dizziness with fainting or severe shortness of breath, stop and seek care.',
     },
     inputs: {
-      title: 'Your routine',
-      intro: 'Tell us the basics. We start from what you answered when you began.',
+      title: 'Your goal',
+      intro: 'We start from what you answered when you began.',
       restricted:
         'Because of your answers, the proposal will be a gentle beginner routine with machines and your own body weight.',
       joints: 'You marked a bone, joint or soft tissue problem: choose the area below.',
@@ -2282,8 +2285,13 @@ export const en: Messages = {
     },
     preview: {
       title: 'Your proposal',
-      intro:
-        'It is a proposal: nothing is saved until you accept it. You can swap exercises or remove them.',
+      intro: 'Tap a routine to see its exercises. Nothing is saved until you use it.',
+      plainDays: '{{days}} days',
+      cardDetail: '{{count}} exercises · ~{{minutes}} min',
+      whyShow: 'See why',
+      whyHide: 'Hide the why',
+      adjust: 'Adjust',
+      changeAnswers: 'Change answers',
       summary: '{{days}} days per week, up to {{minutes}} min per session',
       routines: 'Routines',
       session: '{{name}} · {{minutes}} min',
@@ -2324,7 +2332,7 @@ export const en: Messages = {
       },
       honesty:
         'Exercise alone gives modest body composition changes: Pomi does not promise fat loss from training only.',
-      accept: 'Accept and use this routine',
+      accept: 'Use this routine',
       accepting: 'Saving…',
     },
     why: {

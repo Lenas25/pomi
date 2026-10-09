@@ -10,13 +10,23 @@ import { pickProgram } from '../gym/program';
 import { loadDefaultTemplates } from '../templates/defaults';
 import { ThemeProvider } from '../ui/theme';
 
+import { useEditorStore } from '../editor/editorStore';
+import { ProgramEditorScreen } from '../editor/ProgramEditorScreen';
+import { localizedText } from '../templates/localized';
 import { GeneratorScreen } from './GeneratorScreen';
 
 let mockDb: Db;
 let mockRepos: Repositories;
 
 jest.mock('expo-router', () => ({
-  router: { replace: jest.fn(), push: jest.fn(), back: jest.fn(), canGoBack: () => true },
+  router: {
+    replace: jest.fn(),
+    push: jest.fn(),
+    back: jest.fn(),
+    dismissTo: jest.fn(),
+    canGoBack: () => true,
+  },
+  useNavigation: () => ({ addListener: () => () => undefined, dispatch: jest.fn() }),
 }));
 jest.mock('../db', () => ({
   getDatabase: () => mockDb,
@@ -43,7 +53,7 @@ beforeEach(async () => {
 afterEach(() => close());
 
 async function renderScreen() {
-  await render(
+  return render(
     <ThemeProvider mode="light">
       <GeneratorScreen />
     </ThemeProvider>,
@@ -51,25 +61,32 @@ async function renderScreen() {
 }
 
 async function answerAll(value: 'Sí' | 'No', overrides: Record<number, 'Sí' | 'No'> = {}) {
+  // The seven questions are on one screen: each has its own Sí / No pair.
   for (let index = 1; index <= 7; index += 1) {
-    expect(screen.getByText(`Pregunta ${index} de 7`)).toBeTruthy();
-    await fireEvent.press(screen.getByRole('radio', { name: overrides[index] ?? value }));
+    const name = overrides[index] ?? value;
+    await fireEvent.press(screen.getAllByRole('radio', { name })[index - 1]!);
   }
 }
 
 describe('PAR-Q+ screening in the wizard', () => {
-  it('shows the seven questions literally, one per screen, and goes on after seven "no"', async () => {
+  it('shows the seven questions literally on one screen and goes on after seven "no"', async () => {
     await renderScreen();
+    expect(screen.getByText('Paso 1 de 3')).toBeTruthy();
     expect(
       screen.getByText(
         '¿Tu médico te ha dicho alguna vez que tienes una enfermedad del corazón O presión arterial alta?',
       ),
     ).toBeTruthy();
+    expect(screen.getAllByRole('radio', { name: 'Sí' })).toHaveLength(7);
+    // Continuar waits for every answer.
+    expect(
+      screen.getByRole('button', { name: 'Continuar' }).props.accessibilityState.disabled,
+    ).toBe(true);
     await answerAll('No');
-    expect(screen.getByText('Todo en orden')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
-    expect(screen.getByText('Tu rutina')).toBeTruthy();
-    // Nothing restricted: the goal and level choices are there.
+    expect(screen.getByText('Tu objetivo')).toBeTruthy();
+    expect(screen.getByText('Paso 2 de 3')).toBeTruthy();
+    // Nothing restricted: the goal and level choices are there (chips).
     expect(screen.getByRole('radio', { name: 'Ganar músculo' })).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'Avanzado' })).toBeTruthy();
   });
@@ -94,7 +111,9 @@ describe('PAR-Q+ screening in the wizard', () => {
     expect(screen.queryByRole('radio', { name: 'Ganar músculo' })).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: 'Ver mi propuesta' }));
     expect(screen.getByText(/Es una rutina suave para principiantes/)).toBeTruthy();
-    expect(screen.getByText(/Mi rutina: Salud general/)).toBeTruthy();
+    expect(screen.getByTestId('proposal-plain').props.children).toMatch(
+      /salud general · principiante$/,
+    );
   });
 
   it.each([2, 7])(
@@ -106,9 +125,10 @@ describe('PAR-Q+ screening in the wizard', () => {
       expect(screen.getByText(/Pomi no crea una rutina ahora/)).toBeTruthy();
       expect(screen.queryByRole('button', { name: 'Continuar' })).toBeNull();
       expect(screen.queryByRole('switch')).toBeNull();
-      // Changing the answer goes back to the questions.
-      await fireEvent.press(screen.getByRole('button', { name: 'Anterior' }));
-      expect(screen.getByText('Pregunta 7 de 7')).toBeTruthy();
+      // Changing the answer lifts the block.
+      await fireEvent.press(screen.getAllByRole('radio', { name: 'No' })[question - 1]!);
+      expect(screen.queryByText('Primero, habla con un profesional')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Continuar' })).toBeTruthy();
     },
   );
 });
@@ -136,7 +156,12 @@ describe('from answers to an accepted routine', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Ver mi propuesta' }));
 
     expect(screen.getByText('Tu propuesta')).toBeTruthy();
-    expect(screen.getByText(/3 días por semana/)).toBeTruthy();
+    // Plain summary first; the evidence is behind "Ver por qué".
+    expect(screen.getByTestId('proposal-plain').props.children).toBe(
+      '3 días · 60 min · ganar músculo · intermedio',
+    );
+    expect(screen.queryByText('Series por músculo a la semana')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver por qué' }));
     expect(screen.getByText('Series por músculo a la semana')).toBeTruthy();
     expect(screen.getByText('Frente a la OMS')).toBeTruthy();
     expect(screen.getByText('Por qué esta rutina')).toBeTruthy();
@@ -151,6 +176,9 @@ describe('from answers to an accepted routine', () => {
 
   it('removes and swaps exercises, and the program the person accepts is the edited one', async () => {
     await toProposal();
+    expect(screen.queryByRole('button', { name: 'Quitar' })).toBeNull();
+    const cards = screen.getAllByRole('button', { name: /ejercicios · ~\d+ min$/ });
+    await fireEvent.press(cards[0]!);
     const removeButtons = screen.getAllByRole('button', { name: 'Quitar' });
     const before = removeButtons.length;
     await fireEvent.press(removeButtons[0]!);
@@ -167,7 +195,7 @@ describe('from answers to an accepted routine', () => {
       buttons?.find((button) => button.text === 'Usar rutina')?.onPress?.();
     });
     await toProposal();
-    await fireEvent.press(screen.getByRole('button', { name: 'Aceptar y usar esta rutina' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Usar esta rutina' }));
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/(tabs)/gym'));
     expect(alert).toHaveBeenCalledTimes(1);
     expect(alert.mock.calls[0]?.[1]).toContain('Tus días de gym de Ajustes no cambian');
@@ -181,10 +209,69 @@ describe('from answers to an accepted routine', () => {
       buttons?.find((button) => button.text === 'Cancelar')?.onPress?.();
     });
     await toProposal();
-    await fireEvent.press(screen.getByRole('button', { name: 'Aceptar y usar esta rutina' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Usar esta rutina' }));
     await act(async () => undefined);
     expect(router.replace).not.toHaveBeenCalled();
     expect(pickProgram(await mockRepos.templates.listModules())?.id).toBe('glute-4d');
     alert.mockRestore();
+  });
+});
+
+describe('"Ajustar": the full editor on the draft', () => {
+  async function toDraftEditor() {
+    const generator = await renderScreen();
+    await answerAll('No');
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver mi propuesta' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Ajustar' }));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith('/editar-programa'));
+    await generator.unmount();
+  }
+
+  beforeEach(() => useEditorStore.getState().close());
+
+  it('opens the generated program as a draft: nothing is stored yet', async () => {
+    await toDraftEditor();
+    const { source, state } = useEditorStore.getState();
+    expect(source?.draft).toBe(true);
+    expect(source?.module.id).toBe('gym-generated');
+    expect(state?.program.routines.length).toBeGreaterThan(0);
+    expect(pickProgram(await mockRepos.templates.listModules())?.id).toBe('glute-4d');
+  });
+
+  it('edits persist when the person uses the adjusted routine', async () => {
+    await toDraftEditor();
+    useEditorStore.getState().dispatch({ type: 'renameProgram', name: 'Mi rutina ajustada' });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
+      buttons?.find((button) => button.text === 'Usar rutina')?.onPress?.();
+    });
+    await render(
+      <ThemeProvider mode="light">
+        <ProgramEditorScreen />
+      </ThemeProvider>,
+    );
+    expect(screen.getByText('Ajusta tu rutina')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Usar esta rutina' }));
+    await waitFor(() => expect(router.dismissTo).toHaveBeenCalledWith('/(tabs)/gym'));
+    expect(alert).toHaveBeenCalledTimes(1);
+    const trained = pickProgram(await mockRepos.templates.listModules());
+    expect(trained?.id).toBe('generated');
+    expect(localizedText(trained?.name ?? '', 'es')).toBe('Mi rutina ajustada');
+    expect(useEditorStore.getState().state).toBeNull();
+    alert.mockRestore();
+  });
+
+  it('going back discards the draft and stores nothing', async () => {
+    await toDraftEditor();
+    const view = await render(
+      <ThemeProvider mode="light">
+        <ProgramEditorScreen />
+      </ThemeProvider>,
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Volver a la propuesta' }));
+    expect(router.back).toHaveBeenCalled();
+    await view.unmount();
+    expect(useEditorStore.getState().state).toBeNull();
+    expect(pickProgram(await mockRepos.templates.listModules())?.id).toBe('glute-4d');
   });
 });

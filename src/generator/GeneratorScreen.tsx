@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { getDatabase, getRepositories } from '../db';
@@ -13,14 +13,17 @@ import type {
   TextResolver,
 } from '../domain/generator/types';
 import { useT } from '../i18n';
-import { resolverFor, templateText } from '../i18n/templateText';
+import { resolverFor } from '../i18n/templateText';
 import { mergeLocales } from '../templates/localized';
 import { requestNotificationSync } from '../notifications/sync';
 import { loadExerciseLibrary } from '../templates/exercises';
 import { Screen } from '../ui/Screen';
 import { useTheme } from '../ui/theme';
 
-import { acceptGenerated, loadAcceptContext, prepareAccept } from './accept';
+import { useEditorStore } from '../editor/editorStore';
+
+import { acceptGenerated, draftEditorSource, loadAcceptContext, prepareAccept } from './accept';
+import { confirmAccept } from './confirmAccept';
 import { FALLBACK_DEFAULTS, loadWizardDefaults, type WizardDefaults } from './defaults';
 import { InputsForm, type WizardAnswers } from './InputsForm';
 import { ParqFlow } from './ParqFlow';
@@ -125,33 +128,7 @@ export function GeneratorScreen() {
           setFailed(true);
           return;
         }
-        const lines = [
-          prepared.impact.kept.length > 0
-            ? t('creator.accept.kept', { count: prepared.impact.kept.length })
-            : null,
-          prepared.impact.restarted.length > 0
-            ? t('creator.accept.restarted', {
-                names: prepared.impact.restarted.map((item) => templateText(item.name)).join(', '),
-              })
-            : null,
-          prepared.impact.lost.length > 0
-            ? t('creator.accept.lost', {
-                names: prepared.impact.lost.map((item) => templateText(item.name)).join(', '),
-              })
-            : null,
-          t('creator.accept.note'),
-        ].filter((line): line is string => line !== null);
-        const confirmed = await new Promise<boolean>((resolve) => {
-          Alert.alert(
-            t('creator.accept.title'),
-            lines.join('\n\n'),
-            [
-              { text: t('creator.accept.cancel'), style: 'cancel', onPress: () => resolve(false) },
-              { text: t('creator.accept.confirm'), onPress: () => resolve(true) },
-            ],
-            { onDismiss: () => resolve(false) },
-          );
-        });
+        const confirmed = await confirmAccept(t, prepared.impact);
         if (!confirmed) return;
         await acceptGenerated(getDatabase(), repos, prepared.items);
         void requestNotificationSync('dataChanged');
@@ -165,6 +142,24 @@ export function GeneratorScreen() {
     },
     [busy, t],
   );
+
+  /** "Ajustar": the full editor on the proposal, as a draft (nothing stored until "Usar"). */
+  const adjust = useCallback(async (generated: GeneratedProgram) => {
+    setFailed(false);
+    try {
+      const context = await loadAcceptContext(getRepositories());
+      const prepared = prepareAccept(generated, context, resolverFor('es'), resolverFor('en'));
+      const source = prepared.ok ? draftEditorSource(prepared, context) : null;
+      if (!source) {
+        setFailed(true);
+        return;
+      }
+      useEditorStore.getState().open(source);
+      router.push('/editar-programa');
+    } catch {
+      setFailed(true);
+    }
+  }, []);
 
   return (
     <Screen scroll edges={['top', 'bottom', 'left', 'right']}>
@@ -211,6 +206,7 @@ export function GeneratorScreen() {
               )
             }
             onAccept={() => void accept(step.generated)}
+            onAdjust={() => void adjust(step.generated)}
             onBack={() => setStep({ name: 'inputs', screening: step.screening })}
           />
         ) : null}

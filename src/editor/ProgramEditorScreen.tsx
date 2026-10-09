@@ -24,6 +24,8 @@ import {
   saveEdited,
 } from './editorSource';
 import { selectDirty, useEditorStore } from './editorStore';
+import { historyImpact, stepIdsOf } from '../generator/accept';
+import { confirmAccept } from '../generator/confirmAccept';
 import { IconAction } from './IconAction';
 import { errorText } from './text';
 import { useEditorSource } from './useEditorSource';
@@ -164,7 +166,39 @@ export function ProgramEditorScreen() {
     setNotice(null);
   };
 
+  /** Draft ("Ajustar" in the routine creator): validate, confirm the history impact, store it. */
+  const applyDraft = async () => {
+    setNotice(null);
+    const prepared = prepareSave(source, program);
+    if (!prepared.ok) {
+      const lines = prepared.importErrors.map((error) => describeImportError(error, t));
+      setNotice({
+        tone: 'error',
+        text: lines.length > 0 ? lines.join('\n') : t('editor.problemsTitle'),
+      });
+      return;
+    }
+    const impact = historyImpact(source.context, stepIdsOf(prepared.items));
+    if (!(await confirmAccept(t, impact))) return;
+    setBusy('save');
+    try {
+      await saveEdited(getDatabase(), getRepositories(), prepared.items);
+      discarded.current = true;
+      useEditorStore.getState().close();
+      router.dismissTo('/(tabs)/gym');
+    } catch (error) {
+      if (__DEV__) console.error('Could not save the adjusted routine', error);
+      setNotice({ tone: 'error', text: t('editor.saveFailed') });
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const save = async () => {
+    if (source.draft) {
+      await applyDraft();
+      return;
+    }
     setNotice(null);
     setBusy('save');
     try {
@@ -246,10 +280,10 @@ export function ProgramEditorScreen() {
           accessibilityRole="header"
           style={[theme.text('title-lg'), { color: theme.color.text }]}
         >
-          {t('editor.title')}
+          {t(source.draft ? 'editor.draftTitle' : 'editor.title')}
         </Text>
         <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
-          {t('editor.intro')}
+          {t(source.draft ? 'editor.draftIntro' : 'editor.intro')}
         </Text>
         <TextField
           label={t('editor.programName')}
@@ -352,20 +386,26 @@ export function ProgramEditorScreen() {
         ) : null}
 
         <Button
-          label={t('editor.save')}
+          label={t(source.draft ? 'creator.preview.accept' : 'editor.save')}
           size="lg"
           onPress={() => void save()}
           loading={busy === 'save'}
-          disabled={!dirty || busy !== null}
+          disabled={(!dirty && !source.draft) || busy !== null}
         />
+        {source.draft ? null : (
+          <Button
+            label={t('editor.export')}
+            variant="secondary"
+            onPress={() => void exportProgram()}
+            loading={busy === 'export'}
+            disabled={busy !== null}
+          />
+        )}
         <Button
-          label={t('editor.export')}
-          variant="secondary"
-          onPress={() => void exportProgram()}
-          loading={busy === 'export'}
-          disabled={busy !== null}
+          label={t(source.draft ? 'editor.draftBack' : 'editor.back')}
+          variant="ghost"
+          onPress={leave}
         />
-        <Button label={t('editor.back')} variant="ghost" onPress={leave} />
       </View>
     </Screen>
   );

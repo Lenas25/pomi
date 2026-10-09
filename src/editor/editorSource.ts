@@ -22,6 +22,11 @@ export type EditorSource = {
   moduleImportedAt: number;
   program: Program;
   context: ImportContext;
+  /**
+   * A generated proposal not stored yet ("Ajustar" in the routine creator): no stale check, and
+   * saving it is what makes it the active program.
+   */
+  draft?: boolean;
 };
 
 /** The program the app trains: the first one of the first active module (as `pickProgram`). */
@@ -48,6 +53,7 @@ export async function loadEditorSource(repos: Repositories): Promise<EditorSourc
  * Saving would silently overwrite it, so the screen blocks and offers a reload.
  */
 export async function isSourceStale(repos: Repositories, source: EditorSource): Promise<boolean> {
+  if (source.draft) return false;
   const modules = await repos.templates.listModules();
   const current = modules.find((stored) => stored.id === source.module.id);
   return !current || current.importedAt !== source.moduleImportedAt;

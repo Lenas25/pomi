@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Switch, Text, View } from 'react-native';
+import { Pressable, Switch, Text, View } from 'react-native';
 
 import { evaluateParq, PARQ_QUESTION_COUNT } from '../domain/generator/parq';
 import type { Screening } from '../domain/generator/types';
@@ -7,7 +7,6 @@ import { useT } from '../i18n';
 import type { TranslationKey } from '../i18n/types';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { OptionRow } from '../ui/OptionRow';
 import { useTheme } from '../ui/theme';
 
 type ParqFlowProps = {
@@ -18,7 +17,7 @@ type ParqFlowProps = {
 const questionKey = (index: number) => `creator.parq.q.q${index + 1}` as TranslationKey;
 
 /**
- * The seven PAR-Q+ general health questions, one short yes/no screen each (E10). Any "yes" shows a
+ * The seven PAR-Q+ general health questions on ONE compact screen, yes/no each (E10). Any "yes" shows a
  * warm notice that conviene consultar first; going on needs an explicit acknowledgement and only
  * unlocks the gentle beginner template. Pomi never presents this as medical clearance.
  */
@@ -28,80 +27,94 @@ export function ParqFlow({ onDone }: ParqFlowProps) {
   const [answers, setAnswers] = useState<(boolean | null)[]>(
     Array.from({ length: PARQ_QUESTION_COUNT }, () => null),
   );
-  const [index, setIndex] = useState(0);
   const [acknowledged, setAcknowledged] = useState(false);
 
   const outcome = evaluateParq(answers);
-  const finished = index >= PARQ_QUESTION_COUNT;
+  const finished = answers.every((value) => value !== null);
   const muted = [theme.text('body'), { color: theme.color.textMuted }];
 
-  const answer = (value: boolean) => {
+  const answer = (index: number, value: boolean) => {
     setAnswers((current) => current.map((item, at) => (at === index ? value : item)));
-    setIndex((current) => current + 1);
     setAcknowledged(false);
   };
 
-  if (!finished) {
-    const current = answers[index];
+  const choice = (index: number, value: boolean) => {
+    const selected = answers[index] === value;
     return (
-      <View style={{ gap: theme.space[4] }}>
-        <Text
-          accessibilityRole="header"
-          style={[theme.text('title-lg'), { color: theme.color.text }]}
-        >
-          {t('creator.parq.title')}
+      <Pressable
+        key={String(value)}
+        accessibilityRole="radio"
+        accessibilityLabel={t(value ? 'creator.parq.yes' : 'creator.parq.no')}
+        accessibilityState={{ checked: selected }}
+        onPress={() => answer(index, value)}
+        style={({ pressed }) => ({
+          minHeight: theme.touch.gym,
+          minWidth: theme.touch.gym * 1.5,
+          paddingHorizontal: theme.space[3],
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: theme.radius.pill,
+          borderWidth: theme.stroke.bold,
+          borderColor: selected ? theme.color.brand : theme.color.border,
+          backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
+          opacity: pressed ? theme.opacity.pressed : 1,
+        })}
+      >
+        <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
+          {t(value ? 'creator.parq.yes' : 'creator.parq.no')}
         </Text>
-        <Text style={muted}>{t('creator.parq.intro')}</Text>
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[theme.text('caption'), { color: theme.color.textMuted }]}
+      </Pressable>
+    );
+  };
+
+  return (
+    <View style={{ gap: theme.space[4] }}>
+      <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
+        {t('creator.stepOf', { n: 1, total: 3 })}
+      </Text>
+      <Text
+        accessibilityRole="header"
+        style={[theme.text('title-lg'), { color: theme.color.text }]}
+      >
+        {t('creator.parq.title')}
+      </Text>
+      <Text style={muted}>{t('creator.parq.intro')}</Text>
+      {answers.map((_, index) => (
+        <View
+          key={index}
+          testID={`parq-${index + 1}`}
+          style={{
+            gap: theme.space[2],
+            paddingBottom: theme.space[3],
+            borderBottomWidth: theme.stroke.hairline,
+            borderBottomColor: theme.color.border,
+          }}
         >
-          {t('creator.parq.progress', { n: index + 1, total: PARQ_QUESTION_COUNT })}
-        </Text>
-        <Card>
-          <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
+          <Text style={[theme.text('body'), { color: theme.color.text }]}>
             {t(questionKey(index))}
           </Text>
-        </Card>
-        <View style={{ gap: theme.space[2] }} accessibilityRole="radiogroup">
-          <OptionRow
-            label={t('creator.parq.yes')}
-            selected={current === true}
-            onPress={() => answer(true)}
-          />
-          <OptionRow
-            label={t('creator.parq.no')}
-            selected={current === false}
-            onPress={() => answer(false)}
-          />
+          <View
+            accessibilityRole="radiogroup"
+            accessibilityLabel={t(questionKey(index))}
+            style={{ flexDirection: 'row', gap: theme.space[2] }}
+          >
+            {choice(index, true)}
+            {choice(index, false)}
+          </View>
         </View>
-        {index > 0 ? (
-          <Button
-            label={t('creator.parq.previous')}
-            variant="ghost"
-            onPress={() => setIndex((at) => Math.max(0, at - 1))}
-          />
-        ) : null}
-        <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-          {t('creator.parq.disclaimer')}
-        </Text>
-      </View>
-    );
-  }
+      ))}
 
-  // A "yes" to question 2 (chest pain) or 7 (only medically supervised activity): no routine is
-  // generated. The person can still review the answers; nothing here is medical advice.
-  if (outcome.referral) {
-    return (
-      <View style={{ gap: theme.space[4] }}>
-        <Text
-          accessibilityRole="header"
-          style={[theme.text('title-lg'), { color: theme.color.text }]}
-        >
-          {t('creator.parq.referral.title')}
-        </Text>
+      {/* A "yes" to question 2 (chest pain) or 7 (only medically supervised activity): no routine
+          is generated. Nothing here is medical advice. */}
+      {finished && outcome.referral ? (
         <Card variant="highlight">
-          <View style={{ gap: theme.space[2] }}>
+          <View accessibilityLiveRegion="polite" style={{ gap: theme.space[2] }}>
+            <Text
+              accessibilityRole="header"
+              style={[theme.text('title-sm'), { color: theme.color.text }]}
+            >
+              {t('creator.parq.referral.title')}
+            </Text>
             <Text style={[theme.text('body'), { color: theme.color.text }]}>
               {t('creator.parq.referral.body')}
             </Text>
@@ -112,30 +125,18 @@ export function ParqFlow({ onDone }: ParqFlowProps) {
             ) : null}
           </View>
         </Card>
-        <Button
-          label={t('creator.parq.previous')}
-          variant="ghost"
-          onPress={() => setIndex(PARQ_QUESTION_COUNT - 1)}
-        />
-        <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-          {t('creator.parq.disclaimer')}
-        </Text>
-      </View>
-    );
-  }
+      ) : null}
 
-  return (
-    <View style={{ gap: theme.space[4] }}>
-      {outcome.anyYes ? (
+      {finished && !outcome.referral && outcome.anyYes ? (
         <>
-          <Text
-            accessibilityRole="header"
-            style={[theme.text('title-lg'), { color: theme.color.text }]}
-          >
-            {t('creator.parq.notice.title')}
-          </Text>
           <Card variant="highlight">
-            <View style={{ gap: theme.space[2] }}>
+            <View accessibilityLiveRegion="polite" style={{ gap: theme.space[2] }}>
+              <Text
+                accessibilityRole="header"
+                style={[theme.text('title-sm'), { color: theme.color.text }]}
+              >
+                {t('creator.parq.notice.title')}
+              </Text>
               <Text style={[theme.text('body'), { color: theme.color.text }]}>
                 {t('creator.parq.notice.body')}
               </Text>
@@ -154,7 +155,7 @@ export function ParqFlow({ onDone }: ParqFlowProps) {
               flexDirection: 'row',
               alignItems: 'center',
               gap: theme.space[3],
-              minHeight: theme.touch.min,
+              minHeight: theme.touch.gym,
             }}
           >
             <Text style={[theme.text('body'), { flex: 1, color: theme.color.text }]}>
@@ -169,27 +170,15 @@ export function ParqFlow({ onDone }: ParqFlowProps) {
             />
           </View>
         </>
-      ) : (
-        <>
-          <Text
-            accessibilityRole="header"
-            style={[theme.text('title-lg'), { color: theme.color.text }]}
-          >
-            {t('creator.parq.clear.title')}
-          </Text>
-          <Text style={muted}>{t('creator.parq.clear.body')}</Text>
-        </>
+      ) : null}
+
+      {outcome.referral ? null : (
+        <Button
+          label={t('creator.parq.continue')}
+          disabled={!finished || (outcome.anyYes && !acknowledged)}
+          onPress={() => onDone({ answers: answers.map((value) => value === true), acknowledged })}
+        />
       )}
-      <Button
-        label={t('creator.parq.continue')}
-        disabled={outcome.anyYes && !acknowledged}
-        onPress={() => onDone({ answers: answers.map((value) => value === true), acknowledged })}
-      />
-      <Button
-        label={t('creator.parq.previous')}
-        variant="ghost"
-        onPress={() => setIndex(PARQ_QUESTION_COUNT - 1)}
-      />
       <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
         {t('creator.parq.disclaimer')}
       </Text>

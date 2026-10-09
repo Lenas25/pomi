@@ -12,6 +12,7 @@ import { importTemplate, toModuleTemplates } from '../templates/importer';
 import { mergeLocales, type LocalizedText } from '../templates/localized';
 import { applyProgramImport, type ProgramPreviewItem } from '../templates/programImport';
 import type { ModuleTemplate } from '../templates/schema';
+import type { EditorSource } from '../editor/editorSource';
 
 export type AcceptContext = {
   modules: readonly { id: string; name: string; active: boolean; template: ModuleTemplate }[];
@@ -82,14 +83,32 @@ export function prepareAccept(
     routines: (module.programs ?? []).reduce((sum, program) => sum + program.routines.length, 0),
     exists: context.modules.some((stored) => stored.id === module.id),
   }));
-  const ids = new Set(
-    modules.flatMap((module) =>
+  return { ok: true, items, impact: historyImpact(context, stepIdsOf(items)) };
+}
+
+/** Step ids of every program of the previewed modules. */
+export function stepIdsOf(items: readonly ProgramPreviewItem[]): Set<string> {
+  return new Set(
+    items.flatMap(({ module }) =>
       (module.programs ?? []).flatMap((program) =>
         program.routines.flatMap((routine) => routine.steps.map((step) => step.id)),
       ),
     ),
   );
-  return { ok: true, items, impact: historyImpact(context, ids) };
+}
+
+/**
+ * The proposal as an editor source in DRAFT mode ("Ajustar"): the validated generated module, its
+ * program and the current data for the history impact. Nothing is stored.
+ */
+export function draftEditorSource(
+  prepared: Extract<PreparedAccept, { ok: true }>,
+  context: AcceptContext,
+): EditorSource | null {
+  const module = prepared.items[0]?.module;
+  const program = module?.programs?.[0];
+  if (!module || !program) return null;
+  return { module, moduleImportedAt: 0, program, context, draft: true };
 }
 
 export async function loadAcceptContext(repos: Repositories): Promise<AcceptContext> {

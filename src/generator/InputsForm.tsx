@@ -16,7 +16,6 @@ import {
 import { useT } from '../i18n';
 import { Button } from '../ui/Button';
 import { Chip } from '../ui/Chip';
-import { OptionRow } from '../ui/OptionRow';
 import { NumberStepper } from '../ui/Stepper';
 import { useTheme } from '../ui/theme';
 
@@ -41,7 +40,10 @@ type InputsFormProps = {
   onSubmit: (answers: WizardAnswers) => void;
 };
 
-/** Goal, priority region, level, days, minutes, equipment and joints that bother (PLAN §14c). */
+/**
+ * "Tu objetivo" on ONE screen, as chips: goal, priority region, level, days, minutes, equipment
+ * and joints that bother (PLAN §14c).
+ */
 export function InputsForm({ defaults, restricted, joints, onSubmit }: InputsFormProps) {
   const t = useT();
   const theme = useTheme();
@@ -63,9 +65,38 @@ export function InputsForm({ defaults, restricted, joints, onSubmit }: InputsFor
   );
   const muted = [theme.text('caption'), { color: theme.color.textMuted }];
 
+  const chips = <T extends string>(
+    label: string,
+    values: readonly T[],
+    selected: (value: T) => boolean,
+    name: (value: T) => string,
+    onPress: (value: T) => void,
+    role: 'radio' | 'checkbox' = 'radio',
+  ) => (
+    <View style={{ gap: theme.space[2] }}>
+      {heading(label)}
+      <View
+        accessibilityRole={role === 'radio' ? 'radiogroup' : undefined}
+        accessibilityLabel={label}
+        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[2] }}
+      >
+        {values.map((value) => (
+          <Chip
+            key={value}
+            role={role}
+            label={name(value)}
+            selected={selected(value)}
+            onPress={() => onPress(value)}
+          />
+        ))}
+      </View>
+    </View>
+  );
+
   return (
     <View style={{ gap: theme.space[5] }}>
       <View style={{ gap: theme.space[2] }}>
+        <Text style={muted}>{t('creator.stepOf', { n: 2, total: 3 })}</Text>
         <Text
           accessibilityRole="header"
           style={[theme.text('title-lg'), { color: theme.color.text }]}
@@ -87,52 +118,29 @@ export function InputsForm({ defaults, restricted, joints, onSubmit }: InputsFor
 
       {restricted ? null : (
         <>
-          <View style={{ gap: theme.space[2] }} accessibilityRole="radiogroup">
-            {heading(t('creator.inputs.goal.label'))}
-            {GOALS.map((goal) => (
-              <OptionRow
-                key={goal}
-                label={t(`creator.inputs.goal.${goal}`)}
-                selected={answers.goal === goal}
-                onPress={() =>
-                  patch({ goal, region: goal === 'hypertrophy' ? answers.region : undefined })
-                }
-              />
-            ))}
-          </View>
-
-          {answers.goal === 'hypertrophy' ? (
-            <View style={{ gap: theme.space[2] }}>
-              {heading(t('creator.inputs.region.label'))}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[2] }}>
-                <Chip
-                  label={t('creator.inputs.region.none')}
-                  selected={answers.region === undefined}
-                  onPress={() => patch({ region: undefined })}
-                />
-                {REGIONS.map((region) => (
-                  <Chip
-                    key={region}
-                    label={t(`creator.inputs.region.${region}`)}
-                    selected={answers.region === region}
-                    onPress={() => patch({ region })}
-                  />
-                ))}
-              </View>
-            </View>
-          ) : null}
-
-          <View style={{ gap: theme.space[2] }} accessibilityRole="radiogroup">
-            {heading(t('creator.inputs.level.label'))}
-            {LEVELS.map((level) => (
-              <OptionRow
-                key={level}
-                label={t(`creator.inputs.level.${level}`)}
-                selected={answers.level === level}
-                onPress={() => patch({ level })}
-              />
-            ))}
-          </View>
+          {chips(
+            t('creator.inputs.goal.label'),
+            GOALS,
+            (goal) => answers.goal === goal,
+            (goal) => t(`creator.inputs.goal.${goal}`),
+            (goal) => patch({ goal, region: goal === 'hypertrophy' ? answers.region : undefined }),
+          )}
+          {answers.goal === 'hypertrophy'
+            ? chips(
+                t('creator.inputs.region.label'),
+                ['none', ...REGIONS] as const,
+                (region) => (answers.region ?? 'none') === region,
+                (region) => t(`creator.inputs.region.${region}`),
+                (region) => patch({ region: region === 'none' ? undefined : region }),
+              )
+            : null}
+          {chips(
+            t('creator.inputs.level.label'),
+            LEVELS,
+            (level) => answers.level === level,
+            (level) => t(`creator.inputs.level.${level}`),
+            (level) => patch({ level }),
+          )}
         </>
       )}
 
@@ -156,20 +164,15 @@ export function InputsForm({ defaults, restricted, joints, onSubmit }: InputsFor
         />
       </View>
 
-      <View style={{ gap: theme.space[2] }} accessibilityRole="radiogroup">
-        {heading(t('creator.inputs.equipment.label'))}
-        {EQUIPMENT.map((equipment) => (
-          <OptionRow
-            key={equipment}
-            label={t(`creator.inputs.equipment.${equipment}`)}
-            selected={answers.equipment === equipment}
-            onPress={() => patch({ equipment })}
-          />
-        ))}
-      </View>
+      {chips(
+        t('creator.inputs.equipment.label'),
+        EQUIPMENT,
+        (equipment) => answers.equipment === equipment,
+        (equipment) => t(`creator.inputs.equipment.${equipment}`),
+        (equipment) => patch({ equipment }),
+      )}
 
       <View style={{ gap: theme.space[2] }}>
-        {heading(t('creator.inputs.limitations.label'))}
         {joints ? (
           <Text
             accessibilityLiveRegion="polite"
@@ -178,26 +181,23 @@ export function InputsForm({ defaults, restricted, joints, onSubmit }: InputsFor
             {t('creator.inputs.joints')}
           </Text>
         ) : null}
+        {chips(
+          t('creator.inputs.limitations.label'),
+          LIMITATIONS,
+          (limitation) => answers.limitations.includes(limitation),
+          (limitation) => t(`creator.inputs.limitations.${limitation}`),
+          (limitation) =>
+            patch({
+              limitations: answers.limitations.includes(limitation)
+                ? answers.limitations.filter((item) => item !== limitation)
+                : [...answers.limitations, limitation],
+            }),
+          'checkbox',
+        )}
         <Text style={muted}>{t('creator.inputs.limitations.hint')}</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[2] }}>
-          {LIMITATIONS.map((limitation) => (
-            <Chip
-              key={limitation}
-              label={t(`creator.inputs.limitations.${limitation}`)}
-              selected={answers.limitations.includes(limitation)}
-              onPress={() =>
-                patch({
-                  limitations: answers.limitations.includes(limitation)
-                    ? answers.limitations.filter((item) => item !== limitation)
-                    : [...answers.limitations, limitation],
-                })
-              }
-            />
-          ))}
-        </View>
       </View>
 
-      <Button label={t('creator.inputs.generate')} onPress={() => onSubmit(answers)} />
+      <Button label={t('creator.inputs.generate')} size="lg" onPress={() => onSubmit(answers)} />
     </View>
   );
 }
