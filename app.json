@@ -13,7 +13,7 @@
       "allowBackup": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icons/adaptive-foreground.png",
-        "backgroundImage": "./assets/icons/adaptive-background.png",
+        "backgroundColor": "#E5DCC5",
         "monochromeImage": "./assets/icons/adaptive-monochrome.png"
       },
       "permissions": [

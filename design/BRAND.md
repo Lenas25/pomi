@@ -158,13 +158,13 @@ Respetar el tamaño de texto del sistema (Dynamic Type / escala de fuente de And
 
 ### 6.1 Anatomía
 
-- Cuerpo redondo tipo gota, **azul `blue-500`**, con pancita `blue-200`.
+- Cuerpo redondo tipo gota, **gris lavanda `lavender-500` (`#848FA5`)**, con pancita arena `sand-500` (`#E5DCC5`).
 - Mechón en la cabeza, como una gota o un brote.
-- **Vincha coral**: su rasgo de identidad, siempre presente.
-- Mejillas `blush-300`, ojos grandes con brillo, contorno `navy-900` de grosor uniforme.
-- Zapatillas coral con suela blanca.
+- **Vincha ladrillo `brick-500` (`#C14953`)** anudada al costado: su rasgo de identidad, siempre presente.
+- Mejillas rosadas suaves, ojos simples, contorno grafito `graphite-900` de grosor uniforme.
+- Zapatillas ladrillo con suela crema.
 
-**Definir antes de producir:** qué es Pomi. La forma y el color sugieren una **gota de agua con energía**, que conecta con la hidratación y con el "brotar". Fijarlo ayuda a que todas las poses sean consistentes y da material para la historia de la marca.
+Arte maestro aprobado (2026-10): `assets/source/pomi-camina-master.png` (mascota, fondo transparente) y `assets/source/pomi-app-icon-master.png` (ícono). Prompts para las demás poses: `docs/design/PROMPTS-assets.md`.
 
 ### 6.2 Expresiones y cuándo aparece cada una
 

@@ -24,10 +24,10 @@ describe('app.json colors match design tokens', () => {
     expect(pluginConfig('expo-notifications').color).toBe(tokens.color.palette['brick-500']);
   });
 
-  it('does not hardcode an adaptive icon background color that drifts from the tokens', () => {
+  it('uses the sand token as the solid adaptive icon background (no background image)', () => {
     const adaptive: Record<string, unknown> = appJson.expo.android.adaptiveIcon;
-    const background = adaptive.backgroundColor;
-    if (background !== undefined) expect(background).toBe(tokens.color.light.bg);
+    expect(adaptive.backgroundColor).toBe(tokens.color.palette['sand-500']);
+    expect(adaptive.backgroundImage).toBeUndefined();
   });
 });
 
