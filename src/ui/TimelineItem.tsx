@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
+import { Animated, PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { Check } from 'phosphor-react-native';
 
@@ -54,6 +54,7 @@ export function TimelineItem({
   onSkip,
 }: TimelineItemProps) {
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   // The drag follows the finger on the JS thread (a short, local gesture): core Animated is enough.
   const [offset] = useState(() => new Animated.Value(0));
@@ -140,10 +141,14 @@ export function TimelineItem({
         style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}
       >
         <Text
+          numberOfLines={1}
+          testID="timeline-time"
           style={[
             theme.text('caption'),
             {
-              width: theme.space[10],
+              // Never a fixed width: "07:40" must fit at any system font scale.
+              minWidth: theme.timeline.timeColumn * Math.max(1, fontScale),
+              fontVariant: ['tabular-nums'],
               color: status === 'now' ? theme.color.energyText : theme.color.textMuted,
             },
           ]}

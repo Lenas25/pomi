@@ -1,7 +1,16 @@
 import { useEffect, type Ref } from 'react';
-import { AccessibilityInfo, Text, TextInput, View, type TextInputProps } from 'react-native';
+import {
+  AccessibilityInfo,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type StyleProp,
+  type TextInputProps,
+  type TextStyle,
+} from 'react-native';
 
-import { useTheme } from './theme';
+import { inputTextStyle, useTheme, type TextVariant } from './theme';
 
 type TextFieldProps = Pick<
   TextInputProps,
@@ -26,6 +35,28 @@ type TextFieldProps = Pick<
   inputRef?: Ref<TextInput>;
 };
 
+type ThemedTextInputProps = Omit<TextInputProps, 'style'> & {
+  /** Text variant from the tokens (default `body`). */
+  variant?: TextVariant;
+  style?: StyleProp<TextStyle>;
+  ref?: Ref<TextInput>;
+};
+
+/**
+ * The ONLY `TextInput` the app renders: the token font family (value and placeholder) is applied
+ * last, flattened, so no caller can drop it, and the placeholder color comes from the theme.
+ */
+export function ThemedTextInput({ variant = 'body', style, ...props }: ThemedTextInputProps) {
+  const theme = useTheme();
+  return (
+    <TextInput
+      placeholderTextColor={theme.color.textMuted}
+      {...props}
+      style={{ ...StyleSheet.flatten(style), ...inputTextStyle(variant) }}
+    />
+  );
+}
+
 /** Labelled single-line input with a 48 dp minimum height. */
 export function TextField({
   label,
@@ -42,14 +73,12 @@ export function TextField({
   return (
     <View style={{ gap: theme.space[1] }}>
       <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>{label}</Text>
-      <TextInput
+      <ThemedTextInput
         {...input}
         ref={inputRef}
         accessibilityLabel={label}
-        placeholderTextColor={theme.color.textMuted}
         returnKeyType={returnKeyType}
         style={[
-          theme.text('body'),
           {
             minHeight: Math.max(theme.control.md, theme.touch.gym) * (input.multiline ? 2 : 1),
             ...(input.multiline

@@ -7,14 +7,14 @@ import {
   type ComponentProps,
   type ReactNode,
 } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft } from 'phosphor-react-native';
 
 import { useT } from '../i18n';
 import { Button } from '../ui/Button';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Screen } from '../ui/Screen';
+import { StepHeader } from '../ui/StepHeader';
 import { TextField } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
 import {
@@ -47,6 +47,8 @@ type QuestionScreenProps = {
   onNext?: () => boolean;
   /** Called on "Saltar" to clear the answer before moving on. */
   onSkip?: () => void;
+  /** One short line shown right above the pinned buttons (never hidden behind them). */
+  footerNote?: string;
 };
 
 /**
@@ -61,6 +63,7 @@ export function QuestionScreen({
   children,
   onNext,
   onSkip,
+  footerNote,
 }: QuestionScreenProps) {
   const theme = useTheme();
   const t = useT();
@@ -100,41 +103,22 @@ export function QuestionScreen({
         style={{ flex: 1, backgroundColor: theme.color.bg }}
       >
         <Screen edges={['top', 'bottom', 'left', 'right']}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.space[3],
-              paddingVertical: theme.space[2],
-            }}
-          >
-            {isFirstQuestion(id) ? (
-              <View style={{ width: theme.touch.gym }} />
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('onboarding.back')}
-                onPress={() => router.back()}
-                style={{
-                  width: theme.touch.gym,
-                  height: theme.touch.gym,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <ArrowLeft color={theme.color.text} />
-              </Pressable>
-            )}
-            <View style={{ flex: 1 }}>
-              <ProgressBar
-                current={questionNumber(id)}
-                total={TOTAL_QUESTIONS}
-                label={t('onboarding.progress', {
-                  current: questionNumber(id),
-                  total: TOTAL_QUESTIONS,
-                })}
-              />
-            </View>
+          <View style={{ paddingVertical: theme.space[2] }}>
+            <StepHeader
+              backLabel={t('onboarding.back')}
+              onBack={isFirstQuestion(id) ? undefined : () => router.back()}
+            >
+              <View style={{ flex: 1 }}>
+                <ProgressBar
+                  current={questionNumber(id)}
+                  total={TOTAL_QUESTIONS}
+                  label={t('onboarding.progress', {
+                    current: questionNumber(id),
+                    total: TOTAL_QUESTIONS,
+                  })}
+                />
+              </View>
+            </StepHeader>
           </View>
 
           <ScrollView
@@ -158,6 +142,17 @@ export function QuestionScreen({
           </ScrollView>
 
           <View style={{ gap: theme.space[2], paddingVertical: theme.space[3] }}>
+            {footerNote ? (
+              <Text
+                numberOfLines={2}
+                style={[
+                  theme.text('caption'),
+                  { color: theme.color.textMuted, textAlign: 'center' },
+                ]}
+              >
+                {footerNote}
+              </Text>
+            ) : null}
             <Button label={t('onboarding.next')} onPress={handleNext} size="lg" />
             <Button label={t('onboarding.skip')} onPress={handleSkip} variant="ghost" />
           </View>

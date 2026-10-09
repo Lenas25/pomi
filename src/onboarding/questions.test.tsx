@@ -9,7 +9,13 @@ import { setLanguage } from '../i18n';
 import { es } from '../i18n/es';
 import { ThemeProvider } from '../ui/theme';
 import { useOnboardingDraft } from './draftStore';
-import { BodyQuestion, FreeDaysQuestion, NameQuestion, WorkQuestion } from './questions';
+import {
+  BodyQuestion,
+  FreeDaysQuestion,
+  NameQuestion,
+  SleepClockQuestion,
+  WorkQuestion,
+} from './questions';
 
 jest.mock('../notifications/PermissionsPanel', () => ({ PermissionsPanel: () => null }));
 
@@ -113,12 +119,21 @@ describe('BodyQuestion', () => {
 });
 
 describe('NameQuestion', () => {
-  it('greets with Pomi, shows the medical notice and has no back button', async () => {
+  it('greets with Pomi, condenses the medical notice to one line + "Más info" and has no back button', async () => {
     await renderScreen(<NameQuestion />);
     expect(screen.getByText(es.onboarding.welcome.bubble)).toBeTruthy();
+    expect(screen.getByText(es.onboarding.medical.short)).toBeTruthy();
+    // The full text lives in the sheet, closed until asked for.
+    expect(screen.queryByText(es.onboarding.medical.body)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: es.onboarding.medical.more }));
     expect(screen.getByText(es.onboarding.medical.body)).toBeTruthy();
     expect(screen.getByText(es.onboarding.backupNotice)).toBeTruthy();
     expect(screen.queryByRole('button', { name: es.onboarding.back })).toBeNull();
+  });
+
+  it('shows the suggested-value note in the footer, once', async () => {
+    await renderScreen(<SleepClockQuestion />);
+    expect(screen.getAllByText(es.onboarding.suggestedValue)).toHaveLength(1);
   });
 
   it('keeps the bubble within the 40-character mascot limit in both languages', () => {

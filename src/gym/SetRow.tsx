@@ -1,9 +1,10 @@
 import { memo, useState } from 'react';
-import { Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { Check, Timer } from 'phosphor-react-native';
 
 import { useLocaleStore, useT } from '../i18n';
 import type { Language } from '../i18n/types';
+import { ThemedTextInput } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
 
 import {
@@ -80,7 +81,6 @@ function SetRowBase({
   const showPrevious = width >= NARROW_WIDTH;
 
   const input = (editable: boolean, invalid: boolean) => ({
-    ...theme.text('body-strong'),
     minHeight: theme.touch.gym,
     flex: 1,
     textAlign: 'center' as const,
@@ -132,7 +132,8 @@ function SetRowBase({
           </Text>
         ) : null}
         {bodyweight ? null : (
-          <TextInput
+          <ThemedTextInput
+            variant="body-strong"
             accessibilityLabel={t('gym.session.weightLabel', { n: number, exercise: exerciseName })}
             inputMode="decimal"
             keyboardType="numeric"
@@ -146,11 +147,11 @@ function SetRowBase({
             placeholder={
               placeholder.weightKg === null ? '' : formatKg(placeholder.weightKg, language)
             }
-            placeholderTextColor={theme.color.textMuted}
             style={input(!done, errors.weight)}
           />
         )}
-        <TextInput
+        <ThemedTextInput
+          variant="body-strong"
           accessibilityLabel={t('gym.session.repsLabel', { n: number, exercise: exerciseName })}
           inputMode="numeric"
           keyboardType="numeric"
@@ -162,7 +163,6 @@ function SetRowBase({
             if (errors.reps) setErrors((current) => ({ ...current, reps: false }));
           }}
           placeholder={placeholder.reps === null ? '' : String(placeholder.reps)}
-          placeholderTextColor={theme.color.textMuted}
           style={input(!done, errors.reps)}
         />
         {holdSec !== undefined && onHold && !done ? (

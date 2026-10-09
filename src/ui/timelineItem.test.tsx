@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import type { ReactElement } from 'react';
 
-import { ThemeProvider } from './theme';
+import { ThemeProvider, makeTheme } from './theme';
 import { TimelineItem, type TimelineItemStatus } from './TimelineItem';
 
 function renderThemed(ui: ReactElement) {
@@ -32,6 +33,16 @@ function setup(status: TimelineItemStatus) {
 }
 
 describe('TimelineItem', () => {
+  it('the time column never wraps: one line, tabular digits, token min width (not a fixed width)', async () => {
+    await renderThemed(setup('now').ui);
+    const time = screen.getByTestId('timeline-time');
+    expect(time.props.numberOfLines).toBe(1);
+    const style = StyleSheet.flatten(time.props.style);
+    expect(style.width).toBeUndefined();
+    expect(style.minWidth).toBeGreaterThanOrEqual(makeTheme('light').timeline.timeColumn);
+    expect(style.fontVariant).toEqual(['tabular-nums']);
+  });
+
   it('shows time, title and subtitle', async () => {
     await renderThemed(setup('upcoming').ui);
     expect(screen.getByText('06:00')).toBeTruthy();

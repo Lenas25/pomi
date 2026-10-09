@@ -21,7 +21,8 @@ import {
 } from '../domain/onboarding/draft';
 import { DEFAULT_FREE_WEEKDAYS } from '../domain/companion/limits';
 import { useT, type TranslationKey } from '../i18n';
-import { Card } from '../ui/Card';
+import { BottomSheet } from '../ui/BottomSheet';
+import { Button } from '../ui/Button';
 import { Chip } from '../ui/Chip';
 import { MascotBubble } from '../ui/MascotBubble';
 import { NumberStepper, TimeStepper } from '../ui/Stepper';
@@ -67,17 +68,6 @@ export function weekdayLong(day: number): TranslationKey {
   return WEEKDAY_LONG_KEYS[day] ?? 'weekdays.long.d0';
 }
 
-/** Explains that the stepper's visible value is a suggestion and what "Siguiente" / "Saltar" do. */
-function SuggestedValueNote() {
-  const t = useT();
-  const theme = useTheme();
-  return (
-    <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-      {t('onboarding.suggestedValue')}
-    </Text>
-  );
-}
-
 /** Q1 (also the welcome screen): name, Pomi's greeting and the medical notice. */
 export function NameQuestion() {
   const t = useT();
@@ -85,6 +75,7 @@ export function NameQuestion() {
   const name = useOnboardingDraft((state) => state.draft.name);
   const update = useOnboardingDraft((state) => state.update);
   const [text, setText] = useState(name ?? '');
+  const [noticeOpen, setNoticeOpen] = useState(false);
 
   return (
     <QuestionScreen
@@ -105,19 +96,29 @@ export function NameQuestion() {
         onChangeText={setText}
         maxLength={MAX_NAME_LENGTH}
       />
-      <Card variant="highlight">
-        <View style={{ gap: theme.space[1] }}>
-          <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
-            {t('onboarding.medical.title')}
-          </Text>
-          <Text style={[theme.text('body'), { color: theme.color.text }]}>
-            {t('onboarding.medical.body')}
-          </Text>
-          <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
-            {t('onboarding.backupNotice')}
-          </Text>
-        </View>
-      </Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+        <Text style={[theme.text('body'), { color: theme.color.textMuted, flex: 1 }]}>
+          {t('onboarding.medical.short')}
+        </Text>
+        <Button
+          label={t('onboarding.medical.more')}
+          variant="ghost"
+          onPress={() => setNoticeOpen(true)}
+        />
+      </View>
+      <BottomSheet
+        visible={noticeOpen}
+        onClose={() => setNoticeOpen(false)}
+        title={t('onboarding.medical.title')}
+        closeLabel={t('onboarding.medical.close')}
+      >
+        <Text style={[theme.text('body'), { color: theme.color.text }]}>
+          {t('onboarding.medical.body')}
+        </Text>
+        <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
+          {t('onboarding.backupNotice')}
+        </Text>
+      </BottomSheet>
     </QuestionScreen>
   );
 }
@@ -296,6 +297,7 @@ export function SleepClockQuestion() {
 
   return (
     <QuestionScreen
+      footerNote={t('onboarding.suggestedValue')}
       id="sleepClock"
       title={t('onboarding.sleepClock.title')}
       hint={t('onboarding.sleepClock.hint')}
@@ -312,7 +314,6 @@ export function SleepClockQuestion() {
           onChange={setWakeTime}
         />
         <TimeStepper label={t('onboarding.sleepClock.bed')} value={bedTime} onChange={setBedTime} />
-        <SuggestedValueNote />
       </View>
     </QuestionScreen>
   );
@@ -329,6 +330,7 @@ export function SleepHoursQuestion() {
 
   return (
     <QuestionScreen
+      footerNote={t('onboarding.suggestedValue')}
       id="sleepHours"
       title={t('onboarding.sleepHours.title')}
       hint={t('onboarding.sleepHours.hint')}
@@ -347,7 +349,6 @@ export function SleepHoursQuestion() {
         max={LIMITS.sleepTargetH.max}
         format={(value) => t('onboarding.hours', { value })}
       />
-      <SuggestedValueNote />
       {current === null ? null : (
         <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
           {t('onboarding.sleepHours.current', { hours: current })}
@@ -527,6 +528,7 @@ export function StepsQuestion() {
 
   return (
     <QuestionScreen
+      footerNote={t('onboarding.suggestedValue')}
       id="steps"
       title={t('onboarding.steps.title')}
       hint={t('onboarding.steps.hint')}
@@ -544,7 +546,6 @@ export function StepsQuestion() {
         min={LIMITS.steps.min}
         max={LIMITS.steps.max}
       />
-      <SuggestedValueNote />
     </QuestionScreen>
   );
 }

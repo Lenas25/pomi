@@ -238,7 +238,7 @@ export const es = {
     increase: 'Subir {{label}}',
     decrease: 'Bajar {{label}}',
     hours: '{{value}} h',
-    suggestedValue: 'Valor sugerido. «Siguiente» lo confirma y «Saltar» lo deja sin responder.',
+    suggestedValue: 'Sugerido. «Siguiente» lo confirma; «Saltar» lo deja vacío.',
     hourLabel: 'hora',
     minuteLabel: 'minutos',
     welcome: {
@@ -249,6 +249,9 @@ export const es = {
       placeholder: 'Tu nombre',
     },
     medical: {
+      short: 'Las metas son orientativas, no consejo médico.',
+      more: 'Más info',
+      close: 'Cerrar',
       title: 'Antes de empezar',
       body: 'Las metas son puntos de partida generales, no consejo médico. Si tienes una condición médica (por ejemplo renal o cardíaca), consulta antes las metas de agua y ejercicio.',
     },
@@ -379,8 +382,8 @@ export const es = {
     stateDone: 'hecho hoy',
     statePending: 'pendiente',
     consistency: '{{done}} de los últimos {{total}} días',
-    consistencyLabel:
-      '{{name}}: {{done}} de los últimos {{total}} días. Hoy cuenta cuando lo completas',
+    consistencyLabel: '{{name}}: {{done}} de los últimos {{total}} días',
+    consistencyHint: 'Cada día cuenta cuando completas el hábito.',
     water: {
       title: 'Agua',
       drop: 'Vaso {{index}} de {{total}}',

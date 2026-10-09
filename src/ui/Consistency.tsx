@@ -5,8 +5,10 @@ import { useTheme } from './theme';
 type ConsistencyProps = {
   done: number;
   total: number;
-  /** Already translated, e.g. "8 de los últimos 10 días". Also the spoken description. */
+  /** Already translated, visible, e.g. "8 de los últimos 10 días". */
   label: string;
+  /** Spoken description when it needs more context than the visible label (e.g. the habit name). */
+  accessibilityLabel?: string;
   /** Optional per-day flags (oldest first) to place the filled dots where the days were. */
   days?: readonly boolean[];
 };
@@ -15,11 +17,15 @@ type ConsistencyProps = {
  * "X de los últimos 10 días" (HANDOFF §4): small dots, filled for the days done. It is NOT a
  * streak: a missed day is just an empty dot, nothing resets.
  */
-export function Consistency({ done, total, label, days }: ConsistencyProps) {
+export function Consistency({ done, total, label, accessibilityLabel, days }: ConsistencyProps) {
   const theme = useTheme();
   const filled = (index: number) => (days ? days[index] === true : index < done);
   return (
-    <View accessible accessibilityLabel={label} style={{ gap: theme.space[1] }}>
+    <View
+      accessible
+      accessibilityLabel={accessibilityLabel ?? label}
+      style={{ gap: theme.space[1] }}
+    >
       <View
         importantForAccessibility="no-hide-descendants"
         style={{ flexDirection: 'row', gap: theme.space[1] }}

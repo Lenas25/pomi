@@ -43,7 +43,13 @@ function ConsistencyLine({ name, data }: { name: string; data: ConsistencyData |
       done={data.done}
       total={data.total}
       days={data.days.map((day) => day.done)}
-      label={t('habits.consistencyLabel', { name, done: data.done, total: data.total })}
+      // The habit name is already the card title: shown once, spoken for context.
+      label={t('habits.consistency', { done: data.done, total: data.total })}
+      accessibilityLabel={t('habits.consistencyLabel', {
+        name,
+        done: data.done,
+        total: data.total,
+      })}
     />
   );
 }
@@ -380,6 +386,7 @@ export function HabitsScreen() {
         >
           {t('habits.title')}
         </Text>
+        <Muted>{t('habits.consistencyHint')}</Muted>
 
         <ActivityCard
           answer={view.activityToday}

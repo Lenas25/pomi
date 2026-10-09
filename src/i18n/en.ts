@@ -239,7 +239,7 @@ export const en: Messages = {
     increase: 'Increase {{label}}',
     decrease: 'Decrease {{label}}',
     hours: '{{value}} h',
-    suggestedValue: 'Suggested value. “Next” confirms it and “Skip” leaves it unanswered.',
+    suggestedValue: 'Suggested. “Next” confirms it; “Skip” leaves it empty.',
     hourLabel: 'hour',
     minuteLabel: 'minutes',
     welcome: {
@@ -250,6 +250,9 @@ export const en: Messages = {
       placeholder: 'Your name',
     },
     medical: {
+      short: 'Goals are general guidance, not medical advice.',
+      more: 'More info',
+      close: 'Close',
       title: 'Before we start',
       body: 'Goals are general starting points, not medical advice. If you have a medical condition (for example kidney or heart disease), check the water and exercise goals with a professional first.',
     },
@@ -380,8 +383,8 @@ export const en: Messages = {
     stateDone: 'done today',
     statePending: 'pending',
     consistency: '{{done}} of the last {{total}} days',
-    consistencyLabel:
-      '{{name}}: {{done}} of the last {{total}} days. Today counts once you complete it',
+    consistencyLabel: '{{name}}: {{done}} of the last {{total}} days',
+    consistencyHint: 'A day counts once you complete the habit.',
     water: {
       title: 'Water',
       drop: 'Glass {{index}} of {{total}}',

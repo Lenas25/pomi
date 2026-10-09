@@ -131,13 +131,68 @@ export function NumberStepper({
 const MINUTE_STEP = 5;
 
 type TimeStepperProps = {
+  /** Human label, the only visible text ("Me despierto a las"). */
   label: string;
   /** `HH:mm`. */
   value: string;
   onChange: (value: string) => void;
 };
 
-/** Hour and minute (5-minute steps) steppers that wrap around, for places without a time picker dependency. */
+type TimeSegmentProps = {
+  /** Spoken name of the segment, e.g. "Wake, hour". Never shown. */
+  name: string;
+  valueText: string;
+  onIncrement: () => void;
+  onDecrement: () => void;
+};
+
+/** One "- 07 +" segment of the time control; the value is a polite live region. */
+function TimeSegment({ name, valueText, onIncrement, onDecrement }: TimeSegmentProps) {
+  const theme = useTheme();
+  const t = useT();
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: theme.radius.pill,
+        borderWidth: theme.stroke.hairline,
+        borderColor: theme.color.border,
+        backgroundColor: theme.color.surface,
+      }}
+    >
+      <StepButton
+        kind="minus"
+        label={t('onboarding.decrease', { label: name })}
+        onPress={onDecrement}
+        disabled={false}
+      />
+      <Text
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={`${name}: ${valueText}`}
+        numberOfLines={1}
+        style={[
+          theme.text('metric-sm'),
+          { color: theme.color.text, minWidth: theme.touch.gym, textAlign: 'center' },
+        ]}
+      >
+        {valueText}
+      </Text>
+      <StepButton
+        kind="plus"
+        label={t('onboarding.increase', { label: name })}
+        onPress={onIncrement}
+        disabled={false}
+      />
+    </View>
+  );
+}
+
+/**
+ * One compact `[- HH +] : [- MM +]` row (minutes in 5-minute steps, wrapping around midnight),
+ * for places without a time picker dependency. Only `label` is visible; the per-segment names
+ * ("…, hour" / "…, minutes") are accessibility labels.
+ */
 export function TimeStepper({ label, value, onChange }: TimeStepperProps) {
   const theme = useTheme();
   const t = useT();
@@ -151,15 +206,29 @@ export function TimeStepper({ label, value, onChange }: TimeStepperProps) {
   return (
     <View accessibilityLabel={`${label} ${value}`} style={{ gap: theme.space[2] }}>
       <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>{label}</Text>
-      <View style={{ flexDirection: 'row', gap: theme.space[6], flexWrap: 'wrap' }}>
-        <Stepper
-          label={`${label}, ${t('onboarding.hourLabel')}`}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: theme.space[2],
+        }}
+      >
+        <TimeSegment
+          name={`${label}, ${t('onboarding.hourLabel')}`}
           valueText={String(hours).padStart(2, '0')}
           onIncrement={() => shift(60)}
           onDecrement={() => shift(-60)}
         />
-        <Stepper
-          label={`${label}, ${t('onboarding.minuteLabel')}`}
+        <Text
+          accessible={false}
+          importantForAccessibility="no"
+          style={[theme.text('metric-sm'), { color: theme.color.textMuted }]}
+        >
+          :
+        </Text>
+        <TimeSegment
+          name={`${label}, ${t('onboarding.minuteLabel')}`}
           valueText={String(minutes).padStart(2, '0')}
           onIncrement={() => shift(MINUTE_STEP)}
           onDecrement={() => shift(-MINUTE_STEP)}

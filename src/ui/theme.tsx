@@ -63,6 +63,17 @@ export function textStyle(variant: TextVariant): TextStyle {
   };
 }
 
+/**
+ * Text style for a `TextInput` (value AND placeholder). Android does not always carry a custom
+ * font into the placeholder when the family sits inside a nested style array or is combined with
+ * `fontWeight`, so this is a FLAT object with an explicit `fontFamily`, no `fontWeight` and no
+ * `lineHeight` (which also misplaces the caret on Android).
+ */
+export function inputTextStyle(variant: TextVariant): TextStyle {
+  const { fontFamily, fontSize, fontVariant } = textStyle(variant);
+  return { fontFamily, fontSize, ...(fontVariant ? { fontVariant } : {}) };
+}
+
 function shadowStyle(mode: Mode, key: keyof typeof tokens.shadow): ViewStyle {
   // Dark mode has no shadow; surfaces are separated with `color.border` instead.
   if (mode === 'dark') return {};
@@ -91,6 +102,7 @@ export function makeTheme(mode: Mode) {
     ring: tokens.ring,
     chart: tokens.chart,
     photo: tokens.photo,
+    timeline: tokens.timeline,
     stroke: tokens.stroke,
     opacity: tokens.opacity,
     motion: tokens.motion,

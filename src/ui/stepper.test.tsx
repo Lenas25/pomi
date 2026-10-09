@@ -78,3 +78,20 @@ describe('NumberStepper', () => {
     expect(screen.getByRole('button', { name: 'Decrease Sleep' })).toBeDisabled();
   });
 });
+
+describe('TimeStepper layout', () => {
+  it('shows only the human label; segment names stay accessibility-only', async () => {
+    await render(
+      <ThemeProvider mode="light">
+        <Time initial="07:40" />
+      </ThemeProvider>,
+    );
+    expect(screen.getByText('Wake')).toBeTruthy();
+    expect(screen.queryByText(/Wake, hour/)).toBeNull();
+    expect(screen.queryByText(/Wake, minutes/)).toBeNull();
+    // One compact HH:MM control: exactly four step buttons.
+    expect(screen.getAllByRole('button')).toHaveLength(4);
+    expect(screen.getByText('07')).toBeTruthy();
+    expect(screen.getByText('40')).toBeTruthy();
+  });
+});

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { ArrowLeft } from 'phosphor-react-native';
 
 import { getDatabase, getRepositories } from '../db';
 import type { AnswerValue, CheckinKind } from '../domain/habits/checkins';
@@ -14,6 +13,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Mascot } from '../ui/Mascot';
 import { MascotBubble } from '../ui/MascotBubble';
 import { Screen } from '../ui/Screen';
+import { StepHeader } from '../ui/StepHeader';
 import { TextField } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
 import { templateText } from '../i18n/templateText';
@@ -131,20 +131,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
     >
       <Screen scroll edges={['top', 'bottom', 'left', 'right']}>
         <View style={{ gap: theme.space[5], paddingVertical: theme.space[4] }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('checkin.close')}
-              onPress={leave}
-              style={{
-                width: theme.touch.gym,
-                height: theme.touch.gym,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <ArrowLeft color={theme.color.text} />
-            </Pressable>
+          <StepHeader backLabel={t('checkin.close')} onBack={leave}>
             <Mascot pose={kind === 'morning' ? 'hola' : 'descansa'} size="sm" />
             <Text
               accessibilityRole="header"
@@ -152,7 +139,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
             >
               {title}
             </Text>
-          </View>
+          </StepHeader>
           <CheckinSheet
             questions={plan.questions}
             answers={answers}
