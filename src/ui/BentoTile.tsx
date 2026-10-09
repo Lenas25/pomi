@@ -22,6 +22,18 @@ type BentoTileProps = {
   accessibilityLabel: string;
   /** Opens the detail page. */
   onPress: () => void;
+  /**
+   * Optional quick action (e.g. "+1 vaso"): a separate 48 dp button in the bottom-right corner,
+   * a sibling of the tile (never nested), so both are reachable with a screen reader.
+   */
+  action?: TileAction | undefined;
+};
+
+export type TileAction = {
+  icon: Icon;
+  accessibilityLabel: string;
+  onPress: () => void;
+  disabled?: boolean;
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -37,6 +49,7 @@ export function BentoTile({
   visual,
   accessibilityLabel,
   onPress,
+  action,
 }: BentoTileProps) {
   const theme = useTheme();
   const press = usePressScale(theme.motion.pressScale.card);
@@ -46,7 +59,7 @@ export function BentoTile({
   const strong = hero ? colors.onFill : theme.color.text;
   const muted = hero ? colors.onFill : theme.color.textMuted;
 
-  return (
+  const tile = (
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
@@ -60,6 +73,7 @@ export function BentoTile({
           overflow: 'hidden',
           borderRadius: theme.radius.lg,
           padding: theme.space[4],
+          paddingRight: action ? theme.touch.gym + theme.space[4] : theme.space[4],
           gap: theme.space[1],
           backgroundColor: hero ? colors.fill : colors.soft,
         },
@@ -97,5 +111,34 @@ export function BentoTile({
         </View>
       ) : null}
     </AnimatedPressable>
+  );
+  if (!action) return tile;
+  const ActionIcon = action.icon;
+  return (
+    <View style={{ flex: 1 }}>
+      {tile}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={action.accessibilityLabel}
+        accessibilityState={{ disabled: action.disabled ?? false }}
+        disabled={action.disabled}
+        onPress={action.onPress}
+        hitSlop={theme.space[1]}
+        style={({ pressed }) => ({
+          position: 'absolute',
+          right: theme.space[3],
+          bottom: theme.space[3],
+          width: theme.touch.gym,
+          height: theme.touch.gym,
+          borderRadius: theme.radius.pill,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: hero ? colors.onFill : colors.fill,
+          opacity: action.disabled ? theme.opacity.disabled : pressed ? theme.opacity.pressed : 1,
+        })}
+      >
+        <ActionIcon weight="bold" color={hero ? colors.fill : colors.onFill} />
+      </Pressable>
+    </View>
   );
 }

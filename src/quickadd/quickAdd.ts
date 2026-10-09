@@ -23,3 +23,17 @@ export const NIGHT_CHECKIN_FROM_HOUR = 15;
 export function checkinKindAt(hour: number): CheckinKind {
   return hour >= NIGHT_CHECKIN_FROM_HOUR ? 'night' : 'morning';
 }
+
+export type QuickHabits = {
+  checks: { habitId: string; name: string; done: boolean }[];
+  food: { prompt: string; note: string } | null;
+};
+
+/** The check habits of today and the food note, for the in-place quick-add panels. */
+export async function loadQuickHabits(repos: Repositories, today: string): Promise<QuickHabits> {
+  const view = buildHabitsView(await loadHabitsData(repos, today), today);
+  return {
+    checks: view.checks.map(({ habitId, name, done }) => ({ habitId, name, done })),
+    food: view.food ? { prompt: view.food.prompt, note: view.food.note } : null,
+  };
+}

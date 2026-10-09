@@ -1,6 +1,6 @@
 // From the loaded data to what the Hoy screen shows. Pure (the clock comes in as an argument).
 import type { AgendaItem } from '../domain/agenda/buildAgenda';
-import type { DayProgress } from '../domain/today/timeline';
+import type { DayProgress, TimelineEntry } from '../domain/today/timeline';
 import type { HabitsView } from '../habits/habitsView';
 
 export type TodayState = {
@@ -132,4 +132,33 @@ export function resolveSessionInsight<T>(
   }
   const remembered = previous && previous.day === loaded.day ? previous : undefined;
   return { remembered, keep: loaded.hasSuggestion ? undefined : remembered?.insight };
+}
+
+/**
+ * The "Ahora" tile of the Hoy hub: the row in effect, else the next timed pending row from now,
+ * else any pending row (an all-day item or one already past), else `null` (nothing pending).
+ */
+export function pickNowEntry(
+  entries: readonly TimelineEntry[],
+  nowMinutes: number,
+): TimelineEntry | null {
+  const pending = entries.filter((entry) => entry.status === 'now' || entry.status === 'upcoming');
+  return (
+    pending.find((entry) => entry.status === 'now') ??
+    pending.find((entry) => entry.minutes !== null && entry.minutes >= nowMinutes) ??
+    pending[0] ??
+    null
+  );
+}
+
+/** Day progress for the header ring: rows settled (done or skipped) over all rows. */
+export function dayProgressCount(entries: readonly TimelineEntry[]): {
+  settled: number;
+  total: number;
+} {
+  return {
+    settled: entries.filter((entry) => entry.status === 'done' || entry.status === 'skipped')
+      .length,
+    total: entries.length,
+  };
 }

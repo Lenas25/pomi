@@ -26,6 +26,29 @@ jest.mock('expo-router', () => ({
 jest.mock('./useToday', () => ({ useToday: jest.fn() }));
 
 const mockedUseToday = jest.mocked(useToday);
+
+const SAMPLE_HABITS: TodayData['facts']['view'] = {
+  water: {
+    habitId: 'agua',
+    name: 'Agua',
+    glassMl: 250,
+    value: 3,
+    target: { glasses: 8, ml: 2000, glassMl: 250, gymDay: false },
+    consistency: null,
+  },
+  steps: {
+    habitId: 'pasos',
+    name: 'Pasos',
+    steps: 4200,
+    source: null,
+    plan: { phase: 'active', baselineDaysLeft: 0, baseline: 5000, goal: 6000 },
+    consistency: null,
+  },
+  checks: [],
+  food: null,
+  checkins: { morning: { enabled: true, done: true }, night: { enabled: true, done: false } },
+  activityToday: undefined,
+};
 const defaults = loadDefaultTemplates();
 
 function dataWith(
@@ -45,7 +68,7 @@ function dataWith(
     midnight: new Date(2026, 9, 5),
     userName: undefined,
     agenda,
-    facts: { gymDone: false, view: {} as TodayData['facts']['view'] },
+    facts: { gymDone: false, view: SAMPLE_HABITS },
     state: { date: '2026-10-05', skipped: [], acked: [], snoozed: {} },
     activityToday: activity,
     routineName: 'Día 1',
@@ -83,6 +106,7 @@ function mockToday(
     skip: jest.fn(),
     open: jest.fn(),
     answerActivity: jest.fn(),
+    addWater: jest.fn(async () => undefined),
     reload: jest.fn(async () => undefined),
     acceptSuggestion: jest.fn(async () => undefined),
     declineSuggestion: jest.fn(async () => undefined),
@@ -95,6 +119,7 @@ function mockToday(
     view: {
       data,
       entries,
+      nowMinutes: 600,
       allDone: options.allDone ?? false,
       greeting: 'Buenos días',
       identity: 'Un paso a la vez. Hoy cuenta.',
@@ -126,8 +151,14 @@ describe('TodayScreen', () => {
     await renderThemed(<TodayScreen />);
     expect(screen.getByText('Buenos días')).toBeTruthy();
     expect(screen.getByText('Un paso a la vez. Hoy cuenta.')).toBeTruthy();
-    expect(screen.getByText('Tu día')).toBeTruthy();
-    expect(screen.getByText('Día 1')).toBeTruthy();
+    // Hub tiles from the data, each one speaking its summary.
+    expect(screen.getByRole('button', { name: 'Agua: 3 de 8 vasos. Abrir detalle' })).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: /^Pasos: 4200 de 6000|^Pasos: 4\.200 de 6\.000/ }),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Check-ins: 1 de 2/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Gym hoy: Día 1/ })).toBeTruthy();
+    expect(screen.getByText('Ahora · 10:00')).toBeTruthy();
     // No suggestion pending: no card.
     expect(screen.queryByText('Aceptar')).toBeNull();
   });
@@ -202,30 +233,66 @@ describe('TodayScreen', () => {
       }),
     );
     await renderThemed(<TodayScreen />);
+    expect(screen.getByText('Sentadilla')).toBeTruthy();
     expect(
-      screen.getByText(
-        'Sentadilla: Elige un peso con el que te queden 1 o 2 repeticiones en reserva.',
-      ),
+      screen.getByRole('button', {
+        name: /Sentadilla: Elige un peso con el que te queden 1 o 2 repeticiones en reserva\. Abrir gym$/,
+      }),
     ).toBeTruthy();
   });
 
-  it('first day: mascot hola and the agenda, no charts', async () => {
+  it('first day: mascot hola and the hub', async () => {
     mockToday(dataWith({ firstDay: true }));
     await renderThemed(<TodayScreen />);
     expect(screen.getByText('Hola. Empezamos hoy, sin prisa.')).toBeTruthy();
-    expect(screen.getByText('Tu día')).toBeTruthy();
+    expect(screen.getByTestId('bento-grid')).toBeTruthy();
+  });
+
+  it('tiles open their detail pages; +1 adds a glass in place', async () => {
+    const handlers = mockToday(dataWith());
+    await renderThemed(<TodayScreen />);
+    const push = jest.mocked(router.push);
+    push.mockClear();
+    await fireEvent.press(screen.getByRole('button', { name: /Abrir tu día$/ }));
+    expect(push).toHaveBeenLastCalledWith('/hoy/agenda');
+    await fireEvent.press(
+      screen.getByRole('button', { name: 'Agua: 3 de 8 vasos. Abrir detalle' }),
+    );
+    expect(push).toHaveBeenLastCalledWith('/habitos/agua');
+    await fireEvent.press(screen.getByRole('button', { name: /^Pasos:/ }));
+    expect(push).toHaveBeenLastCalledWith('/habitos/pasos');
+    await fireEvent.press(screen.getByRole('button', { name: /^Gym hoy:/ }));
+    expect(push).toHaveBeenLastCalledWith('/gym');
+    await fireEvent.press(screen.getByRole('button', { name: /^Check-ins:/ }));
+    expect(push).toHaveBeenLastCalledWith({
+      pathname: '/checkin/[tipo]',
+      params: { tipo: 'night' },
+    });
+    await fireEvent.press(screen.getByRole('button', { name: 'Sumar un vaso de agua' }));
+    expect(handlers.addWater).toHaveBeenCalledTimes(1);
+  });
+
+  it('the day progress ring speaks x of y done', async () => {
+    mockToday(dataWith(), { allDone: true, status: 'done' });
+    await renderThemed(<TodayScreen />);
+    expect(screen.getByLabelText(/^Tu día: (\d+) de \1 hechos$/)).toBeTruthy();
   });
 
   it('asks "¿Te moviste hoy?" only while it is unanswered', async () => {
     const handlers = mockToday(dataWith());
     const { unmount } = await renderThemed(<TodayScreen />);
+    await fireEvent.press(
+      screen.getByRole('button', { name: '¿Te moviste hoy? Sin responder. Responder' }),
+    );
     await fireEvent.press(screen.getByRole('radio', { name: /Fui al gym/ }));
     expect(handlers.answerActivity).toHaveBeenCalledWith('gym');
     await unmount();
 
     mockToday(dataWith({}, 'gym'));
     await renderThemed(<TodayScreen />);
-    expect(screen.queryByText('¿Te moviste hoy?')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: '¿Te moviste hoy? Sin responder. Responder' }),
+    ).toBeNull();
   });
 
   it('when everything is done: mascot descansa and the closing message', async () => {
@@ -238,14 +305,6 @@ describe('TodayScreen', () => {
     mockToday(dataWith());
     await renderThemed(<TodayScreen />);
     expect(screen.queryByText('Listo por hoy. Cierra la app y descansa')).toBeNull();
-  });
-
-  it('long press opens the options with postpone and skip', async () => {
-    const handlers = mockToday(dataWith());
-    await renderThemed(<TodayScreen />);
-    await fireEvent(screen.getAllByRole('button', { name: /Gym/ })[0]!, 'longPress');
-    await fireEvent.press(screen.getByRole('button', { name: 'Omitir hoy' }));
-    expect(handlers.skip).toHaveBeenCalledTimes(1);
   });
 
   it('shows the one companion card, opens Tu ritmo and can be put away', async () => {
@@ -323,15 +382,7 @@ describe('TodayScreen', () => {
     expect(screen.queryByRole('button', { name: 'Ver Tu ritmo' })).toBeNull();
   });
 
-  it('the bedtime row offers the sleep-cycle calculator', async () => {
-    mockToday(dataWith());
-    await renderThemed(<TodayScreen />);
-    await fireEvent(screen.getAllByRole('button', { name: /Hora de dormir/ })[0]!, 'longPress');
-    await fireEvent.press(screen.getByRole('button', { name: 'Ver horas para dormir' }));
-    expect(jest.mocked(router.push)).toHaveBeenCalledWith('/ciclos-sueno');
-  });
-
-  it('shows the empty state for a day without agenda', async () => {
+  it('shows the empty state in the Ahora tile for a day without agenda', async () => {
     mockToday(dataWith(), { empty: true });
     await renderThemed(<TodayScreen />);
     expect(screen.getByText('Tu día aparecerá aquí')).toBeTruthy();

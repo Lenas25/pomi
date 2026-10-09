@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { createRepositories, type Repositories } from '../db/repositories';
 import { createTestDb } from '../db/testing/createTestDb';
 import { loadDefaultTemplates } from '../templates/defaults';
-import { addGlassOfWater, checkinKindAt } from './quickAdd';
+import { addGlassOfWater, checkinKindAt, loadQuickHabits } from './quickAdd';
 
 let repos: Repositories;
 let close: () => void;
@@ -43,5 +43,20 @@ describe('checkinKindAt', () => {
     expect(checkinKindAt(14)).toBe('morning');
     expect(checkinKindAt(15)).toBe('night');
     expect(checkinKindAt(23)).toBe('night');
+  });
+});
+
+describe('loadQuickHabits', () => {
+  it('lists today’s check habits with their state and the food note', async () => {
+    await repos.templates.saveModules(loadDefaultTemplates().modules, 'add');
+    const before = await loadQuickHabits(repos, '2026-10-06');
+    expect(before.checks.length).toBeGreaterThan(0);
+    const first = before.checks[0]!;
+    expect(first.done).toBe(false);
+    await repos.habitLogs.set(first.habitId, '2026-10-06', 1);
+    await repos.foodNotes.save('2026-10-06', 'Ensalada');
+    const after = await loadQuickHabits(repos, '2026-10-06');
+    expect(after.checks.find((check) => check.habitId === first.habitId)?.done).toBe(true);
+    expect(after.food?.note).toBe('Ensalada');
   });
 });

@@ -19,6 +19,7 @@ import { runDailySuggestions } from '../suggestions/run';
 import { useSuggestionActions } from '../suggestions/useSuggestionActions';
 import { suggestionTexts } from '../suggestions/text';
 import { requestNotificationSync } from '../notifications/sync';
+import { addGlassOfWater } from '../quickadd/quickAdd';
 
 import { isBedtimeEntry, snoozeContent } from './labels';
 import {
@@ -136,6 +137,7 @@ export function useToday() {
     return {
       data,
       entries,
+      nowMinutes,
       allDone: isAllDone(entries),
       greeting: t(
         greetingKey(now.getHours(), hasName),
@@ -265,6 +267,21 @@ export function useToday() {
       if (load.status !== 'ready') return;
       try {
         await getRepositories().settings.set('companionCardDismissed', load.data.today);
+      } finally {
+        await reload();
+      }
+    },
+    /** The quick "+1" of the Agua tile (the same write as the Habits tab). */
+    addWater: async (): Promise<void> => {
+      if (load.status !== 'ready') return;
+      try {
+        const result = await addGlassOfWater(getRepositories(), load.data.today);
+        if (result.status === 'added') {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+          void requestNotificationSync('dataChanged');
+        }
+      } catch (error) {
+        if (__DEV__) console.error('Could not add a glass', error);
       } finally {
         await reload();
       }

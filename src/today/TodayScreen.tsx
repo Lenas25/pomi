@@ -1,40 +1,305 @@
 import { useCallback, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import {
+  ArrowRight,
+  Barbell,
+  Check,
+  Clock,
+  Drop,
+  Footprints,
+  PersonSimpleWalk,
+  Plus,
+  SunHorizon,
+} from 'phosphor-react-native';
 
-import type { TimelineEntry } from '../domain/today/timeline';
+import { doneActionFor } from '../domain/today/timeline';
 import { ActivityCard } from '../habits/ActivityCard';
-import { useLocaleStore, useT } from '../i18n';
+import { useLocaleStore, useT, type Translate } from '../i18n';
+import { templateText } from '../i18n/templateText';
+import { checkinKindAt } from '../quickadd/quickAdd';
+import { BentoGrid, type BentoItem } from '../ui/BentoGrid';
+import { BentoTile } from '../ui/BentoTile';
+import { BottomSheet } from '../ui/BottomSheet';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 import { MascotBubble } from '../ui/MascotBubble';
+import { MiniBar, MiniDots } from '../ui/MiniMeter';
+import { ProgressRing } from '../ui/ProgressRing';
 import { Screen } from '../ui/Screen';
 import { SectionHeader } from '../ui/SectionHeader';
 import { SuggestionCard } from '../ui/SuggestionCard';
 import { Toast } from '../ui/Toast';
-import { TimelineItem } from '../ui/TimelineItem';
 import { useTheme } from '../ui/theme';
 
-import {
-  entryAccessibilityLabel,
-  entryHighlight,
-  entrySubtitle,
-  entryTime,
-  entryTitle,
-  isBedtimeEntry,
-} from './labels';
+import { entryHighlight, entryTime, entryTitle } from './labels';
 import { InsightCard } from './InsightCard';
 import { InsightSlot } from './slots';
+import { dayProgressCount, pickNowEntry } from './todayView';
 import { useToday } from './useToday';
 
-/** Hoy (PLAN §13, HANDOFF §5): greeting, identity phrase, the day's timeline and the closing message. */
+type View_ = NonNullable<ReturnType<typeof useToday>['view']>;
+type Today = ReturnType<typeof useToday>;
+
+const RING_SIZE = 48;
+const RING_STROKE = 6;
+
+/** Header summary: the day's progress ring and "x de y hechos". */
+function DayProgress({ settled, total }: { settled: number; total: number }) {
+  const theme = useTheme();
+  const t = useT();
+  const colors = theme.section.hoy;
+  if (total === 0) return null;
+  return (
+    <View
+      accessible
+      accessibilityLabel={t('today.hub.progressLabel', { done: settled, total })}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space[3],
+        marginTop: theme.space[2],
+      }}
+    >
+      <ProgressRing
+        progress={settled / total}
+        size={RING_SIZE}
+        stroke={RING_STROKE}
+        color={colors.onFill}
+        trackColor={colors.soft}
+      />
+      <Text style={[theme.text('body-strong'), { color: colors.onFill }]}>
+        {t('today.hub.progress', { done: settled, total })}
+      </Text>
+    </View>
+  );
+}
+
+function nowTile(view: View_, today: Today, t: Translate): BentoItem {
+  const entry = pickNowEntry(view.entries, view.nowMinutes);
+  const openAgenda = () => router.push('/hoy/agenda');
+  if (!entry) {
+    const empty = view.entries.length === 0;
+    return {
+      key: 'ahora',
+      span: '2x1',
+      node: (
+        <BentoTile
+          section="hoy"
+          variant="hero"
+          icon={Clock}
+          title={t('today.hub.now.title')}
+          value={empty ? t('empty.hoy.title') : t('today.hub.now.none')}
+          caption={t('today.hub.now.open')}
+          accessibilityLabel={t('today.hub.now.noneLabel')}
+          onPress={openAgenda}
+        />
+      ),
+    };
+  }
+  const title = entryTitle(entry, t);
+  const time = entryTime(entry) ?? t('today.hub.now.allDay');
+  const kind = entry.status === 'now' ? t('today.hub.now.title') : t('today.hub.now.next');
+  const opens = doneActionFor(entry).type === 'open';
+  return {
+    key: 'ahora',
+    span: '2x1',
+    node: (
+      <BentoTile
+        section="hoy"
+        variant="hero"
+        icon={Clock}
+        title={`${kind} · ${time}`}
+        value={title}
+        caption={t('today.hub.now.open')}
+        accessibilityLabel={t('today.hub.now.label', { kind, time, title })}
+        onPress={openAgenda}
+        action={{
+          icon: opens ? ArrowRight : Check,
+          accessibilityLabel: opens
+            ? t('today.openItem', { title })
+            : t('today.markDone', { title }),
+          onPress: () => (opens ? today.open(entry) : void today.done(entry)),
+        }}
+      />
+    ),
+  };
+}
+
+function habitTiles(view: View_, today: Today, t: Translate, locale: string): BentoItem[] {
+  const tiles: BentoItem[] = [];
+  const habits = view.data.facts.view;
+  const { water, steps } = habits;
+  if (water) {
+    const total = water.target?.glasses;
+    tiles.push({
+      key: 'agua',
+      span: '1x1',
+      node: (
+        <BentoTile
+          section="agua"
+          icon={Drop}
+          title={t('today.hub.water.title')}
+          value={total === undefined ? String(water.value) : `${water.value}/${total}`}
+          {...(total === undefined ? { caption: t('today.hub.water.caption') } : {})}
+          visual={total === undefined ? undefined : <WaterDots value={water.value} total={total} />}
+          accessibilityLabel={
+            total === undefined
+              ? t('today.hub.water.labelNoGoal', { count: water.value })
+              : t('today.hub.water.label', { done: water.value, total })
+          }
+          onPress={() => router.push('/habitos/agua')}
+          action={{
+            icon: Plus,
+            accessibilityLabel: t('today.hub.water.add'),
+            onPress: () => void today.addWater(),
+          }}
+        />
+      ),
+    });
+  }
+  if (steps) {
+    const goal = steps.plan.goal;
+    const count = steps.steps.toLocaleString(locale);
+    tiles.push({
+      key: 'pasos',
+      span: '1x1',
+      node: (
+        <BentoTile
+          section="movimiento"
+          icon={Footprints}
+          title={t('today.hub.steps.title')}
+          value={count}
+          caption={
+            goal === null
+              ? t('today.hub.steps.measuring')
+              : t('today.hub.steps.goal', { goal: goal.toLocaleString(locale) })
+          }
+          visual={goal === null ? undefined : <StepsBar value={steps.steps} total={goal} />}
+          accessibilityLabel={
+            goal === null
+              ? t('today.hub.steps.labelNoGoal', { steps: count })
+              : t('today.hub.steps.label', { steps: count, goal: goal.toLocaleString(locale) })
+          }
+          onPress={() => router.push('/habitos/pasos')}
+        />
+      ),
+    });
+  }
+  return tiles;
+}
+
+function WaterDots({ value, total }: { value: number; total: number }) {
+  const theme = useTheme();
+  return (
+    <MiniDots
+      value={value}
+      total={total}
+      color={theme.section.agua.text}
+      trackColor={theme.color.border}
+    />
+  );
+}
+
+function StepsBar({ value, total }: { value: number; total: number }) {
+  const theme = useTheme();
+  return (
+    <MiniBar
+      value={value}
+      total={total}
+      color={theme.section.movimiento.text}
+      trackColor={theme.color.border}
+    />
+  );
+}
+
+function gymTile(view: View_, t: Translate, language: 'es' | 'en'): BentoItem {
+  const { data, entries } = view;
+  const entry = entries.find((candidate) => candidate.kind === 'gym');
+  const done = data.facts.gymDone || entry?.status === 'done';
+  const value = done
+    ? t('today.hub.gym.done')
+    : entry
+      ? (templateText(data.routineName) ?? t('today.hub.gym.todayIs'))
+      : t('today.hub.gym.rest');
+  const pending = entry !== undefined && !done;
+  // The full "meta de hoy" is spoken; the 1x1 tile shows only the exercise (one short line).
+  const goal = pending ? (entryHighlight(entry, { gymGoal: data.gymGoal }, t, language) ?? '') : '';
+  const caption = pending ? (data.gymGoal?.exercise ?? t('today.hub.gym.todayIs')) : '';
+  return {
+    key: 'gym',
+    span: '1x1',
+    node: (
+      <BentoTile
+        section="gym"
+        icon={Barbell}
+        title={t('today.hub.gym.title')}
+        value={value}
+        {...(caption ? { caption } : {})}
+        accessibilityLabel={t('today.hub.gym.label', {
+          value,
+          caption: (goal || caption).replace(/[.]$/, ''),
+        })}
+        onPress={() => router.push('/gym')}
+      />
+    ),
+  };
+}
+
+function checkinsTile(view: View_, t: Translate): BentoItem | null {
+  const { morning, night } = view.data.facts.view.checkins;
+  const rows = [
+    { kind: 'morning' as const, ...morning },
+    { kind: 'night' as const, ...night },
+  ].filter((row) => row.enabled);
+  if (rows.length === 0) return null;
+  const done = rows.filter((row) => row.done).length;
+  // One short line (fits a 1x1 tile): the first pending check-in, else the last one done.
+  const shown = rows.find((row) => !row.done) ?? rows[rows.length - 1];
+  const caption = shown
+    ? t(
+        shown.kind === 'morning'
+          ? shown.done
+            ? 'today.hub.checkins.morningDone'
+            : 'today.hub.checkins.morningPending'
+          : shown.done
+            ? 'today.hub.checkins.nightDone'
+            : 'today.hub.checkins.nightPending',
+      )
+    : '';
+  const preferred = checkinKindAt(new Date().getHours());
+  const target =
+    rows.find((row) => row.kind === preferred && !row.done) ??
+    rows.find((row) => !row.done) ??
+    rows.find((row) => row.kind === preferred) ??
+    rows[0];
+  return {
+    key: 'checkins',
+    span: '1x1',
+    node: (
+      <BentoTile
+        section="sueno"
+        icon={SunHorizon}
+        title={t('today.hub.checkins.title')}
+        value={`${done}/${rows.length}`}
+        caption={caption}
+        accessibilityLabel={t('today.hub.checkins.label', { done, total: rows.length, caption })}
+        onPress={() =>
+          router.push({ pathname: '/checkin/[tipo]', params: { tipo: target?.kind ?? preferred } })
+        }
+      />
+    ),
+  };
+}
+
+/** Hoy (PLAN §13, HANDOFF §5): a bento hub. Every tile is a summary that opens its detail page. */
 export function TodayScreen() {
   const theme = useTheme();
   const t = useT();
   const today = useToday();
   const language = useLocaleStore((state) => state.language);
-  const [menuFor, setMenuFor] = useState<TimelineEntry | null>(null);
+  const [askActivity, setAskActivity] = useState(false);
   const { reload } = today;
 
   useFocusEffect(
@@ -57,18 +322,52 @@ export function TodayScreen() {
   const view = today.view;
   if (!view) return <Screen>{null}</Screen>;
 
-  const { data, entries } = view;
+  const { data } = view;
   const firstDay = data.identity.firstDay;
-  const context = { routineName: data.routineName, facts: data.facts, gymGoal: data.gymGoal };
+  const progress = dayProgressCount(view.entries);
+  const checkins = checkinsTile(view, t);
+
+  const tiles: BentoItem[] = [
+    nowTile(view, today, t),
+    ...habitTiles(view, today, t, language),
+    gymTile(view, t, language),
+    ...(checkins ? [checkins] : []),
+  ];
+  if (data.activityToday === undefined) {
+    tiles.push({
+      key: 'actividad',
+      span: tiles.length % 2 === 0 ? '2x1' : '1x1',
+      node: (
+        <BentoTile
+          section="movimiento"
+          icon={PersonSimpleWalk}
+          title={t('activity.title')}
+          caption={t('today.hub.activity.caption')}
+          accessibilityLabel={t('today.hub.activity.label')}
+          onPress={() => setAskActivity(true)}
+        />
+      ),
+    });
+  }
 
   return (
-    <Screen header={<SectionHeader section="hoy" title={view.greeting} subtitle={view.identity} />}>
+    <Screen
+      header={
+        <SectionHeader section="hoy" title={view.greeting} subtitle={view.identity}>
+          <DayProgress settled={progress.settled} total={progress.total} />
+        </SectionHeader>
+      }
+    >
       <ScrollView
         contentContainerStyle={{ gap: theme.space[4], paddingVertical: theme.space[4] }}
         keyboardShouldPersistTaps="handled"
       >
         {firstDay ? <MascotBubble pose="hola" message={t('today.firstBubble')} /> : null}
+        {view.allDone ? <MascotBubble pose="descansa" message={t('today.doneBubble')} /> : null}
 
+        <BentoGrid items={tiles} />
+
+        {/* The single card slot (HANDOFF §8): full width, it carries its own actions. */}
         {view.suggestion ? (
           <SuggestionCard
             key={view.suggestion.id}
@@ -126,55 +425,6 @@ export function TodayScreen() {
             </View>
           </Card>
         ) : null}
-
-        {data.activityToday === undefined ? (
-          <ActivityCard answer={undefined} onAnswer={(kind) => void today.answerActivity(kind)} />
-        ) : null}
-
-        {entries.length === 0 ? (
-          <EmptyState title={t('empty.hoy.title')} body={t('empty.hoy.body')} />
-        ) : (
-          <View style={{ gap: theme.space[2] }}>
-            <Text
-              accessibilityRole="header"
-              style={[theme.text('title-sm'), { color: theme.color.text }]}
-            >
-              {t('today.timelineTitle')}
-            </Text>
-            {entries.map((entry) => (
-              <TimelineItem
-                key={entry.id}
-                status={entry.status}
-                time={entryTime(entry)}
-                title={entryTitle(entry, t)}
-                {...(() => {
-                  const subtitle = entrySubtitle(entry, context, t);
-                  return subtitle ? { subtitle } : {};
-                })()}
-                {...(() => {
-                  const highlight = entryHighlight(entry, context, t, language);
-                  return highlight ? { highlight } : {};
-                })()}
-                accessibilityLabel={entryAccessibilityLabel(entry, t)}
-                checkLabel={t(entry.status === 'done' ? 'today.doneState' : 'today.markDone', {
-                  title: entryTitle(entry, t),
-                })}
-                actionLabels={{
-                  done: t('today.actions.done'),
-                  postpone: t('today.menu.snooze'),
-                  skip: t('today.menu.skip'),
-                }}
-                onPostpone={() => void today.postpone(entry)}
-                onSkip={() => void today.skip(entry)}
-                onPress={() => today.open(entry)}
-                onCheck={() => void today.done(entry)}
-                onLongPress={() => setMenuFor(entry)}
-              />
-            ))}
-          </View>
-        )}
-
-        {view.allDone ? <MascotBubble pose="descansa" message={t('today.doneBubble')} /> : null}
       </ScrollView>
 
       {today.notice ? (
@@ -189,66 +439,20 @@ export function TodayScreen() {
         </View>
       ) : null}
 
-      <Modal
-        transparent
-        visible={menuFor !== null}
-        animationType="fade"
-        onRequestClose={() => setMenuFor(null)}
+      <BottomSheet
+        visible={askActivity}
+        onClose={() => setAskActivity(false)}
+        title={t('activity.title')}
+        closeLabel={t('quickAdd.close')}
       >
-        <Pressable
-          accessibilityLabel={t('today.menu.cancel')}
-          onPress={() => setMenuFor(null)}
-          style={{
-            flex: 1,
-            justifyContent: 'flex-end',
-            backgroundColor: theme.color.scrim,
-            padding: theme.space[4],
+        <ActivityCard
+          answer={data.activityToday}
+          onAnswer={(kind) => {
+            setAskActivity(false);
+            void today.answerActivity(kind);
           }}
-        >
-          {menuFor ? (
-            <Card>
-              <View style={{ gap: theme.space[2] }}>
-                <Text
-                  accessibilityRole="header"
-                  style={[theme.text('title-sm'), { color: theme.color.text }]}
-                >
-                  {t('today.menu.title', { title: entryTitle(menuFor, t) })}
-                </Text>
-                <Button
-                  label={t('today.menu.snooze')}
-                  onPress={() => {
-                    void today.postpone(menuFor);
-                    setMenuFor(null);
-                  }}
-                />
-                <Button
-                  label={t('today.menu.skip')}
-                  variant="secondary"
-                  onPress={() => {
-                    void today.skip(menuFor);
-                    setMenuFor(null);
-                  }}
-                />
-                {isBedtimeEntry(menuFor) ? (
-                  <Button
-                    label={t('today.menu.sleepCycles')}
-                    variant="secondary"
-                    onPress={() => {
-                      setMenuFor(null);
-                      router.push('/ciclos-sueno');
-                    }}
-                  />
-                ) : null}
-                <Button
-                  label={t('today.menu.cancel')}
-                  variant="ghost"
-                  onPress={() => setMenuFor(null)}
-                />
-              </View>
-            </Card>
-          ) : null}
-        </Pressable>
-      </Modal>
+        />
+      </BottomSheet>
     </Screen>
   );
 }

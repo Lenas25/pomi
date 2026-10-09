@@ -60,6 +60,7 @@ function RootStack() {
           <Stack.Screen name="respaldo" />
           <Stack.Screen name="fotos" />
           <Stack.Screen name="ciclos-sueno" />
+          <Stack.Screen name="hoy/agenda" />
           <Stack.Screen name="acerca" />
           <Stack.Screen name="importar-programa" />
           <Stack.Screen name="crear-rutina" />

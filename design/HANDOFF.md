@@ -98,11 +98,13 @@ Tipografía: ver `BRAND.md` sección 5 (`display`, `title-lg`, `title-md`, `titl
 
 ## 5. Pantallas clave
 
-### Hoy
-1. Saludo con la hora: "Buenos días" / "Buenas tardes" + frase de identidad (`title-md`).
-2. Si hay: `SuggestionCard` o `InsightCard` (máx. una).
-3. Línea de tiempo (`TimelineItem`) del día.
-4. Al completar todo: `MascotBubble` `descansa` + "Listo por hoy. Cierra la app y descansa".
+### Hoy (hub bento)
+1. `SectionHeader` sol: saludo con la hora + frase de identidad + anillo de progreso del día ("x de y hechos").
+2. `BentoGrid`: "Ahora" 2x1 (lo que toca o lo próximo, con su acción ✓ / abrir), Agua 1x1 (x/8 + "+1" rápido), Pasos 1x1 (barra), Gym hoy 1x1 ("Hoy toca" / meta de hoy), Check-ins 1x1 (mañana/noche), "¿Te moviste hoy?" (solo sin responder; abre una hoja).
+3. Si hay: `SuggestionCard`, `InsightCard` o tarjeta de "Tu ritmo" (máx. una), a todo el ancho bajo la grilla (lleva sus propias acciones).
+4. "Ahora" abre `/hoy/agenda`: la línea de tiempo completa (`TimelineItem`, deslizar y mantener pulsado).
+5. Al completar todo: `MascotBubble` `descansa` + "Listo por hoy. Cierra la app y descansa".
+6. Registrar: "Marcar un hábito" y "Nota de comida" actúan en la misma hoja (lista de hábitos / nota), sin navegar.
 
 ### Sesión de gym
 1. Encabezado: "Día 1: Glúteos e isquios" + progreso de series.

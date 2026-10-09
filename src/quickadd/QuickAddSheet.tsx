@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import {
@@ -16,8 +16,11 @@ import { useGymTab } from '../gym/useGym';
 import { useT } from '../i18n';
 import { requestNotificationSync } from '../notifications/sync';
 import { BottomSheet } from '../ui/BottomSheet';
+import { Button } from '../ui/Button';
+import { Chip } from '../ui/Chip';
+import { TextField } from '../ui/TextField';
 import { useTheme, type SectionKey } from '../ui/theme';
-import { addGlassOfWater, checkinKindAt } from './quickAdd';
+import { addGlassOfWater, checkinKindAt, loadQuickHabits, type QuickHabits } from './quickAdd';
 
 type ActionRowProps = {
   icon: Icon;
@@ -65,8 +68,146 @@ function ActionRow({ icon: RowIcon, section, label, onPress, disabled = false }:
   );
 }
 
+function Status({ children }: { children: string }) {
+  const theme = useTheme();
+  return (
+    <Text
+      accessibilityLiveRegion="polite"
+      style={[
+        theme.text('caption'),
+        { color: theme.color.textMuted, paddingHorizontal: theme.space[2] },
+      ]}
+    >
+      {children}
+    </Text>
+  );
+}
+
+/** Loads today's checks and food note once the panel opens; `null` while loading. */
+function useQuickHabits(): [QuickHabits | null | 'failed', () => Promise<void>] {
+  const [data, setData] = useState<QuickHabits | null | 'failed'>(null);
+  const fetchData = (): Promise<QuickHabits | 'failed'> =>
+    loadQuickHabits(getRepositories(), dayKeyFor(new Date())).catch((error: unknown) => {
+      if (__DEV__) console.error('Could not load the habits', error);
+      return 'failed' as const;
+    });
+  useEffect(() => {
+    let cancelled = false;
+    void fetchData().then((loaded) => {
+      if (!cancelled) setData(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return [data, async () => setData(await fetchData())];
+}
+
+/** "Marcar un hábito" in place: today's check habits as toggles (the Habits tab write). */
+function HabitsPanel() {
+  const t = useT();
+  const theme = useTheme();
+  const [data, reload] = useQuickHabits();
+  if (data === null) return <Status>{t('quickAdd.loading')}</Status>;
+  if (data === 'failed') return <Status>{t('quickAdd.failed')}</Status>;
+  if (data.checks.length === 0) return <Status>{t('quickAdd.noHabits')}</Status>;
+  const toggle = async (habitId: string, done: boolean) => {
+    try {
+      await getRepositories().habitLogs.set(habitId, dayKeyFor(new Date()), done ? 1 : 0);
+      void requestNotificationSync('dataChanged');
+    } catch (error) {
+      if (__DEV__) console.error('Could not save the habit', error);
+    }
+    await reload();
+  };
+  return (
+    <View style={{ gap: theme.space[2] }}>
+      <Text
+        accessibilityRole="header"
+        style={[theme.text('body-strong'), { color: theme.color.text }]}
+      >
+        {t('quickAdd.habitsTitle')}
+      </Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[2] }}>
+        {data.checks.map((check) => (
+          <Chip
+            key={check.habitId}
+            label={check.name}
+            accessibilityLabel={t('habits.checkLabel', {
+              name: check.name,
+              state: t(check.done ? 'habits.stateDone' : 'habits.statePending'),
+            })}
+            selected={check.done}
+            onPress={() => void toggle(check.habitId, !check.done)}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** "Nota de comida" in place: today's note editor. */
+function FoodPanel() {
+  const t = useT();
+  const theme = useTheme();
+  const [data] = useQuickHabits();
+  const [text, setText] = useState<string | undefined>(undefined);
+  const [status, setStatus] = useState<string | null>(null);
+  if (data === null) return <Status>{t('quickAdd.loading')}</Status>;
+  if (data === 'failed') return <Status>{t('quickAdd.failed')}</Status>;
+  if (!data.food) return <Status>{t('quickAdd.noFood')}</Status>;
+  const value = text ?? data.food.note;
+  const save = async () => {
+    try {
+      await getRepositories().foodNotes.save(dayKeyFor(new Date()), value);
+      setText(undefined);
+      setStatus(t('quickAdd.foodSaved'));
+    } catch (error) {
+      if (__DEV__) console.error('Could not save the note', error);
+      setStatus(t('quickAdd.failed'));
+    }
+  };
+  return (
+    <View style={{ gap: theme.space[2] }}>
+      <TextField
+        label={data.food.prompt}
+        value={value}
+        onChangeText={(next) => {
+          setText(next);
+          setStatus(null);
+        }}
+      />
+      <Button
+        label={t('quickAdd.foodSave')}
+        onPress={() => void save()}
+        disabled={text === undefined}
+      />
+      {status ? <Status>{status}</Status> : null}
+    </View>
+  );
+}
+
 /** Mounted only while the sheet is open (the Modal does not render hidden children). */
 function QuickAddActions({ onDone }: { onDone: () => void }) {
+  const [panel, setPanel] = useState<'menu' | 'habits' | 'food'>('menu');
+  const t = useT();
+  const theme = useTheme();
+  if (panel === 'menu') return <QuickAddMenu onDone={onDone} onPanel={setPanel} />;
+  return (
+    <View style={{ gap: theme.space[3] }}>
+      {panel === 'habits' ? <HabitsPanel /> : <FoodPanel />}
+      <Button label={t('quickAdd.back')} variant="ghost" onPress={() => setPanel('menu')} />
+    </View>
+  );
+}
+
+function QuickAddMenu({
+  onDone,
+  onPanel,
+}: {
+  onDone: () => void;
+  onPanel: (panel: 'habits' | 'food') => void;
+}) {
   const t = useT();
   const theme = useTheme();
   const gym = useGymTab();
@@ -134,7 +275,7 @@ function QuickAddActions({ onDone }: { onDone: () => void }) {
         icon={CheckCircle}
         section="habitos"
         label={t('quickAdd.habit')}
-        onPress={() => go(() => router.push('/habitos'))}
+        onPress={() => onPanel('habits')}
       />
       <ActionRow
         icon={SunHorizon}
@@ -153,7 +294,7 @@ function QuickAddActions({ onDone }: { onDone: () => void }) {
         icon={ForkKnife}
         section="habitos"
         label={t('quickAdd.food')}
-        onPress={() => go(() => router.push('/habitos'))}
+        onPress={() => onPanel('food')}
       />
       <ActionRow
         icon={Barbell}

@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GearSix } from 'phosphor-react-native';
+import { ArrowLeft, GearSix } from 'phosphor-react-native';
 
 import { useT } from '../i18n';
 import { SECTION_ICONS } from './sections';
@@ -18,6 +18,8 @@ type SectionHeaderProps = {
   children?: ReactNode;
   /** The Ajustes gear (Ajustes is not a tab). Default `true`. */
   showSettings?: boolean;
+  /** Detail pages: a 48 dp back button replaces the section icon. */
+  back?: { label: string; onPress: () => void } | undefined;
 };
 
 /**
@@ -31,6 +33,7 @@ export function SectionHeader({
   subtitle,
   children,
   showSettings = true,
+  back,
 }: SectionHeaderProps) {
   const theme = useTheme();
   const t = useT();
@@ -67,7 +70,25 @@ export function SectionHeader({
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
-            <SectionIcon weight="fill" color={colors.onFill} />
+            {back ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={back.label}
+                onPress={back.onPress}
+                style={({ pressed }) => ({
+                  width: theme.touch.gym,
+                  height: theme.touch.gym,
+                  marginLeft: -theme.space[3],
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: pressed ? theme.opacity.pressed : 1,
+                })}
+              >
+                <ArrowLeft color={colors.onFill} />
+              </Pressable>
+            ) : (
+              <SectionIcon weight="fill" color={colors.onFill} />
+            )}
             <Text
               accessibilityRole="header"
               numberOfLines={2}
