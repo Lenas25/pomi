@@ -61,7 +61,7 @@ describe('TabBar', () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
-  it('active pill: solid section fill + navy icon in dark, soft tint in light, all >= 4.5:1', () => {
+  it('active pill: section fill + sand icon in dark, soft tint in light, all >= 4.5:1', () => {
     const channel = (hex: string, at: number) => {
       const c = parseInt(hex.slice(at, at + 2), 16) / 255;
       return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;

@@ -94,21 +94,38 @@ function contrast(a: string, b: string): number {
   return ((hi ?? 0) + 0.05) / ((lo ?? 0) + 0.05);
 }
 
-describe('Pomi Splash contrast (WCAG AA 4.5:1 for text)', () => {
+describe('Palette contrast (WCAG AA: 4.5:1 text, 3:1 large text and UI)', () => {
   const modes = ['light', 'dark'] as const;
+  const TEXT = 4.5;
+  const UI = 3;
 
-  it.each(modes)('%s: navy text on every section header fill', (mode) => {
-    for (const section of Object.values(makeTheme(mode).section)) {
-      expect(contrast(section.onFill, section.fill)).toBeGreaterThanOrEqual(4.5);
+  it.each(modes)('%s: body and muted text on every surface', (mode) => {
+    const { color } = makeTheme(mode);
+    for (const background of [color.bg, color.surface, color.surfaceRaised, color.tabBar]) {
+      expect(contrast(color.text, background)).toBeGreaterThanOrEqual(TEXT);
+      expect(contrast(color.textMuted, background)).toBeGreaterThanOrEqual(TEXT);
     }
   });
 
-  it.each(modes)('%s: section text color on bg, surface and its soft tint', (mode) => {
+  it.each(modes)('%s: header title on every section tint', (mode) => {
+    for (const section of Object.values(makeTheme(mode).section)) {
+      expect(contrast(section.onFill, section.fill)).toBeGreaterThanOrEqual(TEXT);
+      expect(contrast(section.onFill, section.soft)).toBeGreaterThanOrEqual(TEXT);
+    }
+  });
+
+  it.each(modes)('%s: section accent as text on bg, surface and its soft tint', (mode) => {
     const theme = makeTheme(mode);
     for (const section of Object.values(theme.section)) {
-      expect(contrast(section.text, theme.color.bg)).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(section.text, theme.color.surface)).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(section.text, section.soft)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(section.text, theme.color.bg)).toBeGreaterThanOrEqual(TEXT);
+      expect(contrast(section.text, theme.color.surface)).toBeGreaterThanOrEqual(TEXT);
+      expect(contrast(section.text, section.soft)).toBeGreaterThanOrEqual(TEXT);
+    }
+  });
+
+  it.each(modes)('%s: section icon on its header tint meets 3:1', (mode) => {
+    for (const section of Object.values(makeTheme(mode).section)) {
+      expect(contrast(section.text, section.fill)).toBeGreaterThanOrEqual(UI);
     }
   });
 
@@ -117,18 +134,52 @@ describe('Pomi Splash contrast (WCAG AA 4.5:1 for text)', () => {
     for (const section of Object.keys(theme.section) as (keyof typeof theme.section)[]) {
       for (const variant of ['tint', 'hero'] as const) {
         const colors = tileActionColors(theme, section, variant);
-        expect(contrast(colors.background, colors.tile)).toBeGreaterThanOrEqual(3);
-        expect(contrast(colors.icon, colors.background)).toBeGreaterThanOrEqual(3);
+        expect(contrast(colors.background, colors.tile)).toBeGreaterThanOrEqual(UI);
+        expect(contrast(colors.icon, colors.background)).toBeGreaterThanOrEqual(UI);
       }
     }
   });
 
-  it.each(modes)('%s: energy CTA label, tab bar labels and body text', (mode) => {
+  it.each(modes)('%s: button labels on their fills', (mode) => {
     const { color } = makeTheme(mode);
-    expect(contrast(color.onEnergy, color.energyFill)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(color.textMuted, color.tabBar)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(color.text, color.bg)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(color.text, color.surface)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(color.onEnergy, color.celebrate)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(color.onPrimary, color.primary)).toBeGreaterThanOrEqual(TEXT);
+    expect(contrast(color.onEnergy, color.energyFill)).toBeGreaterThanOrEqual(TEXT);
+    expect(contrast(color.onSecondary, color.secondary)).toBeGreaterThanOrEqual(TEXT);
+    // `danger` button and the done check glyph on `success`.
+    expect(contrast(color.onPrimary, color.error)).toBeGreaterThanOrEqual(TEXT);
+    expect(contrast(color.onPrimary, color.success)).toBeGreaterThanOrEqual(UI);
+  });
+
+  it('light: brick buttons carry white text, lavender grey never does', () => {
+    const { color } = makeTheme('light');
+    expect(color.onPrimary).toBe('#FFFFFF');
+    expect(color.onEnergy).toBe('#FFFFFF');
+    expect(color.onSecondary).not.toBe('#FFFFFF');
+  });
+
+  it.each(modes)('%s: status and accent text on bg and surface', (mode) => {
+    const { color } = makeTheme(mode);
+    for (const background of [color.bg, color.surface]) {
+      for (const role of [
+        color.energyText,
+        color.success,
+        color.error,
+        color.warning,
+        color.info,
+      ]) {
+        expect(contrast(role, background)).toBeGreaterThanOrEqual(TEXT);
+      }
+    }
+  });
+
+  it.each(modes)('%s: accents used as UI (charts, toggles, glyphs) meet 3:1', (mode) => {
+    const { color } = makeTheme(mode);
+    for (const background of [color.bg, color.surface]) {
+      expect(contrast(color.brand, background)).toBeGreaterThanOrEqual(UI);
+      expect(contrast(color.energy, background)).toBeGreaterThanOrEqual(UI);
+    }
+    expect(contrast(color.brand, color.brandSoft)).toBeGreaterThanOrEqual(UI);
+    expect(contrast(color.celebrate, color.surfaceRaised)).toBeGreaterThanOrEqual(UI);
+    expect(contrast(color.text, color.brandSoft)).toBeGreaterThanOrEqual(TEXT);
   });
 });

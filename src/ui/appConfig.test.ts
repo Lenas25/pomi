@@ -20,8 +20,8 @@ describe('app.json colors match design tokens', () => {
     expect((splash.dark as PluginConfig).backgroundColor).toBe(tokens.color.dark.bg);
   });
 
-  it('uses the brand blue for the notification accent', () => {
-    expect(pluginConfig('expo-notifications').color).toBe(tokens.color.palette['blue-500']);
+  it('uses the brick accent for the notification color', () => {
+    expect(pluginConfig('expo-notifications').color).toBe(tokens.color.palette['brick-500']);
   });
 
   it('does not hardcode an adaptive icon background color that drifts from the tokens', () => {

@@ -23,7 +23,7 @@ Pomi es una app móvil de gym y hábitos. El usuario la abre varias veces al dí
 | Padding interno de tarjeta | `space-4` (16 dp) |
 | Ancho máximo de contenido | 560 dp, centrado (tablets) |
 | Zonas seguras | Respetar `SafeAreaView` arriba y abajo |
-| Barra de pestañas | Abajo: Hoy, Gym, botón central elevado «Registrar» (56 dp, coral, abre la hoja de registro rápido), Hábitos, Progreso. Ajustes sale de la barra: engranaje en la cabecera de cada sección. Alto `layout.tabBarHeight` 72 dp × escala de fuente + zona segura. Activo: ícono relleno en el color de la sección sobre pastilla 56 × 32 con su tinte; inactivo: `textMuted` |
+| Barra de pestañas | Abajo: Hoy, Gym, botón central elevado «Registrar» (56 dp, ladrillo, abre la hoja de registro rápido), Hábitos, Progreso. Ajustes sale de la barra: engranaje en la cabecera de cada sección. Alto `layout.tabBarHeight` 72 dp × escala de fuente + zona segura. Activo: ícono relleno en el color de la sección sobre pastilla 56 × 32 con su tinte; inactivo: `textMuted` |
 
 ### Responsive
 
@@ -39,40 +39,43 @@ Fuente de verdad: `design/tokens.json`. Resumen:
 
 | Token | Claro | Oscuro | Uso |
 |---|---|---|---|
-| `color.bg` | `#F2FAFE` | `#0E1729` | Fondo de pantalla |
-| `color.surface` | `#FFFFFF` | `#17233D` | Tarjetas |
-| `color.surfaceRaised` | `#FFFFFF` | `#1F2D4D` | Hojas, modales, toast |
-| `color.text` | `#1A2846` | `#F8F1E5` | Texto principal |
-| `color.textMuted` | `#33436A` | `#B8C2D9` | Texto secundario |
-| `color.border` | `#D3E3EE` | `#2A3A5E` | Bordes y divisores |
-| `color.primary` | `#1A2846` | `#29B5E8` | Botón primario |
-| `color.onPrimary` | `#FFFFFF` | `#1A2846` | Texto del botón primario |
-| `color.brand` | `#29B5E8` | `#29B5E8` | Mascota, acentos, anillos de progreso |
-| `color.brandSoft` | `#E6F6FD` | `#1B3350` | Fondos destacados |
-| `color.energy` | `#F15A3B` | `#FF7A5C` | Acento gráfico de energía (anillo de descanso, barra actual; ≥ 3:1) |
-| `color.energyFill` | `#FF7A5C` | `#FF7A5C` | Relleno del CTA de energía (`Button variant="energy"`, botón «Registrar») |
-| `color.onEnergy` | `#1A2846` | `#1A2846` | Texto/ícono sobre `energyFill` (5,70:1) |
-| `color.celebrate` | `#FFC94D` | `#FFC94D` | Celebraciones, hallazgos (texto navy, 9,55:1) |
-| `color.celebrateSoft` | `#FFF0C7` | `#3A2E10` | Superficie de celebración |
-| `color.tabBar` | `#FFFFFF` | `#17233D` | Fondo de la tab bar |
-| `color.success` | `#1F9D6B` | `#4CD39C` | Confirmaciones |
-| `color.error` | `#C2362B` | `#FF7A6B` | Errores (siempre con ícono y texto) |
+| `color.bg` | `#E5DCC5` | `#2D2D2A` | Fondo de pantalla (arena / grafito) |
+| `color.surface` | `#F2ECDD` | `#3A3A36` | Tarjetas |
+| `color.surfaceRaised` | `#FAF7EF` | `#4C4C47` | Hojas, modales, toast |
+| `color.text` | `#2D2D2A` | `#E5DCC5` | Texto principal (10,11:1) |
+| `color.textMuted` | `#4C4C47` | `#CBC3AE` | Texto secundario (≥ 4,9:1 en toda superficie) |
+| `color.border` | `#CFC4A8` | `#5A5A53` | Bordes y divisores |
+| `color.primary` | `#C14953` | `#E07A82` | Botón primario (acento ladrillo) |
+| `color.onPrimary` | `#FFFFFF` | `#2D2D2A` | Texto del botón primario (4,83 / 4,79:1) |
+| `color.secondary` | `#9AA3B6` | `#9AA3B6` | Botón secundario (gris lavanda) |
+| `color.onSecondary` | `#2D2D2A` | `#2D2D2A` | Texto sobre `secondary` (5,45:1; nunca blanco) |
+| `color.brand` | `#4F5A72` | `#AEB6C8` | Acento de UI tranquilo: selección, anillos, gráficos |
+| `color.brandSoft` | `#E1E4EC` | `#3F434D` | Fondos destacados y seleccionados |
+| `color.energy` | `#C14953` | `#E07A82` | Acento gráfico de energía (anillo de descanso, barra actual; ≥ 3:1) |
+| `color.energyText` | `#9E3540` | `#EC959B` | Ladrillo como texto (≥ 4,5:1) |
+| `color.energyFill` | `#C14953` | `#E07A82` | Relleno del CTA de energía (`Button variant="energy"`, botón «Registrar») |
+| `color.onEnergy` | `#FFFFFF` | `#2D2D2A` | Texto/ícono sobre `energyFill` |
+| `color.celebrate` | `#C14953` | `#EC959B` | Celebraciones (glifo o borde, ≥ 3:1) |
+| `color.celebrateSoft` | `#F3DADA` | `#4A2E2F` | Superficie de celebración |
+| `color.tabBar` | `#F2ECDD` | `#3A3A36` | Fondo de la tab bar |
+| `color.success` | `#4F5A72` | `#AEB6C8` | Confirmaciones |
+| `color.warning` | `#6B5D3E` | `#D9CBA6` | Avisos |
+| `color.error` | `#9E3540` | `#F2A1A6` | Errores (siempre con ícono y texto) |
+| `color.info` | `#4F5A72` | `#AEB6C8` | Información |
 | `space-1…12` | 4, 8, 12, 16, 20, 24, 32, 40, 48 dp | | Espaciado (escala de 4) |
 | `radius-sm/md/lg/xl/pill` | 10, 16, 24, 32, 999 | | Esquinas |
-| `shadow-soft` | y 4, blur 16, navy al 8% | sin sombra, borde `color.border` | Tarjetas |
-| `shadow-raised` | y 8, blur 24, navy al 12% | sin sombra, `surfaceRaised` | Toast, hojas |
+| `shadow-soft` | y 4, blur 16, grafito al 8% | sin sombra, borde `color.border` | Tarjetas |
+| `shadow-raised` | y 8, blur 24, grafito al 12% | sin sombra, `surfaceRaised` | Toast, hojas |
 
-**Color por sección (`section.<clave>`, Pomi Splash, ver `BRAND.md` 4.5):** claves `hoy`, `gym`, `habitos`, `progreso`, `agua`, `sueno`, `movimiento`; cada una con `fill` (cabecera/bloque), `onFill` (navy), `soft` (tinte de superficie y pastilla del tab activo) y `text` (color de sección como texto/ícono sobre fondo o superficie).
+**Color por sección (`section.<clave>`, ver `BRAND.md` 4.5):** claves `hoy`, `gym`, `habitos`, `progreso`, `agua`, `sueno`, `movimiento`; cada una con `fill` (tinte sutil de cabecera/bloque), `onFill` (grafito en claro, arena en oscuro), `soft` (tinte de superficie y pastilla del tab activo en claro) y `text` (acento de sección como texto/ícono sobre fondo o superficie).
 
-| Clave | `fill` (ambos) | `soft` claro / oscuro | `text` claro / oscuro |
+| Clave | `fill` claro / oscuro | `soft` claro / oscuro | `text` claro / oscuro |
 |---|---|---|---|
-| `hoy` | `#FFC94D` | `#FFF0C7` / `#3A2E10` | `#8A5A00` / `#FFC94D` |
-| `gym` | `#FF7A5C` | `#FFE1D9` / `#3A1F1A` | `#A82E19` / `#FF7A5C` |
-| `habitos`, `movimiento` | `#4CD39C` | `#D5F5E8` / `#123A2C` | `#0F7A55` / `#4CD39C` |
-| `progreso`, `sueno` | `#9EA0FF` | `#E4E4FD` / `#242552` | `#4A4CC9` / `#9EA0FF` |
-| `agua` | `#5CCBF2` | `#D2EFFB` / `#1B3350` | `#0A6E9E` / `#5CCBF2` |
+| `hoy` | `#D9CBA6` / `#55503F` | `#EDE5D0` / `#403C33` | `#6B5D3E` / `#D9CBA6` |
+| `gym`, `movimiento` | `#EBC3C3` / `#5C3437` | `#F3DADA` / `#4A2E2F` | `#9E3540` / `#EC959B` |
+| `habitos`, `progreso`, `agua`, `sueno` | `#CDD2DE` / `#474D5C` | `#E1E4EC` / `#3B3F4A` | `#4F5A72` / `#AEB6C8` |
 
-Componentes: `SectionHeader` (bloque `fill` bajo la barra de estado, título + subtítulo navy, engranaje de Ajustes), `Card variant="hero" | "tint"` con `section`, `Button variant="energy"`, `Screen` con `header` (a sangre) y `footer` (barra de acción fija, respeta la zona segura), `TabBar`, `BottomSheet`, `StepHeader` (atrás en un hueco fijo de 48 × 48), `BentoGrid` + `BentoTile` (hubs bento: 2 columnas, spans 1x1 / 2x1 / 1x2 / 2x2, alto de fila `bento.rowHeight` 112 dp × escala de fuente, `bento.gap` 12 dp, 1 columna si escala ≥ 1,3 y ancho < 380 dp; cada baldosa resume un área —número, anillo, mini gráfico, estado— y abre su página de detalle). Otros tokens nuevos: `timeline.timeColumn` (56 dp × escala de fuente, mínimo), `font.scale.metric-sm` (Nunito 900 28/34 tabular), `layout.tabPillWidth/Height` (56/32), `layout.tabActionSize` (56).
+Componentes: `SectionHeader` (tinte `fill` bajo la barra de estado, ícono de sección en `text`, título + subtítulo `onFill`, engranaje de Ajustes), `Card variant="hero" | "tint"` con `section`, `Button variant="energy"`, `Screen` con `header` (a sangre) y `footer` (barra de acción fija, respeta la zona segura), `TabBar`, `BottomSheet`, `StepHeader` (atrás en un hueco fijo de 48 × 48), `BentoGrid` + `BentoTile` (hubs bento: 2 columnas, spans 1x1 / 2x1 / 1x2 / 2x2, alto de fila `bento.rowHeight` 112 dp × escala de fuente, `bento.gap` 12 dp, 1 columna si escala ≥ 1,3 y ancho < 380 dp; cada baldosa resume un área —número, anillo, mini gráfico, estado— y abre su página de detalle). Otros tokens nuevos: `timeline.timeColumn` (56 dp × escala de fuente, mínimo), `font.scale.metric-sm` (Nunito 900 28/34 tabular), `layout.tabPillWidth/Height` (56/32), `layout.tabActionSize` (56).
 
 Tipografía: ver `BRAND.md` sección 5 (`display`, `title-lg`, `title-md`, `title-sm`, `body`, `body-strong`, `caption`, `timer`, `metric`).
 
@@ -111,7 +114,7 @@ Tipografía: ver `BRAND.md` sección 5 (`display`, `title-lg`, `title-md`, `titl
 2. Detalle (scroll permitido): `/habitos/agua` (gotas, 10 días, curva por hora, metas), `/habitos/pasos` (conteo, Health Connect / entrada manual, línea base, meta), `/habitos/sueno` (promedio, noches, deuda, jetlag social, check-ins, ciclos), `/habitos/[id]` (marcar, cómo hacerlo, 10 días), `/habitos/comida` (nota y notas recientes).
 
 ### Gym (hub bento)
-1. `SectionHeader` coral (nombre del programa) + `BentoGrid`: "Hoy toca" 2x2 (rutina, meta de hoy del primer ejercicio, botón `energy` Empezar/Continuar), Semana 1x1 (sesiones hechas/planeadas), Volumen 1x1 (mini barras por músculo), Programa 2x1 (nombre + nº de rutinas), Crear rutina 1x1 (generador), Historial 1x1 (fecha de la última sesión).
+1. `SectionHeader` tinte ladrillo (nombre del programa) + `BentoGrid`: "Hoy toca" 2x2 (rutina, meta de hoy del primer ejercicio, botón `energy` Empezar/Continuar), Semana 1x1 (sesiones hechas/planeadas), Volumen 1x1 (mini barras por músculo), Programa 2x1 (nombre + nº de rutinas), Crear rutina 1x1 (generador), Historial 1x1 (fecha de la última sesión).
 2. Detalle: `/gym/programa` (rutinas, empezar cualquiera; pie fijo con Editar programa e Importar), `/gym/volumen` (series por músculo esta semana + semanas), `/gym/historial` (sesiones recientes con series y volumen).
 
 ### Progreso (hub bento)
@@ -121,7 +124,7 @@ Tipografía: ver `BRAND.md` sección 5 (`display`, `title-lg`, `title-md`, `titl
 ### Sesión de gym
 1. Encabezado: "Día 1: Glúteos e isquios" + progreso de series + fila de navegación (anterior / puntos de progreso / siguiente, 48 dp; los puntos anuncian "Paso x de y: nombre").
 2. Paginador horizontal (`FlatList` `pagingEnabled`, deslizar o botones; sin animación con reduce-motion), una página por paso: calentamiento plegable (checks) primero.
-3. Una página por ejercicio: `ExerciseCard` con la meta de hoy destacada (bloque teñido coral) y sus `SetRow`; luego cardio y extras; al final la página Terminar.
+3. Una página por ejercicio: `ExerciseCard` con la meta de hoy destacada (bloque teñido ladrillo) y sus `SetRow`; luego cardio y extras; al final la página Terminar.
 4. Al marcar ✓ en una serie: aparece `TimerSheet` con el descanso.
 5. Cardio: `TimerRing` `cardio` con tramos.
 6. Al terminar: `Toast` `routineComplete` + resumen (series, volumen, metas cumplidas).

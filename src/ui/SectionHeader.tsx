@@ -1,7 +1,6 @@
-import { useCallback, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
-import { setStatusBarStyle } from 'expo-status-bar';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, GearSix } from 'phosphor-react-native';
 
@@ -23,9 +22,10 @@ type SectionHeaderProps = {
 };
 
 /**
- * Pomi Splash section header: a block in the section color that runs under the status bar, with
- * the section icon, the title and the subtitle in navy (≥ 5.7:1 on every section fill), and the
- * Ajustes gear on the right. While focused it switches the status bar to dark icons.
+ * Calm section header: a subtle section tint that runs under the status bar, with the section icon
+ * in the section accent (≥ 3:1 on the tint), the title and the subtitle in `onFill` (graphite in
+ * light, sand in dark; ≥ 4.5:1, tested) and the Ajustes gear on the right. The tint follows the
+ * mode, so the status bar keeps the app-wide style set in the root layout.
  */
 export function SectionHeader({
   section,
@@ -39,14 +39,6 @@ export function SectionHeader({
   const t = useT();
   const colors = theme.section[section];
   const SectionIcon = SECTION_ICONS[section];
-
-  useFocusEffect(
-    useCallback(() => {
-      // Navy text on a light fill needs dark status bar icons, in light AND dark mode.
-      setStatusBarStyle('dark');
-      return () => setStatusBarStyle(theme.mode === 'dark' ? 'light' : 'dark');
-    }, [theme.mode]),
-  );
 
   return (
     <View
@@ -87,7 +79,7 @@ export function SectionHeader({
                 <ArrowLeft color={colors.onFill} />
               </Pressable>
             ) : (
-              <SectionIcon weight="fill" color={colors.onFill} />
+              <SectionIcon weight="fill" color={colors.text} />
             )}
             <Text
               accessibilityRole="header"

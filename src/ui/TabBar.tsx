@@ -19,8 +19,8 @@ type TabBarProps = {
 };
 
 /**
- * Active tab pill. Dark mode: the solid section fill with a navy icon (the dark `soft` tints are
- * near-black browns/greens that read as muddy on the bar). Light mode: the soft tint with the
+ * Active tab pill. Dark mode: the section fill with the sand `onFill` icon (the dark `soft`
+ * tints sit too close to the bar). Light mode: the soft tint with the
  * section text color. Both keep the icon at >= 4.5:1 on its pill (tested).
  */
 export function tabPillColors(
@@ -34,9 +34,9 @@ export function tabPillColors(
 }
 
 /**
- * Pomi Splash tab bar: 4 tabs + a raised center action. Active tab = filled icon in the section
+ * Tab bar: 4 tabs + a raised center action. Active tab = filled icon in the section
  * color pill (`tabPillColors`) + label in the section text color; inactive = regular icon and label in
- * `textMuted` (≥ 8:1). Labels stay on one line and shrink a little instead of clipping at 1.3×.
+ * `textMuted` (≥ 4.5:1). Labels stay on one line and shrink a little instead of clipping at 1.3×.
  */
 export function TabBar({
   tabs,

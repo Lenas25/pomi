@@ -10,9 +10,9 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 export type ColorRole = keyof typeof tokens.color.light;
 export type TextVariant = keyof typeof tokens.font.scale;
 export type SpaceKey = keyof typeof tokens.space;
-/** App sections and habit categories with their own color (Pomi Splash). */
+/** App sections and habit categories with their own color (subtle tints of the brand palette). */
 export type SectionKey = keyof typeof tokens.section.light;
-/** `fill` = header/tile block, `onFill` = text on it (navy), `soft` = tinted surface, `text` = section color as text/icon on bg/surface. */
+/** `fill` = header/tile block, `onFill` = text on it (graphite/sand), `soft` = tinted surface, `text` = section color as text/icon on bg/surface. */
 export type SectionColors = (typeof tokens.section.light)[SectionKey];
 
 export const fonts = {

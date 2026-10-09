@@ -46,14 +46,11 @@ export function Button({
     { background: string; foreground: string; border?: string }
   > = {
     primary: { background: theme.color.primary, foreground: theme.color.onPrimary },
-    secondary: {
-      background: theme.color.surface,
-      foreground: theme.color.text,
-      border: theme.color.border,
-    },
+    // Lavender grey with graphite text (never white: white on lavender is under 3:1).
+    secondary: { background: theme.color.secondary, foreground: theme.color.onSecondary },
     ghost: { background: theme.color.transparent, foreground: theme.color.text },
     danger: { background: theme.color.error, foreground: theme.color.onPrimary },
-    // The one thumb-zone CTA per screen: coral with navy text (5.70:1).
+    // The one thumb-zone CTA per screen: brick with white (light) or graphite (dark) text (tested).
     energy: { background: theme.color.energyFill, foreground: theme.color.onEnergy },
   };
   const { background, foreground, border } = palette[variant];

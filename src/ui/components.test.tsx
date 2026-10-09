@@ -121,8 +121,8 @@ describe('SuggestionCard', () => {
   });
 });
 
-describe('Pomi Splash variants', () => {
-  it('Button "energy" is coral with navy text', async () => {
+describe('Palette variants', () => {
+  it('Button "energy" uses the energy fill and its label color', async () => {
     await render(
       <ThemeProvider mode="dark">
         <Button label="Empezar" variant="energy" onPress={() => undefined} />

@@ -4,6 +4,8 @@
 > Método: lectura de código (sin dispositivo). Alturas estimadas a partir de los tokens (`design/tokens.json`) y los componentes de `src/ui/`. Referencias: `design/BRAND.md`, `design/HANDOFF.md`, skills impeccable (audit.native, layout, colorize, animate) y emil-design-eng.
 > Alcance: solo diagnóstico y plan. No se cambió código.
 
+> **Nota (2026-10, posterior a esta auditoría):** la paleta vibrante «Pomi Splash» que propone este documento fue **reemplazada por decisión de la dueña** por una paleta minimalista (grafito, carbón, gris lavanda, ladrillo, arena) con cabeceras tranquilas. Los hallazgos de color de abajo quedan como historia; la fuente de verdad es `design/BRAND.md` §4 y `design/tokens.json`.
+
 ---
 
 ## 0. Resumen ejecutivo

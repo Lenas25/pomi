@@ -27,8 +27,8 @@ Una mascota puede convertirse en presión (la mascota "decepcionada" que te pers
 
 ### 3.1 Partes
 
-- **Wordmark:** "Pomi" en sans redondeada muy gruesa, color `navy-900`. La **"o" es una carita** (dos ojos y una sonrisa): es el rasgo distintivo del logo.
-- **Símbolo (isotipo):** la cabeza de Pomi con la vincha coral, simplificada (ver 3.3).
+- **Wordmark:** "Pomi" en sans redondeada muy gruesa, color `graphite-900`. La **"o" es una carita** (dos ojos y una sonrisa): es el rasgo distintivo del logo.
+- **Símbolo (isotipo):** la cabeza de Pomi con la vincha ladrillo, simplificada (ver 3.3).
 
 ### 3.2 Versiones necesarias
 
@@ -37,8 +37,8 @@ Una mascota puede convertirse en presión (la mascota "decepcionada" que te pers
 | Horizontal: símbolo + wordmark | Splash, README, web |
 | Solo wordmark | Encabezados, materiales donde la mascota ya aparece |
 | Solo símbolo | Ícono de la app, avatar de redes, favicon |
-| Monocromo navy | Fondos claros sin color |
-| Monocromo crema (invertido) | Fondos navy u oscuros |
+| Monocromo grafito | Fondos claros sin color |
+| Monocromo arena (invertido) | Fondos grafito u oscuros |
 | Silueta blanca | Ícono de notificación de Android |
 
 ### 3.3 Reglas
@@ -50,89 +50,81 @@ Una mascota puede convertirse en presión (la mascota "decepcionada" que te pers
 
 ## 4. Color
 
+> **Paleta minimalista (decisión de la dueña, 2026-10).** Reemplaza a la paleta vibrante «Pomi Splash». Sale del nuevo arte de marca: mascota gris lavanda con pancita arena y vincha ladrillo. Un solo acento fuerte (ladrillo); el resto es calma.
+
 ### 4.1 Paleta base
 
 | Token | Hex | Nombre | Rol |
 |---|---|---|---|
-| `blue-500` | `#29B5E8` | Azul Pomi | Mascota, ilustraciones, acentos, gráficos |
-| `blue-200` | `#9CDDF5` | Azul pancita | Fondos suaves, estados seleccionados |
-| `blue-50` | `#E6F6FD` | Azul niebla | Fondos de tarjetas destacadas |
-| `navy-900` | `#1A2846` | Navy | Texto principal, wordmark, botón primario, contornos |
-| `navy-700` | `#33436A` | Navy medio | Texto secundario sobre claro |
-| `coral-500` | `#F15A3B` | Coral vincha | Acento de energía: progreso, gym, destacados |
-| `coral-700` | `#C93A22` | Coral profundo | Texto o íconos coral sobre claro (contraste) |
-| `sun-400` | `#F6B634` | Amarillo sol | Celebración, logros del día, hallazgos |
-| `cream-50` | `#F8F1E5` | Crema | Texto principal en modo oscuro; ya no es el fondo claro (ver `sky-50`) |
-| `sky-50` | `#F2FAFE` | Cielo | Fondo principal en modo claro (Pomi Splash) |
-| `white` | `#FFFFFF` | Blanco | Superficies (tarjetas) en modo claro |
-| `blush-300` | `#F59AA0` | Rubor | Solo ilustración (mejillas). No usar en UI |
-| `sun-300` | `#FFC94D` | Sol brillante | Sección Hoy, celebración (siempre con texto navy) |
-| `coral-300` | `#FF7A5C` | Coral brillante | Sección Gym, CTA de energía (texto navy) |
-| `green-400` | `#4CD39C` | Verde menta | Sección Hábitos, categoría Movimiento |
-| `lavender-300` | `#9EA0FF` | Lavanda | Sección Progreso, categoría Sueño |
-| `blue-300` | `#5CCBF2` | Agua | Categoría Agua |
-| `sun-100` / `coral-100` / `green-100` / `lavender-100` / `blue-100` | `#FFF0C7` / `#FFE1D9` / `#D5F5E8` / `#E4E4FD` / `#D2EFFB` | Tintes claros | Superficies tintadas y pastilla del tab activo (claro) |
-| `sun-700` / `coral-800` / `green-700` / `lavender-700` / `blue-700` | `#8A5A00` / `#A82E19` / `#0F7A55` / `#4A4CC9` / `#0A6E9E` | Tonos profundos | Texto e íconos de sección sobre claro (≥ 4,5:1) |
+| `graphite-900` | `#2D2D2A` | Grafito | Texto principal en claro, fondo en oscuro, texto sobre lavanda |
+| `charcoal-700` | `#4C4C47` | Carbón | Texto secundario en claro, superficie elevada en oscuro |
+| `charcoal-800` | `#3A3A36` | Carbón profundo | Superficie (tarjeta) y tab bar en oscuro |
+| `lavender-500` | `#848FA5` | Gris lavanda | Mascota, ilustración. **Nunca con texto blanco** (3,25:1) |
+| `lavender-300` | `#9AA3B6` | Lavanda clara | Botón secundario (texto grafito, 5,45:1) |
+| `lavender-700` | `#4F5A72` | Lavanda profunda | Acento de UI en claro: gráficos, selección, éxito, info |
+| `brick-500` | `#C14953` | Ladrillo | **Acento único**: botón primario y de energía (texto blanco, 4,83:1) |
+| `brick-700` | `#9E3540` | Ladrillo profundo | Texto ladrillo y error en claro |
+| `brick-300` | `#E07A82` | Ladrillo claro | Botón primario/energía en oscuro (texto grafito, 4,79:1) |
+| `sand-500` | `#E5DCC5` | Arena | Fondo en claro, texto principal en oscuro, fondo del ícono |
+| `sand-100` | `#F2ECDD` | Arena clara | Superficie (tarjeta) y tab bar en claro |
+| `sand-50` | `#FAF7EF` | Arena niebla | Superficie elevada en claro |
+| `sand-*`, `lavender-*`, `brick-*` (100–900) | ver `tokens.json` | Tintes | Cabeceras y superficies tintadas por sección |
 
-Valores aproximados tomados del arte. Antes de cerrar la marca, el diseñador debe confirmarlos en el archivo vectorial.
+### 4.2 Contraste (WCAG 2.x, calculado y verificado en `src/ui/theme.test.ts`)
 
-### 4.2 Contraste (WCAG)
-
-| Combinación | Contraste aprox. | Resultado |
+| Combinación | Contraste | Resultado |
 |---|---|---|
-| `navy-900` sobre `cream-50` | ~13:1 | ✅ Cualquier texto |
-| `navy-900` sobre `blue-500` | ~6:1 | ✅ Texto normal |
-| `navy-900` sobre `sun-400` | ~8:1 | ✅ Texto normal |
-| Blanco sobre `navy-900` | ~14:1 | ✅ Botón primario |
-| Blanco sobre `coral-700` | ~5:1 | ✅ Texto normal |
-| Blanco sobre `coral-500` | ~3.4:1 | ⚠️ Solo texto grande o negrita de 19 px o más |
-| Blanco sobre `blue-500` | ~2.4:1 | ❌ Nunca para texto |
-| `blue-500` o `sun-400` como texto sobre crema | menos de 3:1 | ❌ Nunca para texto |
+| Grafito sobre arena (`bg` claro) | 10,11:1 | ✅ Cualquier texto |
+| Carbón sobre arena clara (`textMuted` / `surface`) | 7,33:1 | ✅ Texto normal |
+| Blanco sobre ladrillo `#C14953` | 4,83:1 | ✅ Botón primario y de energía (claro) |
+| Grafito sobre ladrillo claro `#E07A82` | 4,79:1 | ✅ Botón primario y de energía (oscuro) |
+| Grafito sobre lavanda clara `#9AA3B6` | 5,45:1 | ✅ Botón secundario |
+| Arena sobre grafito (`text` / `bg` oscuro) | 10,11:1 | ✅ Cualquier texto |
+| `#CBC3AE` sobre carbón `#4C4C47` (`textMuted` en la superficie más clara del oscuro) | 4,92:1 | ✅ Texto normal |
+| Ladrillo `#C14953` sobre arena | 3,54:1 | ⚠️ Solo UI y gráficos (≥ 3:1), nunca texto |
+| Blanco sobre gris lavanda `#848FA5` | 3,25:1 | ❌ Nunca |
 
-**Regla práctica:** el texto siempre es `navy-900` (claro) o `cream-50` (oscuro). El azul, el coral y el amarillo son **rellenos y acentos**, no colores de texto. Excepción Pomi Splash: el color de sección como texto/ícono usa su tono profundo en claro (`*-700`/`coral-800`) y el tono brillante en oscuro, ambos verificados ≥ 4,5:1 (sección 4.5).
+**Regla práctica:** el texto es grafito (claro) o arena (oscuro). El ladrillo es el único relleno fuerte; el lavanda es el acento tranquilo de UI. Como texto, cada color usa su tono profundo en claro y su tono claro en oscuro (todos ≥ 4,5:1).
 
-### 4.5 Pomi Splash: color por sección (aprobado por la dueña, 2026-10)
+### 4.5 Color por sección: tintes sutiles + ícono
 
-Oscuro primero. Cada sección tiene un color que **posee** su cabecera (bloque a sangre, texto navy), su pastilla en la tab bar y sus tarjetas tintadas. Sin cabecera azul.
+Las cabeceras ya no son bloques de color fuerte: son un **tinte sutil** de la paleta bajo la barra de estado, con el ícono de sección en su acento y el título en grafito (claro) o arena (oscuro). La identidad la dan el **ícono** y el tinte, no la saturación.
 
-| Sección / categoría | Relleno (cabecera) | Texto sobre relleno | Tinte oscuro | Tinte claro | Texto de sección claro | Ícono |
-|---|---|---|---|---|---|---|
-| Hoy | `#FFC94D` | navy · 9,55:1 | `#3A2E10` | `#FFF0C7` | `#8A5A00` | `House` |
-| Gym | `#FF7A5C` | navy · 5,70:1 | `#3A1F1A` | `#FFE1D9` | `#A82E19` | `Barbell` |
-| Hábitos / Movimiento | `#4CD39C` | navy · 7,73:1 | `#123A2C` | `#D5F5E8` | `#0F7A55` | `CheckCircle` / `Footprints` |
-| Progreso / Sueño | `#9EA0FF` | navy · 6,22:1 | `#242552` | `#E4E4FD` | `#4A4CC9` | `ChartLineUp` / `MoonStars` |
-| Agua | `#5CCBF2` | navy · 7,86:1 | `#1B3350` | `#D2EFFB` | `#0A6E9E` | `Drop` |
+| Sección / categoría | Familia | `fill` claro / oscuro | `soft` claro / oscuro | `text` claro / oscuro | Ícono |
+|---|---|---|---|---|---|
+| Hoy | Arena | `#D9CBA6` / `#55503F` | `#EDE5D0` / `#403C33` | `#6B5D3E` / `#D9CBA6` | `House` |
+| Gym, Movimiento | Ladrillo | `#EBC3C3` / `#5C3437` | `#F3DADA` / `#4A2E2F` | `#9E3540` / `#EC959B` | `Barbell` / `Footprints` |
+| Hábitos, Progreso, Agua, Sueño | Lavanda | `#CDD2DE` / `#474D5C` | `#E1E4EC` / `#3B3F4A` | `#4F5A72` / `#AEB6C8` | `CheckCircle` / `ChartLineUp` / `Drop` / `MoonStars` |
 
-- **Claro usa los mismos rellenos:** con texto navy todos pasan AA (5,70–9,55:1), así que no hace falta un tono más oscuro para la cabecera. El tono profundo se usa solo cuando el color de sección es **texto o ícono** sobre claro.
-- **Contrastes de texto de sección (WCAG 2.x, calculados):** oscuro, color de sección sobre superficie `#17233D`: 10,20 / 6,09 / 8,26 / 6,64 / 8,39; sobre su tinte: 8,69 / 5,89 / 6,66 / 6,11 / 6,89. Claro, tono profundo sobre blanco: 5,93 / 6,84 / 5,34 / 6,63 / 5,62; sobre `sky-50`: 5,61 / 6,48 / 5,05 / 6,27 / 5,32; sobre su tinte: 5,23 / 5,55 / 4,59 / 5,31 / 4,68. Todos ≥ 4,5 (`src/ui/theme.test.ts` lo verifica).
-- **CTA de energía:** `#FF7A5C` con texto navy (5,70:1) en ambos modos. Blanco sobre `#FF7A5C` da 2,56:1: prohibido.
-- **Subtítulo en cabecera:** navy, nunca `navy-700` (sobre coral da 3,81:1 y sobre lavanda 4,15:1).
-- **Celebración:** `#FFC94D` en ambos modos, siempre con texto navy o contorno navy (sobre `sky-50` da 1,45:1: nunca como único portador de significado).
+- `onFill` (título y subtítulo de cabecera): grafito en claro, arena en oscuro; ≥ 5,9:1 sobre todo `fill` y `soft`.
+- El ícono de sección (`text`) sobre su `fill` queda ≥ 3:1; como texto sobre `bg`, `surface` y `soft`, ≥ 4,5:1.
+- **Gráficos:** lavanda (`brand`) para series y barras, ladrillo (`energy`) para la barra actual o el anillo de descanso, carbón/borde para ejes y rejilla.
 
 ### 4.3 Semánticos
 
 | Token | Claro | Oscuro | Uso |
 |---|---|---|---|
-| `success` | `#1F9D6B` | `#4CD39C` | Confirmaciones |
-| `warning` | `#F6B634` (con texto navy) | `#F6B634` | Avisos suaves |
-| `error` | `#C2362B` | `#FF7A6B` | Errores. **Siempre con ícono y texto**, para no confundirlo con el coral de marca |
-| `info` | `#29B5E8` (con texto navy) | `#5CCBF2` | Hallazgos, información |
+| `success` | `#4F5A72` | `#AEB6C8` | Confirmaciones, casillas hechas |
+| `warning` | `#6B5D3E` | `#D9CBA6` | Avisos suaves |
+| `error` | `#9E3540` | `#F2A1A6` | Errores. **Siempre con ícono y texto**, para distinguirlo del acento ladrillo |
+| `info` | `#4F5A72` | `#AEB6C8` | Hallazgos, información |
+| `celebrate` | `#C14953` | `#EC959B` | Celebraciones (glifo o borde, ≥ 3:1) |
 
 ### 4.4 Modo oscuro
 
 | Rol | Claro | Oscuro |
 |---|---|---|
-| Fondo | `sky-50` (`#F2FAFE`) | `#0E1729` |
-| Superficie (tarjeta) | `white` | `#17233D` |
-| Superficie elevada | `white` + sombra | `#1F2D4D` |
-| Texto principal | `navy-900` | `cream-50` |
-| Texto secundario | `navy-700` | `#B8C2D9` |
-| Bordes | `#D3E3EE` | `#2A3A5E` |
-| CTA de energía | `#FF7A5C` / texto navy | `#FF7A5C` / texto navy |
-| Tab bar | `white` | `#17233D` |
-| Botón primario | `navy-900` / texto blanco | `blue-500` / texto `navy-900` |
+| Fondo | `#E5DCC5` | `#2D2D2A` |
+| Superficie (tarjeta) | `#F2ECDD` | `#3A3A36` |
+| Superficie elevada | `#FAF7EF` + sombra | `#4C4C47` |
+| Texto principal | `#2D2D2A` | `#E5DCC5` |
+| Texto secundario | `#4C4C47` | `#CBC3AE` |
+| Bordes | `#CFC4A8` | `#5A5A53` |
+| Botón primario / energía | `#C14953` / texto blanco | `#E07A82` / texto grafito |
+| Botón secundario | `#9AA3B6` / texto grafito | `#9AA3B6` / texto grafito |
+| Tab bar | `#F2ECDD` | `#3A3A36` |
 
-La mascota no cambia de color en modo oscuro. Sus contornos navy se mantienen, sobre un círculo `blue-50` al 12% si hace falta separarla del fondo.
+La mascota no cambia de color en modo oscuro.
 
 ## 5. Tipografía
 

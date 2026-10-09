@@ -9,7 +9,7 @@ import { usePressScale } from './usePressScale';
 
 type BentoTileProps = {
   section: SectionKey;
-  /** `tint` (default): soft section surface. `hero`: the section fill with navy text. */
+  /** `tint` (default): soft section surface. `hero`: the section tint with `onFill` text. */
   variant?: 'tint' | 'hero';
   icon?: Icon;
   title: string;
@@ -45,7 +45,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 /**
  * Colors of the quick action button. On a tint tile the button is the section text color with a
  * surface icon (the section fill on its soft tint is under 3:1 in light mode); on a hero tile it
- * is navy with a fill-colored icon. Both meet 3:1 for the boundary and the icon (tested).
+ * is `onFill` with a fill-colored icon. Both meet 3:1 for the boundary and the icon (tested).
  */
 export function tileActionColors(
   theme: Theme,
