@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { AccessibilityInfo } from 'react-native';
 import type { ReactElement } from 'react';
 
 import { setLanguage } from '../i18n';
 import type { Step } from '../templates/schema';
 import { ThemeProvider } from '../ui/theme';
-import { buildSessionPages, GymSessionScreen } from './GymSessionScreen';
-import { buildExerciseView, type SetsStep } from './sessionViewModel';
+import { buildSessionPages, GymSessionScreen, initialPageIndex } from './GymSessionScreen';
+import { getDoneSteps, saveDoneSteps, sessionStepsKey, clearDoneSteps } from './sessionStepsStore';
+import { buildExerciseView, type SetsStep, type StoredSet } from './sessionViewModel';
 import { useGymSession, type SessionExercise } from './useGym';
 
 jest.mock('expo-router', () => ({
@@ -106,14 +108,81 @@ describe('buildSessionPages', () => {
   });
 });
 
+const logged = (stepId: string, count: number): StoredSet[] =>
+  Array.from({ length: count }, (_, setIndex) => ({
+    stepId,
+    setIndex,
+    weightKg: 40,
+    reps: 8,
+    rir: null,
+  }));
+
+describe('initialPageIndex', () => {
+  const pages = buildSessionPages(STEPS, EXERCISES);
+
+  it('opens a fresh session on the warm-up', () => {
+    expect(initialPageIndex(pages, new Map())).toBe(0);
+  });
+
+  it('resumes on the first exercise with pending sets, or the finish page', () => {
+    expect(initialPageIndex(pages, new Map([['squat', logged('squat', 1)]]))).toBe(1);
+    expect(initialPageIndex(pages, new Map([['squat', logged('squat', 2)]]))).toBe(2);
+    const all = new Map([
+      ['squat', logged('squat', 2)],
+      ['row', logged('row', 2)],
+    ]);
+    expect(initialPageIndex(pages, all)).toBe(pages.length - 1);
+  });
+});
+
+describe('sessionStepsStore', () => {
+  it('keeps the checked warm-up steps of a session until it is cleared', () => {
+    const key = sessionStepsKey('2026-10-09', 'a');
+    saveDoneSteps(key, new Set(['move']));
+    expect([...getDoneSteps(key)]).toEqual(['move']);
+    clearDoneSteps(key);
+    expect(getDoneSteps(key).size).toBe(0);
+  });
+});
+
 describe('GymSessionScreen (one exercise per page)', () => {
+  it('resumes on the first exercise with pending sets', async () => {
+    mockSession({ logsByStep: new Map([['squat', logged('squat', 2)]]) });
+    await renderThemed(<GymSessionScreen />);
+    expect(position()).toBe('Paso 3 de 5: Remo');
+  });
+
+  it('hides the off-screen pages from screen readers and announces a page change', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    mockSession();
+    await renderThemed(<GymSessionScreen />);
+    const hidden = (key: string) =>
+      screen.getByTestId(`session-page-${key}`, { includeHiddenElements: true }).props
+        .accessibilityElementsHidden as boolean;
+    expect(hidden('warmup')).toBe(false);
+    expect(hidden('sets:squat')).toBe(true);
+    expect(
+      screen.getByTestId('session-page-sets:squat', { includeHiddenElements: true }).props
+        .importantForAccessibility,
+    ).toBe('no-hide-descendants');
+    expect(announce).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByRole('button', { name: 'Paso siguiente' }));
+    expect(hidden('sets:squat')).toBe(false);
+    expect(announce).toHaveBeenCalledWith('Paso 2 de 5: Sentadilla');
+    announce.mockRestore();
+  });
+
   it('renders every page and the position of the current one', async () => {
     mockSession();
     await renderThemed(<GymSessionScreen />);
     expect(screen.getByText('Día A')).toBeTruthy();
-    expect(screen.getByTestId('session-page-sets:squat')).toBeTruthy();
-    expect(screen.getByTestId('session-page-finish')).toBeTruthy();
-    expect(screen.getAllByTestId('exercise-target').length).toBeGreaterThan(0);
+    expect(
+      screen.getByTestId('session-page-sets:squat', { includeHiddenElements: true }),
+    ).toBeTruthy();
+    expect(screen.getByTestId('session-page-finish', { includeHiddenElements: true })).toBeTruthy();
+    expect(
+      screen.getAllByTestId('exercise-target', { includeHiddenElements: true }).length,
+    ).toBeGreaterThan(0);
     expect(position()).toBe('Paso 1 de 5: Calentamiento');
     expect(screen.getByRole('button', { name: 'Paso anterior' }).props.accessibilityState).toEqual(
       expect.objectContaining({ disabled: true }),

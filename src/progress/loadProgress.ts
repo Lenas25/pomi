@@ -64,7 +64,20 @@ export type ProgressData = {
 
 const key = (date: Date) => format(date, 'yyyy-MM-dd');
 
-export async function loadProgressData(repos: Repositories, today: string): Promise<ProgressData> {
+/** The computed parts a screen may skip (each runs an engine over many rows). */
+export type ProgressExtra = 'companion' | 'insights' | 'volume';
+
+export const ALL_PROGRESS_EXTRAS: readonly ProgressExtra[] = ['companion', 'insights', 'volume'];
+
+/**
+ * Reads what Progreso shows. `extras` limits the computed parts to what a detail page needs
+ * (a skipped one stays `undefined`); the hub reads them all.
+ */
+export async function loadProgressData(
+  repos: Repositories,
+  today: string,
+  extras: readonly ProgressExtra[] = ALL_PROGRESS_EXTRAS,
+): Promise<ProgressData> {
   const now = parseISO(today);
   const sessionsFrom = key(subDays(now, STRENGTH_LOOKBACK_DAYS));
   const habitsFrom = key(subDays(now, DEFAULT_WEEKS * 7));
@@ -112,23 +125,29 @@ export async function loadProgressData(repos: Repositories, today: string): Prom
     })),
   );
 
-  const companion = await loadCompanion(repos, today).catch((error: unknown) => {
-    if (__DEV__) console.warn('Could not compute Tu ritmo', error);
-    return null;
-  });
-
-  const insights = await repos.insights
-    .all()
-    .then((rows) => rows.flatMap((row) => parseInsightRow(row) ?? []))
-    .catch((error: unknown) => {
-      if (__DEV__) console.warn('Could not read the insights', error);
-      return [];
-    });
-
-  const volume = await loadVolumeData(repos, today).catch((error: unknown) => {
-    if (__DEV__) console.warn('Could not compute the weekly volume', error);
-    return null;
-  });
+  const [companion, insights, volume] = await Promise.all([
+    extras.includes('companion')
+      ? loadCompanion(repos, today).catch((error: unknown) => {
+          if (__DEV__) console.warn('Could not compute Tu ritmo', error);
+          return null;
+        })
+      : undefined,
+    extras.includes('insights')
+      ? repos.insights
+          .all()
+          .then((rows) => rows.flatMap((row) => parseInsightRow(row) ?? []))
+          .catch((error: unknown) => {
+            if (__DEV__) console.warn('Could not read the insights', error);
+            return [];
+          })
+      : undefined,
+    extras.includes('volume')
+      ? loadVolumeData(repos, today).catch((error: unknown) => {
+          if (__DEV__) console.warn('Could not compute the weekly volume', error);
+          return null;
+        })
+      : undefined,
+  ]);
 
   return {
     today,

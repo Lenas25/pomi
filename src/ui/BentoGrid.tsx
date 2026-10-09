@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { bentoColumns, packBento, type BentoSpan } from './bentoLayout';
+import { bentoBands, bentoColumns, packBento, type BentoSpan } from './bentoLayout';
 import { useTheme } from './theme';
 
 export type BentoItem = { key: string; span: BentoSpan; node: ReactNode };
@@ -9,51 +9,59 @@ export type BentoItem = { key: string; span: BentoSpan; node: ReactNode };
 type BentoGridProps = { items: readonly BentoItem[] };
 
 /**
- * Responsive bento grid: 2 columns (1 on narrow screens at font scale ≥ 1.3), tiles of
- * 1x1 / 2x1 / 1x2 / 2x2 spans packed in reading order. Row height is `bento.rowHeight` scaled by
- * the font scale, so text keeps fitting; each tile fills its cell (`BentoTile`).
+ * Responsive bento grid: 2 columns (1 at font scale ≥ 1.5, or ≥ 1.3 on narrow screens), tiles of
+ * 1x1 / 2x1 / 1x2 / 2x2 spans packed in reading order. Each row is at least `bento.rowHeight`
+ * scaled by the font scale and grows with its content (never clips); each tile fills its cell.
  */
 export function BentoGrid({ items }: BentoGridProps) {
   const theme = useTheme();
   const window = useWindowDimensions();
-  // Until the first layout, assume the screen column (Screen: max content width, 20 dp margins).
-  const [width, setWidth] = useState(
-    Math.min(window.width, theme.layout.maxContentWidth) - theme.space[5] * 2,
-  );
   const gap = theme.bento.gap;
   const columns = bentoColumns(window.width, window.fontScale, theme.bento);
   const rowHeight = Math.round(theme.bento.rowHeight * Math.max(1, window.fontScale));
-  const colWidth = (width - gap * (columns - 1)) / columns;
+  const spanHeight = (rows: number) => rows * rowHeight + (rows - 1) * gap;
   const { cells, rows } = packBento(
     items.map((item) => item.span),
     columns,
   );
+  const bands = bentoBands(cells, columns, rows);
+
+  const cell = (index: number, rowSpan: number, grow: boolean) => {
+    const item = items[index];
+    if (!item) return null;
+    return (
+      <View
+        key={item.key}
+        testID={`bento-cell-${item.key}`}
+        style={{ minHeight: spanHeight(rowSpan), flexGrow: grow ? 1 : 0 }}
+      >
+        {item.node}
+      </View>
+    );
+  };
 
   return (
-    <View
-      testID="bento-grid"
-      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
-      style={{ width: '100%', height: rows * rowHeight + Math.max(0, rows - 1) * gap }}
-    >
-      {items.map((item, index) => {
-        const cell = cells[index];
-        if (!cell) return null;
-        return (
-          <View
-            key={item.key}
-            testID={`bento-cell-${item.key}`}
-            style={{
-              position: 'absolute',
-              left: cell.col * (colWidth + gap),
-              top: cell.row * (rowHeight + gap),
-              width: cell.colSpan * colWidth + (cell.colSpan - 1) * gap,
-              height: cell.rowSpan * rowHeight + (cell.rowSpan - 1) * gap,
-            }}
-          >
-            {item.node}
+    <View testID="bento-grid" style={{ width: '100%', gap }}>
+      {bands.map((band, bandIndex) =>
+        band.kind === 'wide' ? (
+          cell(band.index, band.rows, false)
+        ) : (
+          <View key={`band-${bandIndex}`} style={{ flexDirection: 'row', gap }}>
+            {band.columns.map((slots, col) => (
+              <View key={`col-${col}`} style={{ flex: 1, gap }}>
+                {slots.map((slot, slotIndex) =>
+                  slot.kind === 'tile' ? (
+                    // The last tile of a shorter column stretches to the band's bottom edge.
+                    cell(slot.index, slot.rows, slotIndex === slots.length - 1)
+                  ) : (
+                    <View key={`gap-${slotIndex}`} style={{ height: spanHeight(slot.rows) }} />
+                  ),
+                )}
+              </View>
+            ))}
           </View>
-        );
-      })}
+        ),
+      )}
     </View>
   );
 }

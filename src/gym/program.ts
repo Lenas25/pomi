@@ -15,6 +15,9 @@ export type GymProgram = {
   rules: TargetRules;
 };
 
+/** Recent sessions read to resolve the rotation (today's routine). */
+export const ROTATION_LOOKBACK = 40;
+
 /** The first program of the first active module that has one (a single program is trained). */
 export function pickProgram(
   modules: readonly { active: boolean; template: ProgramModule }[],

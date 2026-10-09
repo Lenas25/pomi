@@ -19,6 +19,16 @@ beforeEach(async () => {
 afterEach(() => close());
 
 describe('loadProgressData', () => {
+  it('reads only the computed parts a detail page asks for', async () => {
+    const slim = await loadProgressData(repos, '2026-10-07', ['insights']);
+    expect(slim.insights).toEqual([]);
+    expect(slim.companion).toBeUndefined();
+    expect(slim.volume).toBeUndefined();
+    const full = await loadProgressData(repos, '2026-10-07');
+    expect(full.insights).toEqual([]);
+    expect(full.volume).not.toBeUndefined();
+  });
+
   it('is empty for a new install (with the metric definitions from the template)', async () => {
     const data = await loadProgressData(repos, '2026-10-07');
     expect(data.sessions).toEqual([]);

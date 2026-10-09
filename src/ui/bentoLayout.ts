@@ -43,11 +43,74 @@ export function packBento(
   return { cells, rows: taken.length };
 }
 
-/** One column on narrow screens with large text (audit rule), else two. */
+/**
+ * One column with large text: always from `singleColumnAnyWidthFontScale` (1.5), and on narrow
+ * screens already from `singleColumnFontScale` (1.3). Else two.
+ */
 export function bentoColumns(
   width: number,
   fontScale: number,
-  rule: { singleColumnMaxWidth: number; singleColumnFontScale: number },
+  rule: {
+    singleColumnMaxWidth: number;
+    singleColumnFontScale: number;
+    singleColumnAnyWidthFontScale: number;
+  },
 ): 1 | 2 {
+  if (fontScale >= rule.singleColumnAnyWidthFontScale) return 1;
   return fontScale >= rule.singleColumnFontScale && width < rule.singleColumnMaxWidth ? 1 : 2;
+}
+
+/** A slot of a band column: a tile (index into the items) or an empty gap of `rows` rows. */
+export type BandSlot =
+  { kind: 'tile'; index: number; rows: number } | { kind: 'empty'; rows: number };
+
+/**
+ * Horizontal bands of the packed grid, laid out with flexbox so rows can grow with their content
+ * (`minHeight`) instead of clipping it: a full-width tile is a band of its own; the tiles between
+ * two full-width ones form a band of independent columns, each a top-to-bottom list of slots.
+ */
+export type BentoBand =
+  { kind: 'wide'; index: number; rows: number } | { kind: 'columns'; columns: BandSlot[][] };
+
+export function bentoBands(cells: readonly BentoCell[], columns: 1 | 2, rows: number): BentoBand[] {
+  const bands: BentoBand[] = [];
+  const wideAt = new Map<number, number>();
+  cells.forEach((cell, index) => {
+    if (cell.colSpan === columns && columns > 1) wideAt.set(cell.row, index);
+  });
+  let row = 0;
+  while (row < rows) {
+    const wide = wideAt.get(row);
+    if (wide !== undefined) {
+      const rowSpan = cells[wide]?.rowSpan ?? 1;
+      bands.push({ kind: 'wide', index: wide, rows: rowSpan });
+      row += rowSpan;
+      continue;
+    }
+    let end = row;
+    while (end < rows && !wideAt.has(end)) end += 1;
+    const lists: BandSlot[][] = [];
+    for (let col = 0; col < columns; col += 1) {
+      const slots: BandSlot[] = [];
+      for (let r = row; r < end;) {
+        const index = cells.findIndex((cell) => cell.col === col && cell.row === r);
+        const cell = cells[index];
+        if (cell) {
+          slots.push({ kind: 'tile', index, rows: cell.rowSpan });
+          r += cell.rowSpan;
+        } else {
+          const last = slots[slots.length - 1];
+          if (last?.kind === 'empty') last.rows += 1;
+          else slots.push({ kind: 'empty', rows: 1 });
+          r += 1;
+        }
+      }
+      // A trailing gap only pads the column; flexbox already stretches the band.
+      if (slots[slots.length - 1]?.kind === 'empty') slots.pop();
+      lists.push(slots);
+    }
+    bands.push({ kind: 'columns', columns: lists });
+    row = end;
+  }
+  return bands;
 }

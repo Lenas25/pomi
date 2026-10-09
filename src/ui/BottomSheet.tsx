@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -23,7 +23,8 @@ type BottomSheetProps = {
 
 /**
  * Modal bottom sheet: scrim + raised surface with a title row and a 48 dp close button.
- * Slides up in 240 ms `easing.out`; with reduce-motion it only fades (120 ms). Safe-area aware.
+ * Slides up in 240 ms `easing.out`; with reduce-motion it only fades (120 ms). Safe-area aware
+ * (bottom inset) and keyboard aware (`KeyboardAvoidingView`, taps reach buttons while it is up).
  */
 export function BottomSheet({ visible, onClose, title, closeLabel, children }: BottomSheetProps) {
   const theme = useTheme();
@@ -54,7 +55,8 @@ export function BottomSheet({ visible, onClose, title, closeLabel, children }: B
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      {/* The keyboard pushes the sheet up so a text field and its Save button stay visible. */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, justifyContent: 'flex-end' }}>
         <Pressable
           accessible={false}
           importantForAccessibility="no"
@@ -107,11 +109,16 @@ export function BottomSheet({ visible, onClose, title, closeLabel, children }: B
               <X color={theme.color.text} />
             </Pressable>
           </View>
-          <ScrollView contentContainerStyle={{ gap: theme.space[3] }}>{children}</ScrollView>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ gap: theme.space[3] }}
+          >
+            {children}
+          </ScrollView>
           {/* Keeps the last row above the gesture bar (edge-to-edge). */}
           <SafeAreaView edges={['bottom']} style={{ paddingBottom: theme.space[2] }} />
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

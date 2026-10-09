@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import type { Icon } from 'phosphor-react-native';
 
-import { useTheme, type SectionKey } from './theme';
+import { useTheme, type SectionKey, type Theme } from './theme';
 import { usePressScale } from './usePressScale';
 
 type BentoTileProps = {
@@ -38,6 +38,22 @@ export type TileAction = {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+/**
+ * Colors of the quick action button. On a tint tile the button is the section text color with a
+ * surface icon (the section fill on its soft tint is under 3:1 in light mode); on a hero tile it
+ * is navy with a fill-colored icon. Both meet 3:1 for the boundary and the icon (tested).
+ */
+export function tileActionColors(
+  theme: Theme,
+  section: SectionKey,
+  variant: 'tint' | 'hero',
+): { tile: string; background: string; icon: string } {
+  const colors = theme.section[section];
+  return variant === 'hero'
+    ? { tile: colors.fill, background: colors.onFill, icon: colors.fill }
+    : { tile: colors.soft, background: colors.text, icon: theme.color.surface };
+}
+
 /** A bento tile: compact summary of one area that opens its detail page. Fills its grid cell. */
 export function BentoTile({
   section,
@@ -58,6 +74,7 @@ export function BentoTile({
   const accent = hero ? colors.onFill : colors.text;
   const strong = hero ? colors.onFill : theme.color.text;
   const muted = hero ? colors.onFill : theme.color.textMuted;
+  const actionColors = tileActionColors(theme, section, variant);
 
   const tile = (
     <AnimatedPressable
@@ -75,7 +92,7 @@ export function BentoTile({
           padding: theme.space[4],
           paddingRight: action ? theme.touch.gym + theme.space[4] : theme.space[4],
           gap: theme.space[1],
-          backgroundColor: hero ? colors.fill : colors.soft,
+          backgroundColor: actionColors.tile,
         },
         press.animatedStyle,
       ]}
@@ -133,11 +150,11 @@ export function BentoTile({
           borderRadius: theme.radius.pill,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: hero ? colors.onFill : colors.fill,
+          backgroundColor: actionColors.background,
           opacity: action.disabled ? theme.opacity.disabled : pressed ? theme.opacity.pressed : 1,
         })}
       >
-        <ActionIcon weight="bold" color={hero ? colors.fill : colors.onFill} />
+        <ActionIcon weight="bold" color={actionColors.icon} />
       </Pressable>
     </View>
   );

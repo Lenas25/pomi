@@ -234,10 +234,12 @@ export function GymHubScreen() {
     }, [reload]),
   );
 
-  if (tab.status === 'loading') return <Screen>{null}</Screen>;
+  // Error / loading keep the header so the Ajustes gear stays reachable when the load fails.
+  const fallbackHeader = <SectionHeader section="gym" title={t('tabs.gym')} />;
+  if (tab.status === 'loading') return <Screen header={fallbackHeader}>{null}</Screen>;
   if (tab.status === 'error') {
     return (
-      <Screen>
+      <Screen header={fallbackHeader}>
         <EmptyState
           title={t('gym.session.loadError')}
           body={t('database.errorBody')}

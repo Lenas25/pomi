@@ -192,6 +192,7 @@ export function progressTiles(data: ProgressData, ctx: TileContext): BentoItem[]
           icon={Camera}
           title={t('progress.hub.photosTitle')}
           value={t('progress.hub.photosCount', { count: data.photos.length })}
+          caption={t('progress.hub.photosCaption')}
           visual={
             photo ? (
               <View
@@ -205,7 +206,10 @@ export function progressTiles(data: ProgressData, ctx: TileContext): BentoItem[]
               </View>
             ) : undefined
           }
-          accessibilityLabel={t('progress.hub.photosLabel', { count: data.photos.length })}
+          accessibilityLabel={t('progress.hub.photosLabel', {
+            count: data.photos.length,
+            caption: t('progress.hub.photosCaption'),
+          })}
           onPress={() => router.push('/fotos')}
         />
       ),

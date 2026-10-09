@@ -1,4 +1,5 @@
 import tokens from '../../design/tokens.json';
+import { tileActionColors } from './BentoTile';
 import {
   fonts,
   makeTheme,
@@ -108,6 +109,17 @@ describe('Pomi Splash contrast (WCAG AA 4.5:1 for text)', () => {
       expect(contrast(section.text, theme.color.bg)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(section.text, theme.color.surface)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(section.text, section.soft)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(modes)('%s: bento quick action meets 3:1 (boundary and icon)', (mode) => {
+    const theme = makeTheme(mode);
+    for (const section of Object.keys(theme.section) as (keyof typeof theme.section)[]) {
+      for (const variant of ['tint', 'hero'] as const) {
+        const colors = tileActionColors(theme, section, variant);
+        expect(contrast(colors.background, colors.tile)).toBeGreaterThanOrEqual(3);
+        expect(contrast(colors.icon, colors.background)).toBeGreaterThanOrEqual(3);
+      }
     }
   });
 

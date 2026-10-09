@@ -4,7 +4,7 @@ import { Drop } from 'phosphor-react-native';
 import { StyleSheet } from 'react-native';
 
 import { BentoGrid } from './BentoGrid';
-import { bentoColumns, packBento } from './bentoLayout';
+import { bentoBands, bentoColumns, packBento } from './bentoLayout';
 import { BentoTile } from './BentoTile';
 import { makeTheme, ThemeProvider } from './theme';
 
@@ -35,10 +35,45 @@ describe('packBento', () => {
     expect(rows).toBe(4);
   });
 
-  it('uses one column only on narrow screens with large text', () => {
+  it('uses one column on narrow screens with large text, and at any width from 1.5', () => {
     expect(bentoColumns(360, 1, rule)).toBe(2);
     expect(bentoColumns(360, 1.3, rule)).toBe(1);
     expect(bentoColumns(412, 1.3, rule)).toBe(2);
+    expect(bentoColumns(800, 1.5, rule)).toBe(1);
+  });
+});
+
+describe('bentoBands', () => {
+  it('splits full-width tiles into their own bands and stacks the rest per column', () => {
+    // 1x1 (0,0), 2x1 (row 1), 1x1 fills (0,1), 1x2 (2..3, col 0), 1x1 (2, col 1).
+    const { cells, rows } = packBento(['1x1', '2x1', '1x1', '1x2', '1x1'], 2);
+    expect(bentoBands(cells, 2, rows)).toEqual([
+      {
+        kind: 'columns',
+        columns: [[{ kind: 'tile', index: 0, rows: 1 }], [{ kind: 'tile', index: 2, rows: 1 }]],
+      },
+      { kind: 'wide', index: 1, rows: 1 },
+      {
+        kind: 'columns',
+        columns: [[{ kind: 'tile', index: 3, rows: 2 }], [{ kind: 'tile', index: 4, rows: 1 }]],
+      },
+    ]);
+  });
+
+  it('one column is a single list in reading order', () => {
+    const { cells, rows } = packBento(['2x2', '1x1', '2x1'], 1);
+    expect(bentoBands(cells, 1, rows)).toEqual([
+      {
+        kind: 'columns',
+        columns: [
+          [
+            { kind: 'tile', index: 0, rows: 2 },
+            { kind: 'tile', index: 1, rows: 1 },
+            { kind: 'tile', index: 2, rows: 1 },
+          ],
+        ],
+      },
+    ]);
   });
 });
 
@@ -93,10 +128,9 @@ describe('BentoGrid + BentoTile', () => {
     ).toBe(theme.section.sueno.fill);
     await fireEvent.press(tile);
     expect(onPress).toHaveBeenCalledTimes(1);
-    // The 2x1 tile spans the full row; the 1x1 goes to the next row.
+    // Cells have a minimum height (rows grow with the content instead of clipping it).
     const wide = StyleSheet.flatten(screen.getByTestId('bento-cell-agua').props.style);
-    const small = StyleSheet.flatten(screen.getByTestId('bento-cell-sueno').props.style);
-    expect(small.top).toBeGreaterThan(wide.top as number);
-    expect(wide.width).toBeGreaterThan(small.width as number);
+    expect(wide.minHeight).toBeGreaterThanOrEqual(theme.bento.rowHeight);
+    expect(wide.height).toBeUndefined();
   });
 });

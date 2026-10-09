@@ -17,7 +17,7 @@ import { doneActionFor } from '../domain/today/timeline';
 import { ActivityCard } from '../habits/ActivityCard';
 import { useLocaleStore, useT, type Translate } from '../i18n';
 import { templateText } from '../i18n/templateText';
-import { checkinKindAt } from '../quickadd/quickAdd';
+import { checkinKindForHour } from '../quickadd/quickAdd';
 import { BentoGrid, type BentoItem } from '../ui/BentoGrid';
 import { BentoTile } from '../ui/BentoTile';
 import { BottomSheet } from '../ui/BottomSheet';
@@ -29,6 +29,7 @@ import { MiniBar, MiniDots } from '../ui/MiniMeter';
 import { ProgressRing } from '../ui/ProgressRing';
 import { Screen } from '../ui/Screen';
 import { SectionHeader } from '../ui/SectionHeader';
+import { useReloadOnDataChange } from '../db/dataVersion';
 import { SuggestionCard } from '../ui/SuggestionCard';
 import { Toast } from '../ui/Toast';
 import { useTheme } from '../ui/theme';
@@ -268,7 +269,7 @@ function checkinsTile(view: View_, t: Translate): BentoItem | null {
             : 'today.hub.checkins.nightPending',
       )
     : '';
-  const preferred = checkinKindAt(new Date().getHours());
+  const preferred = checkinKindForHour(new Date().getHours());
   const target =
     rows.find((row) => row.kind === preferred && !row.done) ??
     rows.find((row) => !row.done) ??
@@ -307,10 +308,14 @@ export function TodayScreen() {
       void reload();
     }, [reload]),
   );
+  // A quick-add write (the sheet over this tab) does not blur it: reload on the shared signal.
+  useReloadOnDataChange(reload);
 
+  // Error / loading keep the header so the Ajustes gear stays reachable when the load fails.
+  const fallbackHeader = <SectionHeader section="hoy" title={t('tabs.hoy')} />;
   if (today.load.status === 'error') {
     return (
-      <Screen>
+      <Screen header={fallbackHeader}>
         <EmptyState
           title={t('today.loadError')}
           body={t('empty.hoy.body')}
@@ -320,7 +325,7 @@ export function TodayScreen() {
     );
   }
   const view = today.view;
-  if (!view) return <Screen>{null}</Screen>;
+  if (!view) return <Screen header={fallbackHeader}>{null}</Screen>;
 
   const { data } = view;
   const firstDay = data.identity.firstDay;

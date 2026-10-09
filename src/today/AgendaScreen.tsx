@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 
 import type { TimelineEntry } from '../domain/today/timeline';
@@ -11,6 +11,7 @@ import { MascotBubble } from '../ui/MascotBubble';
 import { Screen } from '../ui/Screen';
 import { SectionHeader } from '../ui/SectionHeader';
 import { TimelineItem } from '../ui/TimelineItem';
+import { Toast } from '../ui/Toast';
 import { useTheme } from '../ui/theme';
 
 import {
@@ -70,8 +71,8 @@ export function AgendaScreen() {
   const context = { routineName: data.routineName, facts: data.facts, gymGoal: data.gymGoal };
 
   return (
-    <Screen scroll header={header} edges={['top', 'bottom', 'left', 'right']}>
-      <View style={{ gap: theme.space[2], paddingVertical: theme.space[4] }}>
+    <Screen header={header} edges={['top', 'bottom', 'left', 'right']}>
+      <ScrollView contentContainerStyle={{ gap: theme.space[2], paddingVertical: theme.space[4] }}>
         {entries.length === 0 ? (
           <EmptyState title={t('empty.hoy.title')} body={t('empty.hoy.body')} />
         ) : (
@@ -105,7 +106,20 @@ export function AgendaScreen() {
           })
         )}
         {view.allDone ? <MascotBubble pose="descansa" message={t('today.doneBubble')} /> : null}
-      </View>
+      </ScrollView>
+
+      {/* Same feedback as Hoy: done / postpone / skip, and their failures. */}
+      {today.notice ? (
+        <View style={{ position: 'absolute', top: theme.space[2], left: 0, right: 0 }}>
+          <Toast
+            key={today.notice.id}
+            variant={today.notice.variant}
+            title={today.notice.title}
+            subtitle={today.notice.subtitle}
+            onHide={today.clearNotice}
+          />
+        </View>
+      ) : null}
 
       <Modal
         transparent

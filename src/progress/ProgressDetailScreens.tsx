@@ -14,7 +14,7 @@ import { SectionHeader } from '../ui/SectionHeader';
 import { useTheme } from '../ui/theme';
 import { VolumeProgressSection } from '../volume/VolumeSection';
 
-import type { ProgressData } from './loadProgress';
+import type { ProgressData, ProgressExtra } from './loadProgress';
 import {
   ConsistencySection,
   InsightsSection,
@@ -23,6 +23,11 @@ import {
 } from './ProgressSections';
 import { buildProgressView, type ProgressView } from './progressView';
 import { useProgress } from './useProgress';
+
+const NO_EXTRAS: readonly ProgressExtra[] = [];
+const VOLUME: readonly ProgressExtra[] = ['volume'];
+const COMPANION: readonly ProgressExtra[] = ['companion'];
+const INSIGHTS: readonly ProgressExtra[] = ['insights'];
 
 type Ready = {
   data: ProgressData;
@@ -44,8 +49,11 @@ function DetailScreen({
   render,
   footer,
   selectedStepId,
+  extras,
 }: {
   title: string;
+  /** The computed parts this page shows (none by default); the base data is always read. */
+  extras?: readonly ProgressExtra[];
   render: (ready: Ready) => ReactNode;
   footer?: ReactNode;
   selectedStepId?: string | undefined;
@@ -54,7 +62,7 @@ function DetailScreen({
   const t = useT();
   const { width } = useWindowDimensions();
   const twoColumns = width >= theme.layout.twoColumnMin;
-  const { state, load, saveMetric } = useProgress();
+  const { state, load, saveMetric } = useProgress(extras ?? NO_EXTRAS);
 
   useFocusEffect(
     useCallback(() => {
@@ -109,6 +117,7 @@ export function ConsistencyDetailScreen() {
   return (
     <DetailScreen
       title={t('progress.hub.consistencyTitle')}
+      extras={VOLUME}
       render={({ data, view, twoColumns }) => (
         <>
           <ConsistencySection weekly={view.weekly} twoColumns={twoColumns} />
@@ -168,6 +177,7 @@ export function RhythmDetailScreen() {
   return (
     <DetailScreen
       title={t('progress.hub.rhythmTitle')}
+      extras={COMPANION}
       render={({ data }) =>
         data.companion ? (
           <CompanionSection companion={data.companion} />
@@ -191,6 +201,7 @@ export function InsightsDetailScreen() {
   return (
     <DetailScreen
       title={t('progress.hub.insightsTitle')}
+      extras={INSIGHTS}
       render={({ data }) => <InsightsSection insights={data.insights} />}
     />
   );

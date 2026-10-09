@@ -14,7 +14,7 @@ import { getTimerStore } from '../timers/store';
 import type { Step } from '../templates/schema';
 
 import { activeDeloadPct } from './deload';
-import { pickProgram, toRotationSessions, type GymProgram } from './program';
+import { pickProgram, ROTATION_LOOKBACK, toRotationSessions, type GymProgram } from './program';
 import {
   buildExerciseView,
   groupLogsByStep,
@@ -31,8 +31,6 @@ import { createKeyedQueue, memoizeUntilFailure } from './asyncControl';
 import { loadVolumeData, type VolumeData } from '../volume/loadVolume';
 import { createSetActions, nextLabelFor } from './setActions';
 import type { LocalizedText } from '../templates/localized';
-
-const ROTATION_LOOKBACK = 40;
 
 export type GymTabState =
   | { status: 'loading' }
@@ -53,12 +51,18 @@ export type GymTabState =
       history: HistoryEntry[];
     };
 
-/** Loads the program, today's routine (rotation) and any resumable session; call `reload` on focus. */
+/**
+ * Loads the program, today's routine (rotation) and any resumable session. Nothing loads until
+ * the first `reload` (call it on focus, which also covers mount).
+ */
 export function useGymTab(): GymTabState & { reload: () => void } {
   const [state, setState] = useState<GymTabState>({ status: 'loading' });
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
+    // The screens load on focus (`reload`), which also runs on mount: loading here as well
+    // would read everything twice.
+    if (version === 0) return;
     let cancelled = false;
     (async () => {
       try {
@@ -82,13 +86,17 @@ export function useGymTab(): GymTabState & { reload: () => void } {
         const today = dayKeyFor(new Date());
         // A workout left open on an earlier day (app killed) is closed at its last set.
         await repos.workouts.finishStaleSessions(today);
-        const recent = await repos.workouts.recentSessions(ROTATION_LOOKBACK);
+        const [recent, open, volume, deloadWeek, gymDays] = await Promise.all([
+          repos.workouts.recentSessions(ROTATION_LOOKBACK),
+          repos.workouts.unfinishedSessionOn(today),
+          loadVolumeData(repos, today).catch((error: unknown) => {
+            if (__DEV__) console.warn('Could not compute the weekly volume', error);
+            return null;
+          }),
+          repos.settings.get('deloadWeek'),
+          repos.settings.get('gymDays'),
+        ]);
         const routineIds = program.routines.map((routine) => routine.id);
-        const open = await repos.workouts.unfinishedSessionOn(today);
-        const volume = await loadVolumeData(repos, today).catch((error: unknown) => {
-          if (__DEV__) console.warn('Could not compute the weekly volume', error);
-          return null;
-        });
         const openWithSets = open
           ? recent.find((entry) => entry.session.id === open.id && entry.sets.length > 0)
           : undefined;
@@ -99,9 +107,9 @@ export function useGymTab(): GymTabState & { reload: () => void } {
           program.routines.find((routine) => routine.id === todayRoutineId),
           program.rules,
           weekday,
-          activeDeloadPct(await repos.settings.get('deloadWeek'), today),
+          activeDeloadPct(deloadWeek, today),
         ).catch(() => undefined);
-        const planned = plannedPerWeek((await repos.settings.get('gymDays')) ?? []);
+        const planned = plannedPerWeek(gymDays ?? []);
         if (!cancelled) {
           setState({
             status: 'ready',

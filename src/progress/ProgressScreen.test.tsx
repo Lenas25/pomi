@@ -47,7 +47,6 @@ function mockProgress(state: ProgressState) {
   const handlers = {
     load: jest.fn(async () => undefined),
     saveMetric: jest.fn(async () => undefined),
-    removePhoto: jest.fn(async () => undefined),
   };
   mocked.mockReturnValue({ state, ...handlers });
   return handlers;
@@ -121,7 +120,11 @@ describe('ProgressScreen (bento hub)', () => {
     expect(
       screen.getByRole('button', { name: 'Medidas: Peso 61,5 kg. Abrir detalle' }),
     ).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Fotos: 1 fotos. Abrir fotos' })).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: 'Fotos: 1 fotos. Míralas y bórralas en la galería. Abrir fotos',
+      }),
+    ).toBeTruthy();
     expect(
       screen.getByRole('button', {
         name: 'Revisión mensual: Hecha este mes. Abrir la comparación',

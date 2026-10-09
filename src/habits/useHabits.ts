@@ -157,6 +157,7 @@ export function useHabits() {
     state,
     feed,
     connecting,
+    load,
     refresh,
     connect,
     setWater,

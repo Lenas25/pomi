@@ -12,7 +12,7 @@ import {
 
 import { getRepositories } from '../db';
 import { dayKeyFor } from '../domain/time';
-import { useGymTab } from '../gym/useGym';
+import { bumpDataVersion } from '../db/dataVersion';
 import { useT } from '../i18n';
 import { requestNotificationSync } from '../notifications/sync';
 import { BottomSheet } from '../ui/BottomSheet';
@@ -20,7 +20,14 @@ import { Button } from '../ui/Button';
 import { Chip } from '../ui/Chip';
 import { TextField } from '../ui/TextField';
 import { useTheme, type SectionKey } from '../ui/theme';
-import { addGlassOfWater, checkinKindAt, loadQuickHabits, type QuickHabits } from './quickAdd';
+import {
+  addGlassOfWater,
+  checkinKindAt,
+  loadQuickHabits,
+  loadQuickMenu,
+  type QuickHabits,
+  type QuickMenu,
+} from './quickAdd';
 
 type ActionRowProps = {
   icon: Icon;
@@ -103,6 +110,26 @@ function useQuickHabits(): [QuickHabits | null | 'failed', () => Promise<void>] 
   return [data, async () => setData(await fetchData())];
 }
 
+/** The menu's light data (check-ins of today, the gym routine to start); `null` while loading. */
+function useQuickMenu(): QuickMenu | null | 'failed' {
+  const [data, setData] = useState<QuickMenu | null | 'failed'>(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadQuickMenu(getRepositories(), dayKeyFor(new Date()))
+      .catch((error: unknown) => {
+        if (__DEV__) console.error('Could not load the quick add menu', error);
+        return 'failed' as const;
+      })
+      .then((loaded) => {
+        if (!cancelled) setData(loaded);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return data;
+}
+
 /** "Marcar un hábito" in place: today's check habits as toggles (the Habits tab write). */
 function HabitsPanel() {
   const t = useT();
@@ -114,6 +141,7 @@ function HabitsPanel() {
   const toggle = async (habitId: string, done: boolean) => {
     try {
       await getRepositories().habitLogs.set(habitId, dayKeyFor(new Date()), done ? 1 : 0);
+      bumpDataVersion();
       void requestNotificationSync('dataChanged');
     } catch (error) {
       if (__DEV__) console.error('Could not save the habit', error);
@@ -160,6 +188,7 @@ function FoodPanel() {
   const save = async () => {
     try {
       await getRepositories().foodNotes.save(dayKeyFor(new Date()), value);
+      bumpDataVersion();
       setText(undefined);
       setStatus(t('quickAdd.foodSaved'));
     } catch (error) {
@@ -210,7 +239,7 @@ function QuickAddMenu({
 }) {
   const t = useT();
   const theme = useTheme();
-  const gym = useGymTab();
+  const menu = useQuickMenu();
   const [waterStatus, setWaterStatus] = useState<string | null>(null);
   const [savingWater, setSavingWater] = useState(false);
 
@@ -224,6 +253,7 @@ function QuickAddMenu({
     try {
       const result = await addGlassOfWater(getRepositories(), dayKeyFor(new Date()));
       if (result.status === 'added') {
+        bumpDataVersion();
         void requestNotificationSync('dataChanged');
         setWaterStatus(
           result.target === null
@@ -242,14 +272,22 @@ function QuickAddMenu({
   };
 
   const startGym = () => {
-    const routineId =
-      gym.status === 'ready' ? (gym.resumableRoutineId ?? gym.todayRoutineId) : null;
+    const routineId = menu !== null && menu !== 'failed' ? menu.gymRoutineId : null;
     go(() =>
       routineId
         ? router.push({ pathname: '/gym/session', params: { routineId } })
         : router.push('/gym'),
     );
   };
+
+  // Failed load: open the morning/night one by the clock (the check-in screen loads on its own).
+  const checkin =
+    menu === null
+      ? null
+      : checkinKindAt(
+          new Date().getHours(),
+          menu === 'failed' ? { morning: false, night: false } : menu.checkins,
+        );
 
   return (
     <View style={{ gap: theme.space[1] }}>
@@ -280,15 +318,12 @@ function QuickAddMenu({
       <ActionRow
         icon={SunHorizon}
         section="hoy"
-        label={t('quickAdd.checkin')}
-        onPress={() =>
-          go(() =>
-            router.push({
-              pathname: '/checkin/[tipo]',
-              params: { tipo: checkinKindAt(new Date().getHours()) },
-            }),
-          )
-        }
+        label={t(checkin === 'done' ? 'quickAdd.checkinDone' : 'quickAdd.checkin')}
+        disabled={checkin === null || checkin === 'done'}
+        onPress={() => {
+          if (checkin === null || checkin === 'done') return;
+          go(() => router.push({ pathname: '/checkin/[tipo]', params: { tipo: checkin } }));
+        }}
       />
       <ActionRow
         icon={ForkKnife}
@@ -300,7 +335,7 @@ function QuickAddMenu({
         icon={Barbell}
         section="gym"
         label={t('quickAdd.gym')}
-        disabled={gym.status === 'loading'}
+        disabled={menu === null}
         onPress={startGym}
       />
     </View>

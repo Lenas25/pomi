@@ -11,17 +11,22 @@ import type { ActivityKind } from '../domain/habits/activity';
 import { type PlannedChannel } from '../domain/notifications/buildUpcoming';
 import { greetingKey, identityPhrase } from '../domain/today/identity';
 import { dayKeyFor, minutesIntoDay } from '../domain/time';
-import { buildTimeline, isAllDone, type TimelineEntry } from '../domain/today/timeline';
+import {
+  buildTimeline,
+  isAllDone,
+  SNOOZE_MINUTES,
+  type TimelineEntry,
+} from '../domain/today/timeline';
 import { useLocaleStore, useT } from '../i18n';
 import { insightTexts } from '../insights/text';
 import { runWeeklyInsights } from '../insights/run';
 import { runDailySuggestions } from '../suggestions/run';
-import { useSuggestionActions } from '../suggestions/useSuggestionActions';
+import { useSuggestionActions, type SuggestionNotice } from '../suggestions/useSuggestionActions';
 import { suggestionTexts } from '../suggestions/text';
 import { requestNotificationSync } from '../notifications/sync';
 import { addGlassOfWater } from '../quickadd/quickAdd';
 
-import { isBedtimeEntry, snoozeContent } from './labels';
+import { entryTitle, isBedtimeEntry, snoozeContent } from './labels';
 import {
   markDone,
   postpone,
@@ -71,6 +76,8 @@ export function useToday() {
   const [load, setLoad] = useState<TodayLoad>({ status: 'loading' });
   const [now, setNow] = useState(() => new Date());
   const generation = useRef(0);
+  // Feedback of the row actions (done / postpone / skip) and their failures, as a toast.
+  const [actionNotice, setActionNotice] = useState<SuggestionNotice | null>(null);
   const loadedDay = useRef<string | undefined>(undefined);
   // The insight card of this session: once shown it is marked seen, and the next load no longer
   // returns it, but it must stay on Hoy until the app is closed (it would vanish under the reader).
@@ -205,23 +212,33 @@ export function useToday() {
   };
 
   const run = useCallback(
-    async (action: (data: TodayData) => Promise<ActionResult>): Promise<void> => {
+    async (
+      action: (data: TodayData) => Promise<ActionResult>,
+      feedback: Pick<SuggestionNotice, 'title' | 'subtitle'>,
+    ): Promise<void> => {
       if (load.status !== 'ready') return;
       try {
         const result = await action(load.data);
         if (result.type === 'changed') {
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
           void requestNotificationSync('dataChanged');
+          setActionNotice({ id: Date.now(), variant: 'info', ...feedback });
           await reload();
         } else {
           navigate(result);
         }
       } catch (error) {
         if (__DEV__) console.error('Could not update Hoy', error);
+        setActionNotice({
+          id: Date.now(),
+          variant: 'error',
+          title: t('today.feedback.failedTitle'),
+          subtitle: t('today.feedback.failed'),
+        });
         await reload();
       }
     },
-    [load, reload],
+    [load, reload, t],
   );
 
   const suggestions = useSuggestionActions(reload);
@@ -231,13 +248,28 @@ export function useToday() {
     view,
     reload,
     suggestionBusy: suggestions.busy,
-    notice: suggestions.notice,
-    clearNotice: suggestions.clearNotice,
+    notice: actionNotice ?? suggestions.notice,
+    clearNotice: () => {
+      setActionNotice(null);
+      suggestions.clearNotice();
+    },
     acceptSuggestion: suggestions.accept,
     declineSuggestion: suggestions.decline,
-    done: (entry: TimelineEntry) => run((data) => markDone(entry, deps(data))),
-    postpone: (entry: TimelineEntry) => run((data) => postpone(entry, deps(data))),
-    skip: (entry: TimelineEntry) => run((data) => skipToday(entry, deps(data))),
+    done: (entry: TimelineEntry) =>
+      run((data) => markDone(entry, deps(data)), {
+        title: t('today.feedback.doneTitle'),
+        subtitle: entryTitle(entry, t),
+      }),
+    postpone: (entry: TimelineEntry) =>
+      run((data) => postpone(entry, deps(data)), {
+        title: t('today.feedback.postponedTitle'),
+        subtitle: t('today.feedback.postponed', { minutes: SNOOZE_MINUTES }),
+      }),
+    skip: (entry: TimelineEntry) =>
+      run((data) => skipToday(entry, deps(data)), {
+        title: t('today.feedback.skippedTitle'),
+        subtitle: entryTitle(entry, t),
+      }),
     open: (entry: TimelineEntry) => {
       // The bedtime reminder opens the sleep-cycle calculator; any other reminder has no screen.
       if (isBedtimeEntry(entry)) {

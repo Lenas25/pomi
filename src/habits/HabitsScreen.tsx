@@ -19,6 +19,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { MiniBar, MiniDots } from '../ui/MiniMeter';
 import { Screen } from '../ui/Screen';
 import { SectionHeader } from '../ui/SectionHeader';
+import { useReloadOnDataChange } from '../db/dataVersion';
 import { useTheme, type Theme } from '../ui/theme';
 import { ActivityCard } from './ActivityCard';
 import type { HabitsView } from './habitsView';
@@ -244,7 +245,9 @@ export function HabitsScreen() {
   const language = useLocaleStore((state) => state.language);
   const habits = useHabits();
   const [asking, setAsking] = useState(false);
-  const { state, refresh } = habits;
+  const { state, refresh, load } = habits;
+  // A quick-add write (the sheet over this tab) does not blur it: reload on the shared signal.
+  useReloadOnDataChange(load);
 
   // Coming back to the tab (or from a detail page) refreshes the numbers and the steps feed.
   useFocusEffect(
@@ -253,10 +256,18 @@ export function HabitsScreen() {
     }, [refresh]),
   );
 
-  if (state.status === 'loading') return <Screen>{null}</Screen>;
+  const header = (
+    <SectionHeader
+      section="habitos"
+      title={t('habits.title')}
+      subtitle={t('habits.consistencyHint')}
+    />
+  );
+
+  if (state.status === 'loading') return <Screen header={header}>{null}</Screen>;
   if (state.status === 'error') {
     return (
-      <Screen>
+      <Screen header={header}>
         <EmptyState
           title={t('habits.loadError')}
           body={t('database.errorBody')}
@@ -279,15 +290,7 @@ export function HabitsScreen() {
   });
 
   return (
-    <Screen
-      header={
-        <SectionHeader
-          section="habitos"
-          title={t('habits.title')}
-          subtitle={t('habits.consistencyHint')}
-        />
-      }
-    >
+    <Screen header={header}>
       <ScrollView contentContainerStyle={{ paddingVertical: theme.space[4] }}>
         <BentoGrid items={tiles} />
       </ScrollView>

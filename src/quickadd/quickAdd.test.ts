@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { createRepositories, type Repositories } from '../db/repositories';
 import { createTestDb } from '../db/testing/createTestDb';
 import { loadDefaultTemplates } from '../templates/defaults';
-import { addGlassOfWater, checkinKindAt, loadQuickHabits } from './quickAdd';
+import { addGlassOfWater, checkinKindAt, loadQuickHabits, loadQuickMenu } from './quickAdd';
 
 let repos: Repositories;
 let close: () => void;
@@ -38,11 +38,40 @@ describe('addGlassOfWater', () => {
 });
 
 describe('checkinKindAt', () => {
+  const none = { morning: false, night: false };
   it('opens the morning check-in before 15:00 and the night one after', () => {
-    expect(checkinKindAt(7)).toBe('morning');
-    expect(checkinKindAt(14)).toBe('morning');
-    expect(checkinKindAt(15)).toBe('night');
-    expect(checkinKindAt(23)).toBe('night');
+    expect(checkinKindAt(7, none)).toBe('morning');
+    expect(checkinKindAt(14, none)).toBe('morning');
+    expect(checkinKindAt(15, none)).toBe('night');
+    expect(checkinKindAt(23, none)).toBe('night');
+  });
+
+  it('offers the pending one when the one of the hour is done, and done when both are', () => {
+    expect(checkinKindAt(20, { morning: false, night: true })).toBe('morning');
+    expect(checkinKindAt(9, { morning: true, night: false })).toBe('night');
+    expect(checkinKindAt(9, { morning: true, night: true })).toBe('done');
+  });
+});
+
+describe('loadQuickMenu', () => {
+  it('reads today’s check-ins and resolves today’s routine', async () => {
+    await repos.templates.saveModules(loadDefaultTemplates().modules, 'add');
+    await repos.checkins.upsert('2026-10-06', 'morning', {});
+    const menu = await loadQuickMenu(repos, '2026-10-06');
+    expect(menu.checkins).toEqual({ morning: true, night: false });
+    expect(menu.gymRoutineId).toEqual(expect.any(String));
+  });
+
+  it('counts a check-in turned off in Ajustes as nothing to offer', async () => {
+    await repos.settings.set('checkinPrefs', { morning: true, night: false, monthlyReviewDay: 1 });
+    expect((await loadQuickMenu(repos, '2026-10-06')).checkins).toEqual({
+      morning: false,
+      night: true,
+    });
+  });
+
+  it('has no routine without a program', async () => {
+    expect((await loadQuickMenu(repos, '2026-10-06')).gymRoutineId).toBeNull();
   });
 });
 

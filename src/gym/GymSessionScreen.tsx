@@ -3,6 +3,7 @@
 // `useGymSession` + the timer store; only the layout changed.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   FlatList,
   Pressable,
   ScrollView,
@@ -18,6 +19,7 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { useStore } from 'zustand';
 import { CaretLeft, CaretRight, type Icon } from 'phosphor-react-native';
 
+import { dayKeyFor } from '../domain/time';
 import { useT } from '../i18n';
 import { useTemplateText } from '../i18n/templateText';
 import type { Step } from '../templates/schema';
@@ -33,6 +35,7 @@ import { useTheme } from '../ui/theme';
 import { ExerciseCard } from './ExerciseCard';
 import type { StoredSet } from './sessionViewModel';
 import { SessionSummaryCard, StepRow, WarmupSection, type NonSetsStep } from './StepBlocks';
+import { clearDoneSteps, getDoneSteps, saveDoneSteps, sessionStepsKey } from './sessionStepsStore';
 import { useGymSession, type SessionExercise } from './useGym';
 
 const FINISHED_SHEET_MS = 5000;
@@ -80,6 +83,26 @@ export function buildSessionPages(
   flush();
   pages.push({ kind: 'finish', key: 'finish' });
   return pages;
+}
+
+/**
+ * The page a session opens on: the warm-up (first page) for a fresh session; on resume, the first
+ * exercise with sets still pending, or the finish page when every exercise is done.
+ */
+export function initialPageIndex(
+  pages: readonly SessionPage[],
+  logsByStep: ReadonlyMap<string, readonly StoredSet[]>,
+): number {
+  const logged = (stepId: string) =>
+    (logsByStep.get(stepId) ?? []).filter((log) => (log.reps ?? 0) > 0).length;
+  const started = pages.some(
+    (page) => page.kind === 'exercise' && logged(page.exercise.step.id) > 0,
+  );
+  if (!started) return 0;
+  const pending = pages.findIndex(
+    (page) => page.kind === 'exercise' && logged(page.exercise.step.id) < page.exercise.step.sets,
+  );
+  return pending === -1 ? Math.max(0, pages.length - 1) : pending;
 }
 
 /**
@@ -155,14 +178,19 @@ export function GymSessionScreen() {
   const activeOwner = useStore(store, (state) =>
     state.active && state.active.state.status !== 'finished' ? state.active.owner : '',
   );
-  const [doneSteps, setDoneSteps] = useState<ReadonlySet<string>>(new Set());
+  // Warm-up / cardio checks survive leaving and resuming today's session of this routine.
+  const [stepsKey] = useState(() => sessionStepsKey(dayKeyFor(new Date()), routineId ?? ''));
+  const [doneSteps, setDoneSteps] = useState<ReadonlySet<string>>(() => getDoneSteps(stepsKey));
   const [sheetHeight, setSheetHeight] = useState(0);
   const [finishing, setFinishing] = useState(false);
-  const [page, setPage] = useState(0);
+  // `null` until the session loads: then it is seeded (resume opens the first pending exercise).
+  const [page, setPage] = useState<number | null>(null);
   const [pageWidth, setPageWidth] = useState(
     Math.min(window.width, theme.layout.maxContentWidth) - theme.space[5] * 2,
   );
   const listRef = useRef<FlatList<SessionPage>>(null);
+
+  useEffect(() => saveDoneSteps(stepsKey, doneSteps), [stepsKey, doneSteps]);
 
   // Screen stays on while training; ticking, beeps, alarm and haptics are handled by this hook.
   useKeepAwake();
@@ -201,9 +229,39 @@ export function GymSessionScreen() {
     [session.state],
   );
 
+  if (page === null && pages.length > 0) setPage(initialPageIndex(pages, session.logsByStep));
+  const lastPage = pages.length - 1;
+  const current = Math.max(0, Math.min(page ?? 0, lastPage));
+  const pageName = (item: SessionPage | undefined): string => {
+    if (!item) return '';
+    if (item.kind === 'warmup') return t('gym.session.warmup');
+    if (item.kind === 'exercise') return text(item.exercise.step.name);
+    if (item.kind === 'extras') return t('gym.session.extrasTitle');
+    return t('gym.session.finishTitle');
+  };
+
+  const pageLabel = (index: number) =>
+    t('gym.session.pagePosition', {
+      current: index + 1,
+      total: pages.length,
+      name: pageName(pages[index]),
+    });
+
+  // Moving to another page is announced (TalkBack and VoiceOver); the first page is not.
+  const announcedPage = useRef<number | null>(null);
+  useEffect(() => {
+    if (page === null) return;
+    if (announcedPage.current !== null && announcedPage.current !== current) {
+      AccessibilityInfo.announceForAccessibility(pageLabel(current));
+    }
+    announcedPage.current = current;
+    // Only when the page changes (the label follows it).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, page === null]);
+
   // A new page width (rotation, split screen) keeps the current page in view.
   useEffect(() => {
-    listRef.current?.scrollToOffset({ offset: page * pageWidth, animated: false });
+    listRef.current?.scrollToOffset({ offset: current * pageWidth, animated: false });
     // Only on width changes; page changes scroll by themselves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageWidth]);
@@ -230,9 +288,6 @@ export function GymSessionScreen() {
   const runningStepId = /^(wait|timed):/.test(activeOwner)
     ? activeOwner.slice(activeOwner.indexOf(':') + 1)
     : null;
-  const lastPage = pages.length - 1;
-  const current = Math.min(page, lastPage);
-
   const goTo = (index: number) => {
     const target = Math.max(0, Math.min(lastPage, index));
     setPage(target);
@@ -282,6 +337,7 @@ export function GymSessionScreen() {
     setFinishing(true);
     try {
       const result = await session.finish();
+      if (result.status !== 'error') clearDoneSteps(stepsKey);
       // No sets logged: nothing to summarize. An error keeps the session open (error toast).
       if (result.status === 'empty') router.back();
     } finally {
@@ -292,21 +348,13 @@ export function GymSessionScreen() {
   const summary = session.summary;
   const bottomPadding = timerStatus !== null ? sheetHeight + theme.space[4] : theme.space[8];
 
-  const pageName = (item: SessionPage | undefined): string => {
-    if (!item) return '';
-    if (item.kind === 'warmup') return t('gym.session.warmup');
-    if (item.kind === 'exercise') return text(item.exercise.step.name);
-    if (item.kind === 'extras') return t('gym.session.extrasTitle');
-    return t('gym.session.finishTitle');
-  };
-
   const pageTitle = (title: string) => (
     <Text accessibilityRole="header" style={[theme.text('title-md'), { color: theme.color.text }]}>
       {title}
     </Text>
   );
 
-  const renderPage = ({ item }: { item: SessionPage }) => {
+  const renderPage = ({ item, index }: { item: SessionPage; index: number }) => {
     let body;
     if (item.kind === 'warmup') {
       body = (
@@ -366,7 +414,13 @@ export function GymSessionScreen() {
       );
     }
     return (
-      <View testID={`session-page-${item.key}`} style={{ width: pageWidth }}>
+      <View
+        testID={`session-page-${item.key}`}
+        // Only the visible page is in the screen reader's reach (the others are off-screen).
+        accessibilityElementsHidden={index !== current}
+        importantForAccessibility={index === current ? 'auto' : 'no-hide-descendants'}
+        style={{ width: pageWidth }}
+      >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
@@ -434,12 +488,7 @@ export function GymSessionScreen() {
             <View
               testID="session-dots"
               accessible
-              accessibilityLiveRegion="polite"
-              accessibilityLabel={t('gym.session.pagePosition', {
-                current: current + 1,
-                total: pages.length,
-                name: pageName(pages[current]),
-              })}
+              accessibilityLabel={pageLabel(current)}
               style={{
                 flex: 1,
                 flexDirection: 'row',
@@ -481,7 +530,15 @@ export function GymSessionScreen() {
               data={pages}
               keyExtractor={(item) => item.key}
               renderItem={renderPage}
-              extraData={[doneSteps, session.logsByStep, runningStepId, finishing, bottomPadding]}
+              extraData={[
+                doneSteps,
+                session.logsByStep,
+                runningStepId,
+                finishing,
+                bottomPadding,
+                current,
+              ]}
+              initialScrollIndex={current}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
