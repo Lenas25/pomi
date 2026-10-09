@@ -61,6 +61,11 @@ function RootStack() {
           <Stack.Screen name="fotos" />
           <Stack.Screen name="ciclos-sueno" />
           <Stack.Screen name="hoy/agenda" />
+          <Stack.Screen name="habitos/agua" />
+          <Stack.Screen name="habitos/pasos" />
+          <Stack.Screen name="habitos/sueno" />
+          <Stack.Screen name="habitos/comida" />
+          <Stack.Screen name="habitos/[id]" />
           <Stack.Screen name="acerca" />
           <Stack.Screen name="importar-programa" />
           <Stack.Screen name="crear-rutina" />

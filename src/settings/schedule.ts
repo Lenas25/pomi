@@ -20,6 +20,14 @@ import type { Anchors, GymPlan } from '../templates/schema';
 
 type StoredGoals = SettingsValue<'goals'>;
 
+/** Shown when a goal was never set (the person can still move it). */
+export const FALLBACK_GOALS = {
+  waterGlassesRest: 8,
+  waterGlassesGym: 10,
+  stepsGoal: 7000,
+} as const;
+export const STEPS_STEP = 500;
+
 export type ScheduleSettings = {
   wake: string;
   sleepTargetH: number;

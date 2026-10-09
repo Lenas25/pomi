@@ -106,6 +106,10 @@ Tipografía: ver `BRAND.md` sección 5 (`display`, `title-lg`, `title-md`, `titl
 5. Al completar todo: `MascotBubble` `descansa` + "Listo por hoy. Cierra la app y descansa".
 6. Registrar: "Marcar un hábito" y "Nota de comida" actúan en la misma hoja (lista de hábitos / nota), sin navegar.
 
+### Hábitos (hub bento)
+1. `SectionHeader` verde + `BentoGrid` con baldosas teñidas por categoría: Agua 2x1 (gotas + "+1"), Pasos 1x1 (barra), Sueño 1x1 (duración y calidad de anoche), un 1x1 por hábito de check (Pausa activa, Caminar después de comer), Comida 1x1 (nota sí/no), Movimiento 1x1 ("¿Te moviste hoy?" en hoja).
+2. Detalle (scroll permitido): `/habitos/agua` (gotas, 10 días, curva por hora, metas), `/habitos/pasos` (conteo, Health Connect / entrada manual, línea base, meta), `/habitos/sueno` (promedio, noches, deuda, jetlag social, check-ins, ciclos), `/habitos/[id]` (marcar, cómo hacerlo, 10 días), `/habitos/comida` (nota y notas recientes).
+
 ### Sesión de gym
 1. Encabezado: "Día 1: Glúteos e isquios" + progreso de series.
 2. Calentamiento plegable (checks).

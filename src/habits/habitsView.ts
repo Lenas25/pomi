@@ -58,7 +58,13 @@ export type CheckView = {
   consistency: Consistency;
 };
 
-export type FoodView = { prompt: string; note: string; consistency: Consistency };
+export type FoodView = {
+  prompt: string;
+  note: string;
+  consistency: Consistency;
+  /** Earlier non-empty notes of the history window, newest first. */
+  recent: { date: string; text: string }[];
+};
 
 export type HabitsView = {
   water: WaterView | null;
@@ -166,6 +172,10 @@ export function buildHabitsView(data: HabitsData, today: string): HabitsView {
     ? {
         prompt: templateText(notes.prompt),
         note: data.foodNotes.find((note) => note.date === today)?.text ?? '',
+        recent: data.foodNotes
+          .filter((note) => note.date !== today && note.text.trim() !== '')
+          .slice()
+          .sort((a, b) => b.date.localeCompare(a.date)),
         consistency: consistency(
           today,
           data.foodNotes.map((note) => note.date),

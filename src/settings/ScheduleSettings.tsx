@@ -13,7 +13,9 @@ import { useTheme } from '../ui/theme';
 import { WEEK_ORDER, WeekdayChips } from '../ui/WeekdayChips';
 
 import {
+  FALLBACK_GOALS,
   loadScheduleSettings,
+  STEPS_STEP,
   planForDays,
   saveAnchors,
   saveGoals,
@@ -31,10 +33,7 @@ const LONG_DAY = [
   'weekdays.long.d6',
 ] as const;
 
-/** Shown when a goal was never set (the person can still move it from here). */
-const FALLBACK_GOALS = { waterGlassesRest: 8, waterGlassesGym: 10, stepsGoal: 7000 } as const;
 const SLEEP_STEP_H = 0.5;
-const STEPS_STEP = 500;
 
 type WriteKey = 'anchors' | 'gym' | 'goals';
 

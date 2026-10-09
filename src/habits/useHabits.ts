@@ -6,7 +6,6 @@ import { format, parseISO, subDays } from 'date-fns';
 import { requestNotificationSync } from '../notifications/sync';
 import { getRepositories } from '../db';
 import type { ActivityKind } from '../domain/habits/activity';
-import type { SleepSummary } from '../domain/formulas/sleep';
 import {
   connectAndSync,
   getHealthAdapter,
@@ -15,9 +14,10 @@ import {
   type SyncOutcome,
 } from '../health';
 import { dayKeyFor } from '../domain/time';
+import { saveGoals as saveStoredGoals } from '../settings/schedule';
 import { loadHabitsData } from './habitsData';
 import { buildHabitsView, type HabitsView } from './habitsView';
-import { loadSleepSummary } from './sleepStats';
+import { loadSleepDetail, type SleepDetail } from './sleepStats';
 
 /** How the step counter is being fed (drives the notice under the counter). */
 export type StepsFeed =
@@ -26,7 +26,7 @@ export type StepsFeed =
 export type HabitsState =
   | { status: 'loading' }
   | { status: 'error' }
-  | { status: 'ready'; today: string; view: HabitsView; sleep: SleepSummary | null };
+  | { status: 'ready'; today: string; view: HabitsView; sleep: SleepDetail };
 
 const SYNC_DAYS = 7;
 /** Health Connect only returns data from 30 days before the first grant, so that is the backfill. */
@@ -50,7 +50,7 @@ export function useHabits() {
       const today = dayKeyFor(new Date());
       const [data, sleep] = await Promise.all([
         loadHabitsData(repos, today),
-        loadSleepSummary(repos, today),
+        loadSleepDetail(repos, today),
       ]);
       if (ticket !== generation.current) return;
       setState({ status: 'ready', today, view: buildHabitsView(data, today), sleep });
@@ -141,6 +141,12 @@ export function useHabits() {
     [write],
   );
 
+  const saveGoals = useCallback(
+    (patch: { waterGlassesRest?: number; waterGlassesGym?: number; stepsGoal?: number }) =>
+      write(() => saveStoredGoals(getRepositories(), patch)),
+    [write],
+  );
+
   const answerActivity = useCallback(
     (kind: ActivityKind) =>
       write(() => getRepositories().activity.upsert(dayKeyFor(new Date()), kind, 'manual')),
@@ -157,6 +163,7 @@ export function useHabits() {
     setCheck,
     saveSteps,
     saveFood,
+    saveGoals,
     answerActivity,
     openHealthSettings: () => getHealthAdapter().openSettings(),
   };

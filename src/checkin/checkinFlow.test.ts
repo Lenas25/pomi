@@ -4,7 +4,7 @@ import { createRepositories, type Repositories } from '../db/repositories';
 import { createTestDb } from '../db/testing/createTestDb';
 import type { Db } from '../db/types';
 import { loadDefaultTemplates } from '../templates/defaults';
-import { loadSleepSummary } from '../habits/sleepStats';
+import { loadSleepDetail, loadSleepSummary } from '../habits/sleepStats';
 import { loadCheckin, saveCheckin, type CheckinPlan } from './checkinFlow';
 
 let db: Db;
@@ -131,5 +131,11 @@ describe('saveCheckin', () => {
       avgDurationMin: 435,
       wakeRegularityMin: 30,
     });
+    const detail = await loadSleepDetail(repos, '2026-10-06');
+    expect(detail.summary).toEqual(await loadSleepSummary(repos, '2026-10-06'));
+    expect(detail.nights).toEqual([
+      { date: '2026-10-06', bed: '00:00', wake: '07:00', durationMin: 420, quality: 3 },
+      { date: '2026-10-05', bed: '23:00', wake: '06:30', durationMin: 450, quality: 4 },
+    ]);
   });
 });
