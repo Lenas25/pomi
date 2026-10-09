@@ -23,14 +23,29 @@ export function buildSystemPrompt(strings: AiPromptStrings): string {
   return strings.rules.join('\n');
 }
 
-/** The single user message: the question, then the data as JSON (what the preview shows). */
+/**
+ * The single user message (what the preview shows): one intro line, then ONE JSON object whose
+ * fields delimit the untrusted text: `QUESTION` (what the person typed), `DATA` (engine aggregates)
+ * and `NOTES` (free-text notes, only when included). JSON escaping keeps a note or question from
+ * closing its field; the system prompt says these fields are data, never instructions.
+ */
 export function buildUserMessage(
   question: string,
   context: AiContext,
   strings: AiPromptStrings,
 ): string {
   const asked = question.trim().slice(0, MAX_QUESTION_LENGTH);
-  return `${strings.questionLabel}\n${asked}\n\n${strings.dataLabel}\n${JSON.stringify(context, null, 2)}`;
+  const { foodNotes, dayNotes, ...data } = context;
+  const notes = {
+    ...(foodNotes !== undefined ? { foodNotes } : {}),
+    ...(dayNotes !== undefined ? { dayNotes } : {}),
+  };
+  const payload = {
+    QUESTION: asked,
+    DATA: data,
+    ...(Object.keys(notes).length > 0 ? { NOTES: notes } : {}),
+  };
+  return `${strings.questionLabel}\n${strings.dataLabel}\n${JSON.stringify(payload, null, 2)}`;
 }
 
 export function buildAiRequest(

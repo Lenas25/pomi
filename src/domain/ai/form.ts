@@ -14,13 +14,19 @@ export type AiDraft = {
   model: string;
   /** What the person typed in the key field ('' = keep the stored key). */
   keyInput: string;
-  /** A key already sits in the secure store. */
+  /** A key bound to THIS draft's provider and origin sits in the secure store (see `sameDestination`). */
   hasStoredKey: boolean;
   maxOutputTokens: number;
 };
 
 export type AiFormError =
-  'urlEmpty' | 'urlInvalid' | 'httpsRequired' | 'modelEmpty' | 'keyEmpty' | 'keyTooLong';
+  | 'urlEmpty'
+  | 'urlInvalid'
+  | 'httpsRequired'
+  | 'keyNeedsHttps'
+  | 'modelEmpty'
+  | 'keyEmpty'
+  | 'keyTooLong';
 
 export type AiFormResult =
   | { ok: true; connection: AiConnection; key: string | null }
@@ -34,7 +40,8 @@ export function draftFor(
   return {
     provider,
     customBaseUrl: same ? (current?.customBaseUrl ?? '') : '',
-    model: same ? (current?.model ?? '') : AI_PRESETS[provider].defaultModel,
+    // No default model id (see `AI_PRESETS`): the person types the exact id.
+    model: same ? (current?.model ?? '') : '',
     keyInput: '',
     maxOutputTokens: current?.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
   };
@@ -44,10 +51,12 @@ export function draftFor(
 export function validateDraft(draft: AiDraft): AiFormResult {
   const preset = AI_PRESETS[draft.provider];
   const errors: Partial<Record<'url' | 'model' | 'key', AiFormError>> = {};
+  const key = draft.keyInput.trim();
   let customBaseUrl: string | undefined;
   if (preset.baseUrl === null) {
-    const check = checkBaseUrl(draft.customBaseUrl);
+    const check = checkBaseUrl(draft.customBaseUrl, { withKey: key !== '' || draft.hasStoredKey });
     if (check.ok) customBaseUrl = check.url;
+    else if (check.reason === 'keyNeedsHttps') errors.key = 'keyNeedsHttps';
     else {
       errors.url =
         check.reason === 'empty'
@@ -59,7 +68,6 @@ export function validateDraft(draft: AiDraft): AiFormResult {
   }
   const model = draft.model.trim();
   if (model === '') errors.model = 'modelEmpty';
-  const key = draft.keyInput.trim();
   if (key.length > MAX_KEY_LENGTH_CHARS) errors.key = 'keyTooLong';
   else if (preset.keyRequired && key === '' && !draft.hasStoredKey) errors.key = 'keyEmpty';
   if (Object.keys(errors).length > 0) return { ok: false, errors };

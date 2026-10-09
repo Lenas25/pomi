@@ -135,8 +135,8 @@ describe('prompt builder', () => {
     const request = buildAiRequest('  ¿Agua?  ', context, promptStringsFor('es'));
     expect(request.messages).toHaveLength(1);
     const content = request.messages[0]?.content ?? '';
-    expect(content.startsWith('Pregunta:\n¿Agua?\n\n')).toBe(true);
-    expect(content).toContain(JSON.stringify(context, null, 2));
+    const json = content.slice(content.indexOf('{'));
+    expect(JSON.parse(json)).toEqual({ QUESTION: '¿Agua?', DATA: context });
     expect(content).not.toMatch(/SECRET/);
   });
 
@@ -146,7 +146,7 @@ describe('prompt builder', () => {
       { today: 'd', periodDays: 30 },
       promptStringsFor('es'),
     );
-    expect(request.messages[0]?.content).toContain('x'.repeat(MAX_QUESTION_LENGTH) + '\n');
+    expect(request.messages[0]?.content).toContain('x'.repeat(MAX_QUESTION_LENGTH) + '"');
     expect(request.messages[0]?.content).not.toContain('x'.repeat(MAX_QUESTION_LENGTH + 1));
     expect(buildPingRequest(promptStringsFor('es'), 'ok').messages).toEqual([
       { role: 'user', content: 'ok' },
@@ -174,7 +174,6 @@ describe('base URL validation', () => {
       'http://192.168.1.20:11434/v1',
       'http://10.0.0.5:8000/v1',
       'http://172.20.1.2:8000/v1',
-      'http://mi-pc.local:1234/v1',
       'http://[::1]:11434/v1',
     ]) {
       expect(checkBaseUrl(url).ok).toBe(true);
@@ -193,7 +192,7 @@ describe('base URL validation', () => {
 });
 
 describe('providers and form', () => {
-  const base: AiDraft = { ...draftFor('openai'), hasStoredKey: false };
+  const base: AiDraft = { ...draftFor('openai'), hasStoredKey: false, model: 'm' };
 
   it('presets carry their own URL; custom uses the typed one', () => {
     expect(baseUrlOf({ provider: 'gemini' })).toBe(AI_PRESETS.gemini.baseUrl);

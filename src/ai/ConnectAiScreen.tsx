@@ -8,6 +8,7 @@ import {
   AI_PRESETS,
   AI_PROVIDERS,
   MAX_OUTPUT_TOKEN_CHOICES,
+  sameDestination,
   type AiProviderId,
 } from '../domain/ai/providers';
 import { useLocaleStore, useT } from '../i18n';
@@ -19,7 +20,7 @@ import { TextField } from '../ui/TextField';
 import { useTheme } from '../ui/theme';
 
 import type { AiErrorCode } from './adapters';
-import { disconnect, testConnection } from './connection';
+import { disconnect, saveConnection, testConnection } from './connection';
 import { getAiKeyStore } from './keyStore';
 import { useAiStatus, type AiStatus } from './useAiStatus';
 
@@ -59,12 +60,13 @@ function ConnectAiForm({ initial, status, reload }: FormProps) {
   const [busy, setBusy] = useState<'save' | 'test' | 'disconnect' | null>(null);
 
   const change = (patch: Partial<AiDraft>) => {
-    setDraft({ ...draft, ...patch });
+    const next = { ...draft, ...patch };
+    // A stored key only counts for the SAME provider and origin it was saved for.
+    setDraft({ ...next, hasStoredKey: status.hasKey && sameDestination(status.connection, next) });
     setErrors({});
     setNotice(null);
   };
-  const pickProvider = (provider: AiProviderId) =>
-    change({ ...draftFor(provider, status.connection), hasStoredKey: draft.hasStoredKey });
+  const pickProvider = (provider: AiProviderId) => change(draftFor(provider, status.connection));
 
   const save = async () => {
     const result = validateDraft(draft);
@@ -74,8 +76,13 @@ function ConnectAiForm({ initial, status, reload }: FormProps) {
     }
     setBusy('save');
     try {
-      if (result.key !== null) await getAiKeyStore().save(result.key);
-      await getRepositories().settings.set('aiConnection', result.connection);
+      await saveConnection(
+        getRepositories(),
+        getAiKeyStore(),
+        status.connection,
+        result.connection,
+        result.key,
+      );
       setDraft({ ...draft, keyInput: '', hasStoredKey: draft.hasStoredKey || result.key !== null });
       setNotice({ kind: 'ok', text: 'saved' });
       await reload();
@@ -192,13 +199,16 @@ function ConnectAiForm({ initial, status, reload }: FormProps) {
                 label={t('ai.connect.model')}
                 value={draft.model}
                 onChangeText={(model) => change({ model })}
+                placeholder={t('ai.connect.modelPlaceholder')}
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={200}
                 error={errors.model ? t(`ai.connect.${errors.model}`) : undefined}
               />
               <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                {t('ai.connect.modelHint')}
+                {preset.modelsDocs !== ''
+                  ? t('ai.connect.modelHintDocs', { docs: preset.modelsDocs })
+                  : t('ai.connect.modelHint')}
               </Text>
 
               <TextField

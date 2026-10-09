@@ -1,4 +1,5 @@
-// Chat history kept on the device (settings key `aiChat`, part of the JSON backup; never the key).
+// Chat history kept on the device (settings key `aiChat`; in the JSON backup only when the person
+// switches it on, see `createBackup`; never the key).
 // PURE helpers.
 
 export const MAX_HISTORY_MESSAGES = 60;

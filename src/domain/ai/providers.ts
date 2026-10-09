@@ -1,6 +1,8 @@
 // "Conectar mi IA" (PLAN §14d): the providers the person can pick. PURE data + helpers.
-// Endpoints and model ids were checked against each provider's official docs (2026-10-08); the
-// model is only a starting value, the person can type any model id their account offers.
+// Endpoints were checked against each provider's official docs (2026-10-08). There is NO default
+// model id: ids change often and a wrong one only fails later with a 404, so the person types the
+// exact id from their provider's model list (`modelsDocs`, shown as a hint).
+import { originOf } from './url';
 
 export const AI_PROVIDERS = [
   'openai',
@@ -24,8 +26,8 @@ export type AiProviderPreset = {
   adapter: AiAdapterKind;
   /** Fixed base URL; `null` = the person types it ("URL propia"). */
   baseUrl: string | null;
-  /** Starting model id (editable); empty = the person types it. */
-  defaultModel: string;
+  /** Where the provider lists its model ids (host/path shown in the model hint); '' = none. */
+  modelsDocs: string;
   /** Self-hosted servers usually run without a key. */
   keyRequired: boolean;
   maxTokensField: MaxTokensField;
@@ -36,7 +38,7 @@ export const AI_PRESETS: Readonly<Record<AiProviderId, AiProviderPreset>> = {
     id: 'openai',
     adapter: 'openai',
     baseUrl: 'https://api.openai.com/v1',
-    defaultModel: 'gpt-6-luna',
+    modelsDocs: 'platform.openai.com/docs/models',
     keyRequired: true,
     // OpenAI deprecated `max_tokens` for chat completions.
     maxTokensField: 'max_completion_tokens',
@@ -45,7 +47,7 @@ export const AI_PRESETS: Readonly<Record<AiProviderId, AiProviderPreset>> = {
     id: 'gemini',
     adapter: 'openai',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    defaultModel: 'gemini-3.8-flash',
+    modelsDocs: 'ai.google.dev/gemini-api/docs/models',
     keyRequired: true,
     maxTokensField: 'max_tokens',
   },
@@ -53,7 +55,7 @@ export const AI_PRESETS: Readonly<Record<AiProviderId, AiProviderPreset>> = {
     id: 'moonshot',
     adapter: 'openai',
     baseUrl: 'https://api.moonshot.ai/v1',
-    defaultModel: 'kimi-k3',
+    modelsDocs: 'platform.moonshot.ai/docs',
     keyRequired: true,
     maxTokensField: 'max_completion_tokens',
   },
@@ -61,7 +63,7 @@ export const AI_PRESETS: Readonly<Record<AiProviderId, AiProviderPreset>> = {
     id: 'minimax',
     adapter: 'openai',
     baseUrl: 'https://api.minimax.io/v1',
-    defaultModel: '',
+    modelsDocs: 'platform.minimax.io/docs',
     keyRequired: true,
     maxTokensField: 'max_completion_tokens',
   },
@@ -69,7 +71,7 @@ export const AI_PRESETS: Readonly<Record<AiProviderId, AiProviderPreset>> = {
     id: 'openrouter',
     adapter: 'openai',
     baseUrl: 'https://openrouter.ai/api/v1',
-    defaultModel: '',
+    modelsDocs: 'openrouter.ai/models',
     keyRequired: true,
     maxTokensField: 'max_tokens',
   },
@@ -77,7 +79,7 @@ export const AI_PRESETS: Readonly<Record<AiProviderId, AiProviderPreset>> = {
     id: 'anthropic',
     adapter: 'anthropic',
     baseUrl: 'https://api.anthropic.com',
-    defaultModel: 'claude-haiku-5-5',
+    modelsDocs: 'docs.anthropic.com/en/docs/about-claude/models',
     keyRequired: true,
     maxTokensField: 'max_tokens',
   },
@@ -85,7 +87,7 @@ export const AI_PRESETS: Readonly<Record<AiProviderId, AiProviderPreset>> = {
     id: 'custom',
     adapter: 'openai',
     baseUrl: null,
-    defaultModel: '',
+    modelsDocs: '',
     // Ollama, LM Studio and vLLM accept requests without a key by default.
     keyRequired: false,
     maxTokensField: 'max_tokens',
@@ -135,4 +137,30 @@ export function endpointOf(connection: AiConnection, apiKey: string | null): AiE
     maxOutputTokens: connection.maxOutputTokens,
     maxTokensField: preset.maxTokensField,
   };
+}
+
+/** Where a stored API key may be sent: one secure-store entry per provider, bound to an origin. */
+export type KeyTarget = { provider: AiProviderId; origin: string };
+
+/** The key target of a connection, or `null` when its base URL is not valid. */
+export function keyTargetOf(
+  connection: Pick<AiConnection, 'provider' | 'customBaseUrl'>,
+): KeyTarget | null {
+  const origin = originOf(baseUrlOf(connection));
+  return origin === null ? null : { provider: connection.provider, origin };
+}
+
+/** Same provider AND same origin: only then may a stored key be reused. */
+export function sameDestination(
+  a: Pick<AiConnection, 'provider' | 'customBaseUrl'> | undefined,
+  b: Pick<AiConnection, 'provider' | 'customBaseUrl'> | undefined,
+): boolean {
+  const first = a ? keyTargetOf(a) : null;
+  const second = b ? keyTargetOf(b) : null;
+  return (
+    first !== null &&
+    second !== null &&
+    first.provider === second.provider &&
+    first.origin === second.origin
+  );
 }

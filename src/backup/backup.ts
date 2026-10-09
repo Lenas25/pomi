@@ -42,17 +42,46 @@ export type ExportOptions = {
   appVersion: string;
   /** Include the photo rows (the image files are exported separately, see `src/photos`). Default false. */
   includePhotos?: boolean;
+  /** Include the "Pregúntale a Pomi" chat history (settings key `aiChat`). Default false (privacy). */
+  includeAiChat?: boolean;
   now?: () => Date;
 };
+
+/** Settings key of the AI chat history (left out of a backup unless asked for). */
+export const AI_CHAT_SETTING = 'aiChat';
+/** Settings key of the AI connection (always restored switched OFF). */
+export const AI_CONNECTION_SETTING = 'aiConnection';
+
+type SettingRow = { key: string; value: string };
+
+/**
+ * A restored "Conectar mi IA" connection is ALWAYS switched off: the backup file may come from
+ * anywhere, so the person re-enables it (and re-enters the key) on this phone. An unreadable value
+ * is dropped.
+ */
+export function disableRestoredAi(rows: readonly SettingRow[]): SettingRow[] {
+  return rows.flatMap((row) => {
+    if (row.key !== AI_CONNECTION_SETTING) return [row];
+    try {
+      const value: unknown = JSON.parse(row.value);
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) return [];
+      return [{ key: row.key, value: JSON.stringify({ ...value, enabled: false }) }];
+    } catch {
+      return [];
+    }
+  });
+}
 
 /** Reads every table (deterministic order) into a backup document. */
 export async function createBackup(db: Db, options: ExportOptions): Promise<Backup> {
   const includePhotos = options.includePhotos ?? false;
+  const includeAiChat = options.includeAiChat ?? false;
   const now = options.now ?? (() => new Date());
   const data: BackupData = {
     profile: await db.select().from(profile),
     settings: (await db.select().from(settings).orderBy(asc(settings.key))).filter(
-      (row) => !DEVICE_LOCAL_SETTINGS.includes(row.key),
+      (row) =>
+        !DEVICE_LOCAL_SETTINGS.includes(row.key) && (includeAiChat || row.key !== AI_CHAT_SETTING),
     ),
     templates: await db.select().from(templates).orderBy(asc(templates.id)),
     workoutSessions: await db.select().from(workoutSessions).orderBy(asc(workoutSessions.id)),
@@ -126,7 +155,7 @@ export async function restoreBackup(target: Db | Tx, backup: Backup): Promise<vo
 
     await insertChunks(data.profile, (rows) => db.insert(profile).values(rows));
     await insertChunks(
-      data.settings.filter((row) => !DEVICE_LOCAL_SETTINGS.includes(row.key)),
+      disableRestoredAi(data.settings.filter((row) => !DEVICE_LOCAL_SETTINGS.includes(row.key))),
       (rows) => db.insert(settings).values(rows),
     );
     await insertChunks(data.templates, (rows) => db.insert(templates).values(rows));

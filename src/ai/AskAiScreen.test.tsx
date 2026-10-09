@@ -74,7 +74,8 @@ describe('AskAiScreen', () => {
   const fetchMock = jest.fn(async (_url: string, _init: { body: string }) => ({
     ok: true,
     status: 200,
-    json: async () => ({ choices: [{ message: { content: 'Duermes 6 h 50 min de media.' } }] }),
+    text: async () =>
+      JSON.stringify({ choices: [{ message: { content: 'Duermes 6 h 50 min de media.' } }] }),
   }));
 
   beforeAll(() => {

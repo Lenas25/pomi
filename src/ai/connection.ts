@@ -3,7 +3,12 @@ import type { Repositories } from '../db/repositories';
 import { appendHistory, type AiChatEntry } from '../domain/ai/history';
 import type { AiPromptStrings, AiRequest } from '../domain/ai/prompt';
 import { buildPingRequest } from '../domain/ai/prompt';
-import { endpointOf, type AiConnection } from '../domain/ai/providers';
+import {
+  endpointOf,
+  keyTargetOf,
+  sameDestination,
+  type AiConnection,
+} from '../domain/ai/providers';
 import { translateIn, type Language } from '../i18n';
 
 import { sendChat, type AiResult, type FetchLike } from './adapters';
@@ -20,6 +25,7 @@ const RULE_KEYS = [
   'tone',
   'brief',
   'offTopic',
+  'untrusted',
 ] as const;
 
 /** The system prompt lines and labels in one language. */
@@ -39,7 +45,7 @@ export async function testConnection(
   language: Language,
   deps: Deps,
 ): Promise<AiResult> {
-  const key = await deps.keyStore.read();
+  const key = await deps.keyStore.read(keyTargetOf(connection));
   const strings = promptStringsFor(language);
   return sendChat(
     endpointOf(connection, key),
@@ -66,7 +72,7 @@ export async function askAndRecord(
   request: AiRequest,
   deps: Deps & { now?: () => number },
 ): Promise<AiResult> {
-  const key = await deps.keyStore.read();
+  const key = await deps.keyStore.read(keyTargetOf(connection));
   const result = await sendChat(endpointOf(connection, key), request, {
     requireKey: false,
     requireText: true,
@@ -80,6 +86,27 @@ export async function askAndRecord(
   ];
   await repos.settings.update('aiChat', (current) => appendHistory(current, entries));
   return result;
+}
+
+/**
+ * "Guardar": stores the connection and, when typed, the key bound to its provider and origin. A
+ * changed destination (provider or base URL) deletes every stored key first, so the person must
+ * type the key again for the new host.
+ */
+export async function saveConnection(
+  repos: Pick<Repositories, 'settings'>,
+  keyStore: AiKeyStore,
+  previous: AiConnection | undefined,
+  next: AiConnection,
+  key: string | null,
+): Promise<void> {
+  if (!sameDestination(previous, next)) await keyStore.clear();
+  if (key !== null) {
+    const target = keyTargetOf(next);
+    if (target === null) throw new Error('invalid base URL');
+    await keyStore.save(target, key);
+  }
+  await repos.settings.set('aiConnection', next);
 }
 
 /** Turns the connection off and deletes the key from the secure store. History stays. */

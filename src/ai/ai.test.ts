@@ -6,13 +6,13 @@ import { createBackup } from '../backup/backup';
 import { selectContext } from '../domain/ai/context';
 import { buildAiRequest } from '../domain/ai/prompt';
 import { loadDefaultTemplates } from '../templates/defaults';
-import { endpointOf, type AiConnection } from '../domain/ai/providers';
+import { endpointOf, keyTargetOf, type AiConnection, type KeyTarget } from '../domain/ai/providers';
 
 import { sendChat, type FetchLike } from './adapters';
 import { ANTHROPIC_VERSION } from './adapters/anthropic';
 import { askAndRecord, disconnect, promptStringsFor, testConnection } from './connection';
 import { loadAiSnapshot } from './loadAiData';
-import { AI_KEY_ENTRY, createAiKeyStore, type SecretStore } from './keyStore';
+import { aiKeyEntry, createAiKeyStore, type SecretStore } from './keyStore';
 
 type Call = { url: string; headers: Record<string, string>; body: Record<string, unknown> };
 
@@ -24,7 +24,7 @@ function fakeFetch(status: number, json: unknown) {
       headers: init.headers,
       body: JSON.parse(init.body) as Record<string, unknown>,
     });
-    return { ok: status >= 200 && status < 300, status, json: async () => json };
+    return { ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(json) };
   };
   return { fetch, calls };
 }
@@ -68,6 +68,7 @@ const ANTHROPIC_OK = {
   ],
 };
 const opts = { requireKey: true, requireText: true };
+const OPENAI_TARGET = keyTargetOf(openai) as KeyTarget;
 
 describe('OpenAI-compatible adapter', () => {
   it('posts to /chat/completions with a bearer key, the system message and the exact preview text', async () => {
@@ -209,8 +210,11 @@ describe('key storage', () => {
     const test = await createTestDb();
     try {
       const repos = createRepositories(test.db, () => 5_000);
-      await keyStore.save('  sk-SECRET-123  ');
-      expect(secret.data.get(AI_KEY_ENTRY)).toBe('sk-SECRET-123');
+      await keyStore.save(OPENAI_TARGET, '  sk-SECRET-123  ');
+      expect(JSON.parse(secret.data.get(aiKeyEntry('openai')) ?? '{}')).toEqual({
+        origin: 'https://api.openai.com:443',
+        key: 'sk-SECRET-123',
+      });
       await repos.settings.set('aiConnection', openai);
 
       const { fetch, calls } = fakeFetch(200, OPENAI_OK);
@@ -226,13 +230,15 @@ describe('key storage', () => {
         { role: 'assistant', text: 'Vas bien.', at: 7 },
       ]);
 
-      const backup = JSON.stringify(await createBackup(test.db, { appVersion: '1' }));
+      const backup = JSON.stringify(
+        await createBackup(test.db, { appVersion: '1', includeAiChat: true }),
+      );
       expect(backup).toContain('aiConnection');
       expect(backup).toContain('aiChat');
       expect(backup).not.toContain('sk-SECRET-123');
 
       await disconnect(repos, keyStore);
-      expect(secret.data.has(AI_KEY_ENTRY)).toBe(false);
+      expect(secret.data.size).toBe(0);
       expect(await repos.settings.get('aiConnection')).toMatchObject({ enabled: false });
       expect(await repos.settings.get('aiChat')).toHaveLength(2);
     } finally {
@@ -242,7 +248,7 @@ describe('key storage', () => {
 
   it('does not record a failed answer; the ping sends no personal data', async () => {
     const keyStore = createAiKeyStore(fakeSecretStore());
-    await keyStore.save('k');
+    await keyStore.save(OPENAI_TARGET, 'k');
     const test = await createTestDb();
     try {
       const repos = createRepositories(test.db, () => 5_000);
@@ -262,9 +268,9 @@ describe('key storage', () => {
   it('treats a blank or unreadable entry as no key and clears on an empty save', async () => {
     const secret = fakeSecretStore();
     const keyStore = createAiKeyStore(secret);
-    expect(await keyStore.read()).toBeNull();
-    await keyStore.save('k');
-    await keyStore.save('   ');
+    expect(await keyStore.read(OPENAI_TARGET)).toBeNull();
+    await keyStore.save(OPENAI_TARGET, 'k');
+    await keyStore.save(OPENAI_TARGET, '   ');
     expect(secret.data.size).toBe(0);
     const broken = createAiKeyStore({
       ...secret,
@@ -272,8 +278,8 @@ describe('key storage', () => {
         throw new Error('keystore');
       },
     });
-    expect(await broken.read()).toBeNull();
-    await expect(keyStore.save('x'.repeat(600))).rejects.toThrow();
+    expect(await broken.read(OPENAI_TARGET)).toBeNull();
+    await expect(keyStore.save(OPENAI_TARGET, 'x'.repeat(600))).rejects.toThrow();
   });
 });
 
