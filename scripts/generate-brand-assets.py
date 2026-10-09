@@ -1,6 +1,6 @@
 """
 Builds the app icons and the final mascot PNGs from the owner-provided masters in assets/source/.
-Placeholders for the poses without final art come from scripts/generate-placeholder-assets.js.
+Final art masters live in assets/source/mascot/.
 
 Run: uv run --with pillow python3 scripts/generate-brand-assets.py
 """
@@ -12,7 +12,11 @@ from PIL import Image, ImageChops, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent / "assets"
 ICON_MASTER = ROOT / "source" / "pomi-app-icon-master.png"
-MASCOT_MASTER = ROOT / "source" / "pomi-camina-master.png"
+# Adaptive-foreground is still built from the first approved camina master.
+LEGACY_MASTER = ROOT / "source" / "pomi-camina-master.png"
+POSE_DIR = ROOT / "source" / "mascot"
+POSES = ["hola", "enfocado", "agua", "celebra", "descansa", "curioso", "tranqui", "mide", "camina", "vacio"]
+POSE_PADDING = 0.04
 
 ICON = 1024
 # Inner square of the master's rounded tile: the crop corners stay inside the sand tile, so the
@@ -140,28 +144,46 @@ def assert_pure_white(image: Image.Image) -> None:
     assert not bad, f"{len(bad)} visible notification icon pixels are not white, e.g. {bad[0]}"
 
 
+def trimmed(path: Path) -> Image.Image:
+    image = Image.open(path).convert("RGBA")
+    return image.crop(image.split()[3].getbbox())
+
+
+def pose_canvas(art: Image.Image, height: int) -> Image.Image:
+    """Square transparent canvas of `height` px holding the art with small even padding."""
+    inner = height * (1 - 2 * POSE_PADDING)
+    factor = min(inner / art.width, inner / art.height)
+    return centered(scaled(art, factor), height)
+
+
 def main() -> None:
     icon = Image.open(ICON_MASTER).convert("RGB")
     save(icon.crop(ICON_CROP).resize((ICON, ICON), Image.LANCZOS), "icons/app-icon.png")
 
-    mascot = Image.open(MASCOT_MASTER).convert("RGBA")
-    mascot = mascot.crop(mascot.split()[3].getbbox())
+    legacy = Image.open(LEGACY_MASTER).convert("RGBA")
+    legacy = legacy.crop(legacy.split()[3].getbbox())
+    save(fit_in_safe_circle(legacy), "icons/adaptive-foreground.png")
 
-    save(fit_in_safe_circle(mascot), "icons/adaptive-foreground.png")
-    save(
-        centered(scaled(mascot, ICON * SPLASH_HEIGHT_RATIO / mascot.height), ICON),
-        "icons/splash-icon.png",
-    )
-    for suffix, height in MASCOT_HEIGHTS.items():
-        save(centered(scaled(mascot, height / mascot.height), height), f"mascot/pomi-camina{suffix}.png")
+    for pose in POSES:
+        art = trimmed(POSE_DIR / f"pomi-{pose}.png")
+        for suffix, height in MASCOT_HEIGHTS.items():
+            # Flat illustration: a 256-color palette is visually lossless and ~8x smaller.
+            quantized = pose_canvas(art, height).quantize(256, method=Image.FASTOCTREE, dither=Image.NONE)
+            save(quantized, f"mascot/pomi-{pose}{suffix}.png")
 
-    alpha = mascot.split()[3]
-    save(fit_in_safe_circle(silhouette(alpha, (0, 0, 0))), "icons/adaptive-monochrome.png")
+    hola = trimmed(POSE_DIR / "pomi-hola.png")
+    side = ICON * SPLASH_HEIGHT_RATIO
+    save(centered(scaled(hola, min(side / hola.width, side / hola.height)), ICON), "icons/splash-icon.png")
 
-    white_head = silhouette(head_mask(mascot), (255, 255, 255))
+    mono = trimmed(POSE_DIR / "adaptive-monochrome.png")
+    black = Image.new("RGBA", mono.size, (0, 0, 0, 0))
+    black.putalpha(mono.split()[3])
+    save(fit_in_safe_circle(black), "icons/adaptive-monochrome.png")
+
+    note = trimmed(POSE_DIR / "notification-icon.png")
     inner = NOTIFICATION - 2 * NOTIFICATION_PADDING
-    factor = inner / max(white_head.width, white_head.height)
-    notification = pure_white(centered(scaled(white_head, factor), NOTIFICATION))
+    factor = inner / max(note.width, note.height)
+    notification = pure_white(centered(scaled(note, factor), NOTIFICATION))
     assert_pure_white(notification)
     save(notification, "icons/notification-icon.png")
     assert_pure_white(Image.open(ROOT / "icons" / "notification-icon.png"))

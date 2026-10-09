@@ -16,19 +16,6 @@ const { palette } = tokens.color;
 
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
-// `camina` has final art (assets/source/pomi-camina-master.png).
-const MASCOT_POSES = [
-  'hola',
-  'enfocado',
-  'agua',
-  'celebra',
-  'descansa',
-  'curioso',
-  'tranqui',
-  'mide',
-  'vacio',
-];
-
 /** Sweatband: a horizontal stripe near the top of the head (unit coordinates, radius 1). */
 const bandHit = (y) => y >= -0.62 && y <= -0.42;
 /** Belly: an ellipse in the lower half. */
@@ -162,17 +149,7 @@ const sand = palette['sand-500'];
 const brick = palette['brick-500'];
 const mascot = { circle: lavender, belly: sand, band: brick, face: graphite };
 
-// Mascot: 180 px @1x, plus @2x and @3x (BRAND 6.2 / ASSETS.md).
-for (const pose of MASCOT_POSES) {
-  for (const [suffix, scale] of [
-    ['', 1],
-    ['@2x', 2],
-    ['@3x', 3],
-  ]) {
-    png(`mascot/pomi-${pose}${suffix}.png`, 180 * scale, { radius: 0.48, ...mascot });
-  }
-  write(`mascot/pomi-${pose}.svg`, svg());
-}
+// Mascot poses have final art (scripts/generate-brand-assets.py from assets/source/mascot/).
 
 // App and system icons: all have final art (scripts/generate-brand-assets.py); the adaptive icon
 // background is the solid `android.adaptiveIcon.backgroundColor` in app.json.

@@ -1,6 +1,6 @@
 # Pomi: lista de assets
 
-Arte maestro aprobado por la dueña (2026-10) en `assets/source/`: `pomi-app-icon-master.png` (ícono, 1254 × 1254, fondo arena) y `pomi-camina-master.png` (mascota, fondo transparente). `scripts/generate-brand-assets.py` (`uv run --with pillow python3 scripts/generate-brand-assets.py`) genera desde ellos los íconos y la pose `camina`. Las poses y piezas que aún no tienen arte final usan **placeholders** (círculo gris lavanda con pancita arena, vincha ladrillo y la carita "o"; `npm run assets:generate`) con los mismos nombres de archivo, para reemplazarlos sin tocar código. Prompts para generar el resto: `docs/design/PROMPTS-assets.md`.
+Arte final de la dueña (2026-10): las 10 poses de la mascota, `adaptive-monochrome` y `notification-icon` (maestros RGBA transparentes en `assets/source/mascot/`) más el ícono de app y la pose `camina` original (`assets/source/`). `scripts/generate-brand-assets.py` (`uv run --with pillow python3 scripts/generate-brand-assets.py`) genera desde ellos todas las poses (@1x/@2x/@3x, paleta de 256 colores) y los íconos. Siguen pendientes los **placeholders** SVG de logo e ilustraciones de onboarding (`npm run assets:generate`), el wordmark y el feature graphic de Play. Prompts para generar el resto: `docs/design/PROMPTS-assets.md`.
 
 ## Ubicación
 
@@ -28,8 +28,7 @@ assets/
 
 | Pose | Estado |
 |---|---|
-| `camina` | **Final** (desde `pomi-camina-master.png`; sin SVG) |
-| Las otras 9 | Placeholder PNG + SVG |
+| Las 10 poses | **Final** (desde `assets/source/mascot/pomi-<pose>.png`; sin SVG) |
 
 ## Íconos de app y sistema
 
@@ -38,9 +37,9 @@ assets/
 | `icons/app-icon.png` | 1024 × 1024 | **Final** | Recorte cuadrado a sangre del maestro (fondo arena; el launcher aplica su máscara) |
 | `icons/adaptive-foreground.png` | 1024 × 1024 (108 dp) | **Final** | Mascota transparente, todo dentro del círculo central del 66 % (zona segura) |
 | Fondo adaptativo | — | **Final** | Color plano `#E5DCC5` en `app.json` (`android.adaptiveIcon.backgroundColor`), sin imagen |
-| `icons/adaptive-monochrome.png` | 1024 × 1024 | **Final** | Silueta negra de la mascota (alfa del maestro) en la zona segura, para íconos temáticos de Android 13+ |
-| `icons/notification-icon.png` | 96 × 96 (24 dp a 4×) | **Final** | **Solo blanco sobre transparente**: silueta de la cabeza con la vincha, ojos y sonrisa recortados |
-| `icons/splash-icon.png` | 1024 × 1024 | **Final** | Mascota al ~60 % del lienzo, transparente; fondo del splash `#E5DCC5` (claro) o `#2D2D2A` (oscuro) |
+| `icons/adaptive-monochrome.png` | 1024 × 1024 | **Final** | Silueta negra del maestro de la dueña dentro de la zona segura, para íconos temáticos de Android 13+ |
+| `icons/notification-icon.png` | 96 × 96 (24 dp a 4×) | **Final** | **Solo blanco sobre transparente** (maestro de la dueña, todo píxel visible forzado a #FFFFFF) |
+| `icons/splash-icon.png` | 1024 × 1024 | **Final** | `pomi-hola` al ~60 % del lienzo, transparente; fondo del splash `#E5DCC5` (claro) o `#2D2D2A` (oscuro) |
 
 ## Tiendas
 
