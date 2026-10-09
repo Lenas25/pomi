@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -19,6 +19,8 @@ import { useTheme } from '../ui/theme';
 import { templateText } from '../i18n/templateText';
 import { requestNotificationSync } from '../notifications/sync';
 import { loadCheckin, saveCheckin, type CheckinPlan, type LoadedCheckin } from './checkinFlow';
+import { CheckinStepIndicator } from './CheckinStepIndicator';
+import { checkinSteps, checkinSummary } from './checkinSteps';
 
 type Load = { status: 'loading' } | { status: 'error' } | LoadedCheckin;
 
@@ -28,7 +30,13 @@ export function leaveCheckin(): void {
   else router.replace('/(tabs)/habitos');
 }
 
-/** Morning / night check-in (PLAN §10): prefilled, a couple of taps, done in under 10 seconds. */
+const SECTION = 'sueno' as const;
+
+/**
+ * Morning / night check-in (PLAN §10): prefilled, a couple of taps, done in under 10 seconds.
+ * Steps with an icon indicator (Sueño · Calidad · Listo): the times, then the face scales and the
+ * note, then a short summary ("Dormiste 7 h 10 · calidad Bien"). The back slot never moves.
+ */
 export function CheckinScreen({ kind }: { kind: CheckinKind }) {
   const theme = useTheme();
   const t = useT();
@@ -38,6 +46,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [done, setDone] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
   // Captured once at open: prefill and save always target the same day, even across the rollover.
   const [day] = useState(() => dayKeyFor(new Date()));
 
@@ -93,6 +102,10 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
   );
 
   const title = t(kind === 'morning' ? 'checkin.morningTitle' : 'checkin.nightTitle');
+  const pose = kind === 'morning' ? 'hola' : 'descansa';
+  const questions = load.status === 'ready' ? load.plan.questions : null;
+  const steps = useMemo(() => (questions ? checkinSteps(questions) : []), [questions]);
+  const stepIds = steps.map((step) => step.id);
 
   if (load.status === 'loading')
     return <Screen edges={['top', 'bottom', 'left', 'right']}>{null}</Screen>;
@@ -108,22 +121,55 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
     );
   }
 
+  const { plan } = load;
+  const lastQuestionStep = steps.length - 2;
+
   if (done) {
+    const summary = checkinSummary(kind, plan.questions, answers)
+      .map((part) =>
+        t(part.key, {
+          ...part.params,
+          face: part.faceKey ? t(part.faceKey) : '',
+        }),
+      )
+      .join(' · ');
+    const line = summary.charAt(0).toUpperCase() + summary.slice(1);
     return (
       <Screen edges={['top', 'bottom', 'left', 'right']}>
-        <View style={{ flex: 1, justifyContent: 'center', gap: theme.space[6] }}>
-          <MascotBubble
-            pose={kind === 'morning' ? 'hola' : 'descansa'}
-            message={t(kind === 'morning' ? 'checkin.doneMorning' : 'checkin.doneNight')}
-            size="lg"
-          />
-          <Button label={t('checkin.close')} onPress={leaveCheckin} variant="secondary" size="lg" />
+        <View style={{ gap: theme.space[5], paddingVertical: theme.space[4], flex: 1 }}>
+          <StepHeader backLabel={t('checkin.close')}>
+            <CheckinStepIndicator
+              kind={kind}
+              steps={stepIds}
+              current={steps.length - 1}
+              section={SECTION}
+            />
+          </StepHeader>
+          <View style={{ flex: 1, justifyContent: 'center', gap: theme.space[5] }}>
+            <MascotBubble
+              pose={pose}
+              message={t(kind === 'morning' ? 'checkin.doneMorning' : 'checkin.doneNight')}
+              size="lg"
+            />
+            {line ? (
+              <Text
+                testID="checkin-summary"
+                accessibilityLiveRegion="polite"
+                style={[theme.text('title-md'), { color: theme.color.text, textAlign: 'center' }]}
+              >
+                {line}
+              </Text>
+            ) : null}
+          </View>
+          <Button label={t('checkin.save')} onPress={leaveCheckin} size="lg" />
         </View>
       </Screen>
     );
   }
 
-  const { plan } = load;
+  const current = Math.min(stepIndex, Math.max(0, lastQuestionStep));
+  const step = steps[current];
+  const isLast = current >= lastQuestionStep;
   return (
     <KeyboardAvoidingView
       // Android is edge-to-edge in SDK 57: set `behavior` on both platforms.
@@ -132,26 +178,37 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
     >
       <Screen scroll edges={['top', 'bottom', 'left', 'right']}>
         <View style={{ gap: theme.space[5], paddingVertical: theme.space[4] }}>
-          <StepHeader backLabel={t('checkin.close')} onBack={leaveCheckin}>
-            <Mascot pose={kind === 'morning' ? 'hola' : 'descansa'} size="sm" />
+          <StepHeader
+            backLabel={current === 0 ? t('checkin.close') : t('checkin.back')}
+            onBack={current === 0 ? leaveCheckin : () => setStepIndex(current - 1)}
+          >
+            <CheckinStepIndicator kind={kind} steps={stepIds} current={current} section={SECTION} />
+          </StepHeader>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
+            <Mascot pose={pose} size="sm" />
             <Text
               accessibilityRole="header"
               style={[theme.text('title-lg'), { color: theme.color.text, flex: 1 }]}
             >
               {title}
             </Text>
-          </StepHeader>
+          </View>
           <CheckinSheet
-            questions={plan.questions}
+            key={step?.id ?? 'none'}
+            section={SECTION}
+            questions={step?.questions ?? []}
             answers={answers}
-            onAnswer={(id, value) => setAnswers((current) => ({ ...current, [id]: value }))}
-            onSubmit={() => void submit(plan)}
+            onAnswer={(id, value) =>
+              setAnswers((currentAnswers) => ({ ...currentAnswers, [id]: value }))
+            }
+            onSubmit={() => (isLast ? void submit(plan) : setStepIndex(current + 1))}
+            submitLabel={isLast ? t('checkin.save') : t('checkin.next')}
             submitting={submitting}
             error={error}
             extra={
-              plan.foodPrompt === null ? null : (
+              isLast && plan.foodPrompt !== null ? (
                 <TextField label={plan.foodPrompt} value={foodNote} onChangeText={setFoodNote} />
-              )
+              ) : null
             }
           />
         </View>

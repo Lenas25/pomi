@@ -38,21 +38,24 @@ function renderSheet(props: Partial<Parameters<typeof CheckinSheet>[0]> = {}) {
 }
 
 describe('CheckinSheet', () => {
-  it('shows a 1-5 scale as five 48 dp circles with a spoken face', async () => {
+  it('shows a 1-5 scale as five big face chips with a word', async () => {
     const { onAnswer, ui } = renderSheet();
     await ui;
     const options = screen.getAllByRole('radio');
     expect(options).toHaveLength(5);
-    expect(options[0]).toHaveStyle({ width: 48, height: 48 });
-    await fireEvent.press(screen.getByRole('radio', { name: '4 de 5, bien' }));
+    expect(options[0]).toHaveStyle({ minWidth: 48, minHeight: 84 });
+    for (const word of ['Mal', 'Regular', 'Bien', 'Muy bien', 'Genial']) {
+      expect(screen.getByText(word)).toBeTruthy();
+    }
+    await fireEvent.press(screen.getByRole('radio', { name: '4 de 5, Muy bien' }));
     expect(onAnswer).toHaveBeenCalledWith('calidad', 4);
   });
 
   it('marks the chosen circle as checked', async () => {
     const { ui } = renderSheet({ answers: { calidad: 2 } });
     await ui;
-    expect(screen.getByRole('radio', { name: '2 de 5, mal' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: '3 de 5, regular' })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: '2 de 5, Regular' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: '3 de 5, Bien' })).not.toBeChecked();
   });
 
   it('adjusts a prefilled time by 15 minutes with one tap, across midnight', async () => {
