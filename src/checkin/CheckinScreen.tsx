@@ -22,7 +22,8 @@ import { loadCheckin, saveCheckin, type CheckinPlan, type LoadedCheckin } from '
 
 type Load = { status: 'loading' } | { status: 'error' } | LoadedCheckin;
 
-function leave(): void {
+/** Closes the check-in without ever emptying the stack (opened cold from a notification). */
+export function leaveCheckin(): void {
   if (router.canGoBack()) router.back();
   else router.replace('/(tabs)/habitos');
 }
@@ -101,7 +102,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
         <EmptyState
           title={t(load.status === 'disabled' ? 'checkin.disabled' : 'checkin.loadError')}
           body={t(load.status === 'disabled' ? 'checkin.disabledBody' : 'checkin.loadErrorBody')}
-          action={{ label: t('checkin.close'), onPress: leave }}
+          action={{ label: t('checkin.close'), onPress: leaveCheckin }}
         />
       </Screen>
     );
@@ -116,7 +117,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
             message={t(kind === 'morning' ? 'checkin.doneMorning' : 'checkin.doneNight')}
             size="lg"
           />
-          <Button label={t('checkin.close')} onPress={leave} variant="secondary" size="lg" />
+          <Button label={t('checkin.close')} onPress={leaveCheckin} variant="secondary" size="lg" />
         </View>
       </Screen>
     );
@@ -131,7 +132,7 @@ export function CheckinScreen({ kind }: { kind: CheckinKind }) {
     >
       <Screen scroll edges={['top', 'bottom', 'left', 'right']}>
         <View style={{ gap: theme.space[5], paddingVertical: theme.space[4] }}>
-          <StepHeader backLabel={t('checkin.close')} onBack={leave}>
+          <StepHeader backLabel={t('checkin.close')} onBack={leaveCheckin}>
             <Mascot pose={kind === 'morning' ? 'hola' : 'descansa'} size="sm" />
             <Text
               accessibilityRole="header"

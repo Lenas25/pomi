@@ -20,10 +20,20 @@ export function useNotificationSetup(enabled: boolean): void {
 
   useEffect(() => {
     if (!enabled) return;
-    installNotificationHandler();
-    registerBackgroundTasks().catch((error: unknown) => {
+    // Runs right after the onboarding flips the guard: a native failure here must never take the
+    // JS runtime down (an uncaught error in an effect is fatal in a release build).
+    try {
+      installNotificationHandler();
+    } catch (error) {
+      if (__DEV__) console.warn('Could not install the notification handler', error);
+    }
+    try {
+      registerBackgroundTasks().catch((error: unknown) => {
+        if (__DEV__) console.warn('Could not register the background tasks', error);
+      });
+    } catch (error) {
       if (__DEV__) console.warn('Could not register the background tasks', error);
-    });
+    }
     void requestNotificationSync('appOpen');
 
     const appState = AppState.addEventListener('change', (next) => {
@@ -31,14 +41,19 @@ export function useNotificationSetup(enabled: boolean): void {
     });
     // Action buttons while the JS runtime is alive (the dedupe in `handleNotificationResponse`
     // covers the background task firing for the same tap).
-    const responses = Notifications.addNotificationResponseReceivedListener((response) => {
-      handleNotificationResponse(response).catch((error: unknown) => {
-        if (__DEV__) console.warn('Could not apply the notification action', error);
+    let responses: { remove: () => void } | undefined;
+    try {
+      responses = Notifications.addNotificationResponseReceivedListener((response) => {
+        handleNotificationResponse(response).catch((error: unknown) => {
+          if (__DEV__) console.warn('Could not apply the notification action', error);
+        });
       });
-    });
+    } catch (error) {
+      if (__DEV__) console.warn('Could not listen to notification actions', error);
+    }
     return () => {
       appState.remove();
-      responses.remove();
+      responses?.remove();
     };
   }, [enabled]);
 
