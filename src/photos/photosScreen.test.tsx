@@ -13,7 +13,32 @@ const mockEnv: { repos: Repositories | null; files: Map<string, string> } = {
   files: new Map(),
 };
 
+const mockSavePhoto = jest.fn();
+const mockTakePicture = jest.fn(async () => ({ uri: 'file:///cache/capture.jpg' }));
+
 jest.mock('expo-router', () => ({ router: { back: jest.fn() } }));
+jest.mock('./photoStore', () => ({
+  ...jest.requireActual<typeof import('./photoStore')>('./photoStore'),
+  savePhoto: (input: unknown) => mockSavePhoto(input),
+}));
+jest.mock('expo-camera', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react') as typeof import('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { View } = require('react-native') as typeof import('react-native');
+  const CameraView = React.forwardRef(function CameraViewMock(
+    props: { onCameraReady?: () => void },
+    ref: React.Ref<unknown>,
+  ) {
+    React.useImperativeHandle(ref, () => ({ takePictureAsync: () => mockTakePicture() }));
+    React.useEffect(() => props.onCameraReady?.(), [props]);
+    return React.createElement(View, { testID: 'camera' });
+  });
+  return {
+    CameraView,
+    useCameraPermissions: () => [{ granted: true, canAskAgain: true }, jest.fn()],
+  };
+});
 jest.mock('../db', () => ({ getRepositories: () => mockEnv.repos }));
 jest.mock('./expoPhotoFs', () => ({
   expoPhotoFs: {
@@ -21,6 +46,7 @@ jest.mock('./expoPhotoFs', () => ({
     exists: (name: string) => mockEnv.files.has(name),
     uriOf: (name: string) => `file:///photos/${name}`,
     list: () => [...mockEnv.files.keys()],
+    discard: jest.fn(),
   },
 }));
 
@@ -32,6 +58,7 @@ beforeEach(async () => {
   close = test.close;
   mockEnv.repos = createRepositories(test.db);
   mockEnv.files = new Map();
+  mockSavePhoto.mockReset();
 });
 afterEach(() => {
   close();
@@ -108,5 +135,40 @@ describe('PhotosScreen', () => {
     expect(await screen.findByText('Listo. Tus fotos fueron borradas.')).toBeTruthy();
     expect(await mockEnv.repos!.photos.count()).toBe(0);
     expect(mockEnv.files.size).toBe(0);
+  });
+
+  it('takes a photo: pick the pose, camera with the last photo as a ghost, save', async () => {
+    await seed(1);
+    mockSavePhoto.mockImplementation(async () => {
+      await mockEnv.repos!.photos.add({ date: '2026-10-09', pose: 'perfil', uri: 'new.jpg' });
+      mockEnv.files.set('new.jpg', 'x');
+    });
+    await renderScreen();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Tomar foto' }));
+    expect(await screen.findByText('¿Qué pose?')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Frente' }));
+    expect(screen.getByTestId('camera')).toBeTruthy();
+    // The last "frente" photo is drawn over the camera.
+    expect(
+      screen.getByTestId('previous-photo-overlay', { includeHiddenElements: true }),
+    ).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Tomar foto' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Usar esta foto' }));
+    expect(mockSavePhoto).toHaveBeenCalledWith(
+      expect.objectContaining({ pose: 'frente', tempUri: 'file:///cache/capture.jpg' }),
+    );
+    expect(await screen.findByText('Foto guardada.')).toBeTruthy();
+    expect(screen.getByText('Fotos: 2')).toBeTruthy();
+  });
+
+  it('cancel from the pose list goes back to the gallery', async () => {
+    await renderScreen();
+    expect(
+      await screen.findByText('Toma tu primera foto para ver tu cambio con el tiempo.'),
+    ).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Tomar foto' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Cancelar' }));
+    expect(screen.getByText('Aún no hay fotos')).toBeTruthy();
+    expect(mockSavePhoto).not.toHaveBeenCalled();
   });
 });

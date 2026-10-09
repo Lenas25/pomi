@@ -32,7 +32,12 @@ type PhotoStepProps = {
   /** Deletes a capture (camera cache file) that will not be stored: retake, skip, leaving. */
   onDiscard?: ((tempUri: string) => void) | undefined;
   onSkipPose: () => void;
-  onSkipAll: () => void;
+  /** Leaves the photos; without it (a single photo from the gallery) the button is hidden. */
+  onSkipAll?: (() => void) | undefined;
+  /** Label of the "skip this pose" button (the gallery says "Cancelar"). */
+  skipPoseLabel?: string | undefined;
+  /** Header override (the gallery shows just the pose). */
+  title?: string | undefined;
 };
 
 export function PhotoStep({
@@ -45,6 +50,8 @@ export function PhotoStep({
   onDiscard,
   onSkipPose,
   onSkipAll,
+  skipPoseLabel,
+  title,
 }: PhotoStepProps) {
   const t = useT();
   const theme = useTheme();
@@ -111,7 +118,15 @@ export function PhotoStep({
         ) : (
           <Button label={t('monthly.photos.allow')} onPress={() => void requestPermission()} />
         )}
-        <Button label={t('monthly.photos.skipAll')} variant="ghost" onPress={onSkipAll} />
+        <Button
+          label={
+            onSkipAll
+              ? t('monthly.photos.skipAll')
+              : (skipPoseLabel ?? t('monthly.photos.skipPose'))
+          }
+          variant="ghost"
+          onPress={onSkipAll ?? onSkipPose}
+        />
       </View>
     );
   }
@@ -159,7 +174,7 @@ export function PhotoStep({
         accessibilityRole="header"
         style={[theme.text('title-md'), { color: theme.color.text }]}
       >
-        {t('monthly.photos.step', { current, total, pose })}
+        {title ?? t('monthly.photos.step', { current, total, pose })}
       </Text>
 
       {captured === null ? (
@@ -250,7 +265,7 @@ export function PhotoStep({
         </>
       )}
       <Button
-        label={t('monthly.photos.skipPose')}
+        label={skipPoseLabel ?? t('monthly.photos.skipPose')}
         variant="ghost"
         onPress={() => {
           dropCapture();
@@ -258,15 +273,17 @@ export function PhotoStep({
         }}
         disabled={busy}
       />
-      <Button
-        label={t('monthly.photos.skipAll')}
-        variant="ghost"
-        onPress={() => {
-          dropCapture();
-          onSkipAll();
-        }}
-        disabled={busy}
-      />
+      {onSkipAll ? (
+        <Button
+          label={t('monthly.photos.skipAll')}
+          variant="ghost"
+          onPress={() => {
+            dropCapture();
+            onSkipAll();
+          }}
+          disabled={busy}
+        />
+      ) : null}
     </View>
   );
 }

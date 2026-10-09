@@ -112,7 +112,7 @@ describe('ProgressScreen (bento hub)', () => {
     ).toBeTruthy();
     expect(
       screen.getByRole('button', {
-        name: 'Fotos: 1 fotos. Míralas y bórralas en la galería. Abrir fotos',
+        name: 'Fotos: 1 fotos. Toca para tomar o ver fotos. Abrir fotos',
       }),
     ).toBeTruthy();
     expect(

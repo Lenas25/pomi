@@ -1,11 +1,18 @@
-// "Tus fotos" (route `/fotos`, from Ajustes and Progreso): every stored photo, a page at a time,
-// plus "delete all" (files and rows). The Progreso grid only shows the newest few.
+// "Tus fotos" (route `/fotos`, from Ajustes and Progreso): "Tomar foto" (pose -> camera with the
+// last photo of that pose as a ghost -> save, the monthly review's photo step), every stored photo
+// a page at a time, plus "delete all" (files and rows). The Progreso grid only shows the newest few.
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { Camera } from 'phosphor-react-native';
 import { format, parseISO } from 'date-fns';
 
 import { getRepositories } from '../db';
+import { shiftDay } from '../domain/companion/sleepDebt';
+import { dayKeyFor } from '../domain/time';
+import { loadMonthlyContext } from '../monthly/monthlyFlow';
+import { PhotoStep } from '../monthly/PhotoStep';
+import { OptionRow } from '../ui/OptionRow';
 import type { PhotoRow } from '../db/repositories/photos';
 import { useT } from '../i18n';
 import { Button } from '../ui/Button';
@@ -15,7 +22,7 @@ import { useTheme } from '../ui/theme';
 
 import { expoPhotoFs } from './expoPhotoFs';
 import { appendPage, cursorOf, withoutRows } from './photoPaging';
-import { deleteAllPhotos, deletePhoto } from './photoStore';
+import { deleteAllPhotos, deletePhoto, previousPhoto, savePhoto } from './photoStore';
 import { StoredPhoto } from './StoredPhoto';
 import { hiddenScrollIndicators } from '../ui/scroll';
 
@@ -28,6 +35,16 @@ type State =
   | { status: 'ready'; rows: PhotoRow[]; total: number };
 
 const poseName = (pose: string) => pose.charAt(0).toUpperCase() + pose.slice(1);
+
+const DEFAULT_POSES = ['frente', 'perfil', 'espalda'];
+
+/** "Tomar foto": choose a pose, then the monthly photo step (camera + ghost of the last one). */
+type Capture = {
+  poses: string[];
+  names: Record<string, string>;
+  previous: Record<string, { uri: string } | undefined>;
+  pose: string | null;
+};
 
 async function readFirstPage(): Promise<State> {
   try {
@@ -46,6 +63,7 @@ export function PhotosScreen() {
   const [state, setState] = useState<State>({ status: 'loading' });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const [capture, setCapture] = useState<Capture | null>(null);
 
   const loadFirstPage = useCallback(async () => {
     setState({ status: 'loading' });
@@ -154,6 +172,95 @@ export function PhotosScreen() {
       ],
     );
 
+  const startCapture = async () => {
+    setNotice(null);
+    try {
+      const repos = getRepositories();
+      const today = dayKeyFor(new Date());
+      const context = await loadMonthlyContext(repos, expoPhotoFs, today);
+      // No photo spec in the active templates: the three usual poses.
+      const poses = context.poses.length > 0 ? context.poses : DEFAULT_POSES;
+      // The ghost is the LAST photo of the pose, today's included (a retake lines up with it).
+      const previous: Capture['previous'] = {};
+      for (const pose of poses) {
+        const photo = await previousPhoto(repos.photos, pose, shiftDay(today, 1), expoPhotoFs);
+        previous[pose] = photo ? { uri: expoPhotoFs.uriOf(photo.uri) } : undefined;
+      }
+      setCapture({
+        poses,
+        names: context.poseNames,
+        previous,
+        // One pose only: straight to the camera.
+        pose: poses.length === 1 ? (poses[0] ?? null) : null,
+      });
+    } catch (error) {
+      if (__DEV__) console.error('Could not prepare the camera', error);
+      setNotice({ tone: 'error', text: t('photosScreen.poseFailed') });
+    }
+  };
+
+  const save = async (pose: string, tempUri: string) => {
+    await savePhoto({
+      fs: expoPhotoFs,
+      photos: getRepositories().photos,
+      tempUri,
+      date: dayKeyFor(new Date()),
+      pose,
+      now: Date.now(),
+    });
+    setCapture(null);
+    await loadFirstPage();
+    setNotice({ tone: 'success', text: t('photosScreen.saved') });
+  };
+
+  if (capture) {
+    const name = (pose: string) => capture.names[pose] ?? poseName(pose);
+    return (
+      <Screen scroll edges={['top', 'bottom', 'left', 'right']}>
+        <View style={{ gap: theme.space[3], paddingVertical: theme.space[4] }}>
+          {capture.pose === null ? (
+            <>
+              <Text
+                accessibilityRole="header"
+                style={[theme.text('title-lg'), { color: theme.color.text }]}
+              >
+                {t('photosScreen.choosePose')}
+              </Text>
+              <View accessibilityRole="radiogroup" style={{ gap: theme.space[2] }}>
+                {capture.poses.map((pose) => (
+                  <OptionRow
+                    key={pose}
+                    label={name(pose)}
+                    selected={false}
+                    onPress={() => setCapture({ ...capture, pose })}
+                  />
+                ))}
+              </View>
+              <Button
+                label={t('photosScreen.cancel')}
+                variant="ghost"
+                onPress={() => setCapture(null)}
+              />
+            </>
+          ) : (
+            <PhotoStep
+              key={capture.pose}
+              pose={name(capture.pose)}
+              title={name(capture.pose)}
+              current={1}
+              total={1}
+              previous={capture.previous[capture.pose]}
+              onDiscard={(tempUri) => expoPhotoFs.discard(tempUri)}
+              onUse={(tempUri) => save(capture.pose ?? '', tempUri)}
+              onSkipPose={() => setCapture(null)}
+              skipPoseLabel={t('photosScreen.cancel')}
+            />
+          )}
+        </View>
+      </Screen>
+    );
+  }
+
   const rows = state.status === 'ready' ? state.rows : [];
   const total = state.status === 'ready' ? state.total : 0;
 
@@ -190,6 +297,13 @@ export function PhotosScreen() {
       >
         {t('photosScreen.title')}
       </Text>
+      <Button
+        label={t('photosScreen.take')}
+        size="lg"
+        variant="energy"
+        icon={Camera}
+        onPress={() => void startCapture()}
+      />
 
       {state.status === 'error' ? (
         <>
