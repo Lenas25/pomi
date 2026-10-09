@@ -311,7 +311,8 @@ Create other `src/` folders from PLAN §5 (`domain`, `db`, `notifications`, `tim
 ## Connect your AI: removed (owner decision, PLAN §14d)
 
 - "Conectar mi IA" / "Pregúntale a Pomi" were built in v3 and then deleted entirely (code, routes, settings keys, i18n, tests, `expo-secure-store`). Do not reintroduce them without a new owner decision.
-- Backward compat: `REMOVED_SETTINGS` (`src/backup/schema.ts`: `aiConnection`, `aiChat`) — `parseBackupText` accepts old backups that carry them, `createBackup` never exports them and `restoreBackup` drops them.
+- Backward compat: `REMOVED_SETTINGS` (`src/db/legacySettings.ts`, re-exported by `src/backup/schema.ts`: `aiConnection`, `aiChat`) — `parseBackupText` accepts old backups that carry them, `createBackup` never exports them and `restoreBackup` drops them. `removeLegacySettings` deletes those rows on every bootstrap right after the migrations (idempotent).
+- Known leftover: an API key saved by an old build (via `expo-secure-store`) may remain in the Android keystore until the app is uninstalled; current builds never read it.
 
 ## Hoy (M6)
 

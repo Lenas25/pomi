@@ -52,16 +52,16 @@ Fuente de verdad: `design/tokens.json`. Resumen:
 | `color.brand` | `#4F5A72` | `#AEB6C8` | Acento de UI tranquilo: selección, anillos, gráficos |
 | `color.brandSoft` | `#E1E4EC` | `#3F434D` | Fondos destacados y seleccionados |
 | `color.energy` | `#C14953` | `#E07A82` | Acento gráfico de energía (anillo de descanso, barra actual; ≥ 3:1) |
-| `color.energyText` | `#9E3540` | `#EC959B` | Ladrillo como texto (≥ 4,5:1) |
+| `color.energyText` | `#9E3540` | `#F4AEB2` | Ladrillo como texto (≥ 4,5:1) |
 | `color.energyFill` | `#C14953` | `#E07A82` | Relleno del CTA de energía (`Button variant="energy"`, botón «Registrar») |
 | `color.onEnergy` | `#FFFFFF` | `#2D2D2A` | Texto/ícono sobre `energyFill` |
 | `color.celebrate` | `#C14953` | `#EC959B` | Celebraciones (glifo o borde, ≥ 3:1) |
 | `color.celebrateSoft` | `#F3DADA` | `#4A2E2F` | Superficie de celebración |
 | `color.tabBar` | `#F2ECDD` | `#3A3A36` | Fondo de la tab bar |
-| `color.success` | `#4F5A72` | `#AEB6C8` | Confirmaciones |
+| `color.success` | `#4F5A72` | `#BCC3D3` | Confirmaciones |
 | `color.warning` | `#6B5D3E` | `#D9CBA6` | Avisos |
-| `color.error` | `#9E3540` | `#F2A1A6` | Errores (siempre con ícono y texto) |
-| `color.info` | `#4F5A72` | `#AEB6C8` | Información |
+| `color.error` | `#9E3540` | `#F6B4B8` | Errores (siempre con ícono y texto) |
+| `color.info` | `#4F5A72` | `#BCC3D3` | Información |
 | `space-1…12` | 4, 8, 12, 16, 20, 24, 32, 40, 48 dp | | Espaciado (escala de 4) |
 | `radius-sm/md/lg/xl/pill` | 10, 16, 24, 32, 999 | | Esquinas |
 | `shadow-soft` | y 4, blur 16, grafito al 8% | sin sombra, borde `color.border` | Tarjetas |

@@ -120,6 +120,26 @@ def fit_in_safe_circle(image: Image.Image) -> Image.Image:
     return centered(scaled(image, SAFE_RADIUS / reach * 0.98), ICON)
 
 
+def pure_white(image: Image.Image) -> Image.Image:
+    """Keeps only the alpha: resampling and pasting blend edge pixels towards black, but Android
+    tints status bar icons from the alpha alone and expects every visible pixel to be white."""
+    white = Image.new("RGBA", image.size, (255, 255, 255, 0))
+    white.putalpha(image.split()[3])
+    return white
+
+
+def assert_pure_white(image: Image.Image) -> None:
+    """Fails the run unless the image is RGBA, has transparent pixels and every visible one is #FFFFFF."""
+    assert image.mode == "RGBA", f"notification icon must be RGBA, got {image.mode}"
+    assert image.size == (NOTIFICATION, NOTIFICATION), f"unexpected size {image.size}"
+    access = image.load()
+    pixels = [access[x, y] for y in range(image.height) for x in range(image.width)]
+    visible = [p for p in pixels if p[3] > 0]
+    assert visible and len(visible) < len(pixels), "notification icon needs visible and transparent pixels"
+    bad = [p for p in visible if p[:3] != (255, 255, 255)]
+    assert not bad, f"{len(bad)} visible notification icon pixels are not white, e.g. {bad[0]}"
+
+
 def main() -> None:
     icon = Image.open(ICON_MASTER).convert("RGB")
     save(icon.crop(ICON_CROP).resize((ICON, ICON), Image.LANCZOS), "icons/app-icon.png")
@@ -141,7 +161,10 @@ def main() -> None:
     white_head = silhouette(head_mask(mascot), (255, 255, 255))
     inner = NOTIFICATION - 2 * NOTIFICATION_PADDING
     factor = inner / max(white_head.width, white_head.height)
-    save(centered(scaled(white_head, factor), NOTIFICATION), "icons/notification-icon.png")
+    notification = pure_white(centered(scaled(white_head, factor), NOTIFICATION))
+    assert_pure_white(notification)
+    save(notification, "icons/notification-icon.png")
+    assert_pure_white(Image.open(ROOT / "icons" / "notification-icon.png"))
 
 
 if __name__ == "__main__":

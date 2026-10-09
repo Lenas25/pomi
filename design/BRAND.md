@@ -104,10 +104,10 @@ Las cabeceras ya no son bloques de color fuerte: son un **tinte sutil** de la pa
 
 | Token | Claro | Oscuro | Uso |
 |---|---|---|---|
-| `success` | `#4F5A72` | `#AEB6C8` | Confirmaciones, casillas hechas |
+| `success` | `#4F5A72` | `#BCC3D3` | Confirmaciones, casillas hechas |
 | `warning` | `#6B5D3E` | `#D9CBA6` | Avisos suaves |
-| `error` | `#9E3540` | `#F2A1A6` | Errores. **Siempre con ícono y texto**, para distinguirlo del acento ladrillo |
-| `info` | `#4F5A72` | `#AEB6C8` | Hallazgos, información |
+| `error` | `#9E3540` | `#F6B4B8` | Errores. **Siempre con ícono y texto**, para distinguirlo del acento ladrillo |
+| `info` | `#4F5A72` | `#BCC3D3` | Hallazgos, información |
 | `celebrate` | `#C14953` | `#EC959B` | Celebraciones (glifo o borde, ≥ 3:1) |
 
 ### 4.4 Modo oscuro

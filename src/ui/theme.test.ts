@@ -157,9 +157,16 @@ describe('Palette contrast (WCAG AA: 4.5:1 text, 3:1 large text and UI)', () => 
     expect(color.onSecondary).not.toBe('#FFFFFF');
   });
 
-  it.each(modes)('%s: status and accent text on bg and surface', (mode) => {
+  // Toasts, bottom sheets and mascot bubbles sit on `surfaceRaised`; chips and banners on the soft tints.
+  it.each(modes)('%s: status and accent text on every surface and soft tint', (mode) => {
     const { color } = makeTheme(mode);
-    for (const background of [color.bg, color.surface]) {
+    for (const background of [
+      color.bg,
+      color.surface,
+      color.surfaceRaised,
+      color.brandSoft,
+      color.celebrateSoft,
+    ]) {
       for (const role of [
         color.energyText,
         color.success,

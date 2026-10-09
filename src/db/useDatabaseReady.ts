@@ -9,6 +9,7 @@ import { setThemeModePersistence, useThemeModeStore } from '../ui/themeModeStore
 import { activePoses, migratePhotoPoseIds } from '../photos/poseIds';
 
 import { getDatabase, getRepositories, migrations } from './index';
+import { removeLegacySettings } from './legacySettings';
 
 export type DatabaseStatus = 'loading' | 'ready' | 'error';
 
@@ -24,6 +25,7 @@ export async function hydrateStores(repositories: Repositories): Promise<void> {
 async function runBootstrap(): Promise<void> {
   // Opening the file happens here (not at import) so any failure reaches the error screen.
   await migrate(getDatabase(), migrations);
+  await removeLegacySettings(getDatabase());
   const repositories = getRepositories();
   await repositories.templates.seedDefaults();
   await migratePhotoPoseIds(

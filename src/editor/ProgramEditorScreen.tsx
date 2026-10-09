@@ -80,10 +80,12 @@ export function ProgramEditorScreen() {
     [navigation],
   );
   // Leaving the editor for good (clean, or after discarding) forgets the in-memory edit; a dirty
-  // unmount that was not confirmed (e.g. a tab switch) keeps it so the person can resume.
+  // unmount that was not confirmed (e.g. a tab switch) keeps it so the person can resume. A
+  // generator draft is always forgotten: a later plain open must load the trained program.
   useEffect(
     () => () => {
-      if (discarded.current || !selectDirty(useEditorStore.getState())) {
+      const store = useEditorStore.getState();
+      if (discarded.current || store.source?.draft || !selectDirty(store)) {
         useEditorStore.getState().close();
       }
     },

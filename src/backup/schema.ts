@@ -33,11 +33,10 @@ export const profileRowSchema = z.strictObject({
 });
 
 /**
- * Keys of features the owner removed ("Conectar mi IA" and its chat history). Old backups and old
- * databases may still hold them: a file with them is still accepted, they are never exported and
- * they are dropped on restore.
+ * Keys of features the owner removed (see `src/db/legacySettings.ts`). A backup file with them is
+ * still accepted, they are never exported and they are dropped on restore.
  */
-export const REMOVED_SETTINGS: readonly string[] = ['aiConnection', 'aiChat'];
+export { REMOVED_SETTINGS } from '../db/legacySettings';
 
 export const settingRowSchema = z.strictObject({
   key: z.string().min(1),

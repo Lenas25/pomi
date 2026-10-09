@@ -125,6 +125,17 @@ describe('leaving the program editor', () => {
     await view.unmount();
     expect(useEditorStore.getState().state?.program.name).toBe('Sigo editando');
   });
+
+  it('always forgets a dirty generator draft on unmount', async () => {
+    const source = await loadEditorSource(mockRepos);
+    if (!source) throw new Error('no program');
+    useEditorStore.getState().open({ ...source, draft: true });
+    useEditorStore.getState().dispatch({ type: 'renameProgram', name: 'Borrador abandonado' });
+    const view = await renderScreen(<ProgramEditorScreen />);
+    await view.unmount();
+    expect(useEditorStore.getState().state).toBeNull();
+    expect(useEditorStore.getState().source).toBeNull();
+  });
 });
 
 describe('stale resume', () => {
