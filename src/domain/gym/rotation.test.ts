@@ -81,4 +81,13 @@ describe('todaysRoutineId extras', () => {
     const history = [session('d1', '2026-02-26'), session('d2', '2026-02-28', { sets: 0 })];
     expect(todaysRoutineId(ids, history, '2026-03-02')).toBe('d2');
   });
+
+  it('continues from the routine actually done, not the one that was suggested', () => {
+    // Día 1 was suggested (Día 4 done last), but the person chose Día 3: Día 4 comes next.
+    const before = [session('d4', '2026-02-26')];
+    expect(todaysRoutineId(ids, before, '2026-02-28')).toBe('d1');
+    const after = [...before, session('d3', '2026-02-28')];
+    expect(todaysRoutineId(ids, after, '2026-02-28')).toBe('d3');
+    expect(todaysRoutineId(ids, after, '2026-03-02')).toBe('d4');
+  });
 });

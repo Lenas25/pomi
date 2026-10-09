@@ -43,8 +43,8 @@ export type GymTabState =
       resumableRoutineId: string | null;
       /** Weekly volume per muscle; `null` when it could not be computed (never blocks the tab). */
       volume: VolumeData | null;
-      /** "Meta de hoy" of the first main exercise of today's routine. */
-      goal: GymGoal | undefined;
+      /** "Meta de hoy" of the first main exercise of each routine, by routine id. */
+      goals: Readonly<Record<string, GymGoal>>;
       /** Sessions with sets this ISO week, and gym days planned per week (0 = no plan). */
       week: { done: number; planned: number };
       /** Recent sessions with logged sets, newest first. */
@@ -76,7 +76,7 @@ export function useGymTab(): GymTabState & { reload: () => void } {
               todayRoutineId: null,
               resumableRoutineId: null,
               volume: null,
-              goal: undefined,
+              goals: {},
               week: { done: 0, planned: 0 },
               history: [],
             });
@@ -102,13 +102,18 @@ export function useGymTab(): GymTabState & { reload: () => void } {
           : undefined;
         const todayRoutineId = todaysRoutineId(routineIds, toRotationSessions(recent), today);
         const weekday = getDay(parseISO(today));
-        const goal = await loadGymGoal(
-          repos,
-          program.routines.find((routine) => routine.id === todayRoutineId),
-          program.rules,
-          weekday,
-          activeDeloadPct(deloadWeek, today),
-        ).catch(() => undefined);
+        const deloadPct = activeDeloadPct(deloadWeek, today);
+        // Every routine gets its goal: the carousel lets the person start any of them.
+        const loaded = await Promise.all(
+          program.routines.map(async (routine) => {
+            const goal = await loadGymGoal(repos, routine, program.rules, weekday, deloadPct).catch(
+              () => undefined,
+            );
+            return [routine.id, goal] as const;
+          }),
+        );
+        const goals: Record<string, GymGoal> = {};
+        for (const [id, goal] of loaded) if (goal) goals[id] = goal;
         const planned = plannedPerWeek(gymDays ?? []);
         if (!cancelled) {
           setState({
@@ -120,7 +125,7 @@ export function useGymTab(): GymTabState & { reload: () => void } {
                 ? openWithSets.session.routineId
                 : null,
             volume,
-            goal,
+            goals,
             week: { done: sessionsThisWeek(recent, today), planned },
             history: historyEntries(recent, program),
           });

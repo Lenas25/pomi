@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import { loadDefaultTemplates } from '../templates/defaults';
 
-import { pickProgram, toRotationSessions } from './program';
+import { carouselOrder, pickProgram, toRotationSessions } from './program';
 
 const { modules } = loadDefaultTemplates();
 const stored = modules.map((template) => ({ active: true, template }));
@@ -31,5 +31,14 @@ describe('toRotationSessions', () => {
         },
       ]),
     ).toEqual([{ routineId: 'd1', date: '2026-10-05', startedAt: 1, finishedAt: 9, setCount: 3 }]);
+  });
+});
+
+describe('carouselOrder', () => {
+  it('puts the suggested routine first and wraps the rest in program order', () => {
+    expect(carouselOrder(['d1', 'd2', 'd3', 'd4'], 'd3')).toEqual(['d3', 'd4', 'd1', 'd2']);
+    expect(carouselOrder(['d1', 'd2'], 'd1')).toEqual(['d1', 'd2']);
+    expect(carouselOrder(['d1', 'd2'], 'gone')).toEqual(['d1', 'd2']);
+    expect(carouselOrder(['d1', 'd2'], null)).toEqual(['d1', 'd2']);
   });
 });

@@ -1,22 +1,21 @@
 import { useCallback } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { format, parseISO } from 'date-fns';
-import { Barbell, ClockCounterClockwise, Lightning, MagicWand, Play } from 'phosphor-react-native';
+import { Barbell, ClockCounterClockwise, Lightning, MagicWand } from 'phosphor-react-native';
 
 import { useLocaleStore, useT, type Translate } from '../i18n';
 import { useTemplateText } from '../i18n/templateText';
 import type { LocalizedText } from '../templates/localized';
 import { BentoGrid, type BentoItem } from '../ui/BentoGrid';
 import { BentoTile } from '../ui/BentoTile';
-import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
 import { MiniBars } from '../ui/MiniMeter';
 import { Screen } from '../ui/Screen';
 import { SectionHeader } from '../ui/SectionHeader';
 import { useTheme, type Theme } from '../ui/theme';
 import { formatSets, thisWeekRows } from '../volume/volumeView';
-import { localizeTargetParams } from './sessionViewModel';
+import { RoutineCarousel } from './RoutineCarousel';
 import { useGymTab, type GymTabState } from './useGym';
 import { hiddenScrollIndicators } from '../ui/scroll';
 
@@ -41,71 +40,26 @@ type TileContext = {
   text: (value: LocalizedText) => string;
 };
 
-/** The 2x2 hero: today's routine, the "meta de hoy" of its first exercise and the big CTA. */
-function TodayTile({ data }: { data: GymReady }) {
-  const theme = useTheme();
+/** The 2x2 hero: a carousel of every routine, the suggested one (rotation) first. */
+function RoutinesTile({ data }: { data: GymReady }) {
   const t = useT();
-  const text = useTemplateText();
-  const language = useLocaleStore((state) => state.language);
-  const colors = theme.section.gym;
-  const today = data.program?.routines.find((routine) => routine.id === data.todayRoutineId);
-  const resuming = today !== undefined && data.resumableRoutineId === today.id;
-  const goal = data.goal;
-  const goalText = goal
-    ? t(goal.message.key, localizeTargetParams(goal.message.params, language))
-    : null;
-  const detail = goalText ?? (today ? t('gym.tab.exercises', { count: exerciseCount(today) }) : '');
-
+  const theme = useTheme();
+  const routines = data.program?.routines ?? [];
+  if (routines.length === 0) {
+    return (
+      <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
+        {t('gym.hub.noRoutine')}
+      </Text>
+    );
+  }
   return (
-    <View
-      testID="gym-today-tile"
-      style={{
-        flex: 1,
-        borderRadius: theme.radius.lg,
-        padding: theme.space[4],
-        gap: theme.space[2],
-        backgroundColor: colors.fill,
-      }}
-    >
-      <View
-        accessible
-        accessibilityLabel={
-          today
-            ? t('gym.hub.todayLabel', { name: text(today.name), detail })
-            : t('gym.hub.noRoutine')
-        }
-        style={{ flex: 1, gap: theme.space[1] }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
-          <Barbell weight="fill" color={colors.onFill} />
-          <Text style={[theme.text('body-strong'), { color: colors.onFill, flex: 1 }]}>
-            {resuming ? t('gym.tab.inProgress') : t('gym.tab.todayTitle')}
-          </Text>
-        </View>
-        <Text numberOfLines={2} style={[theme.text('title-lg'), { color: colors.onFill }]}>
-          {today ? text(today.name) : t('gym.hub.noRoutine')}
-        </Text>
-        {goal ? (
-          <Text numberOfLines={1} style={[theme.text('caption'), { color: colors.onFill }]}>
-            {t('gym.hub.goalTitle', { exercise: goal.exercise })}
-          </Text>
-        ) : null}
-        {detail ? (
-          <Text numberOfLines={3} style={[theme.text('body'), { color: colors.onFill }]}>
-            {detail}
-          </Text>
-        ) : null}
-      </View>
-      {today ? (
-        <Button
-          label={t(resuming ? 'gym.tab.resume' : 'gym.tab.start')}
-          size="lg"
-          variant="energy"
-          icon={Play}
-          onPress={() => openSession(today.id)}
-        />
-      ) : null}
-    </View>
+    <RoutineCarousel
+      routines={routines}
+      suggestedId={data.todayRoutineId}
+      resumableId={data.resumableRoutineId}
+      goals={data.goals}
+      onStart={openSession}
+    />
   );
 }
 
@@ -127,7 +81,7 @@ export function gymTiles(data: GymReady, ctx: TileContext): BentoItem[] {
   const routines = program.routines.length;
 
   return [
-    { key: 'hoy', span: '2x2', node: <TodayTile data={data} /> },
+    { key: 'hoy', span: '2x2', node: <RoutinesTile data={data} /> },
     {
       key: 'semana',
       span: '1x1',

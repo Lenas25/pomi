@@ -68,9 +68,11 @@ const READY: Extract<GymTabState, { status: 'ready' }> = {
     sets: [{ stepId: 'sentadilla', doneAt: new Date('2026-10-06T10:00:00').getTime() }],
     stepMuscles: { sentadilla: ['cuadriceps'] },
   },
-  goal: {
-    exercise: 'Sentadilla',
-    message: { key: 'gym.target.addRep', params: { weightKg: 40, reps: 9 } },
+  goals: {
+    a: {
+      exercise: 'Sentadilla',
+      message: { key: 'gym.target.addRep', params: { weightKg: 40, reps: 9 } },
+    },
   },
   week: { done: 1, planned: 3 },
   history: historyEntries(ROWS, PROGRAM),
@@ -141,6 +143,28 @@ describe('GymHubScreen (bento hub)', () => {
     expect(router.push).toHaveBeenLastCalledWith('/gym/historial');
     await fireEvent.press(screen.getByRole('button', { name: /^Semana/ }));
     expect(router.push).toHaveBeenLastCalledWith('/gym/historial');
+  });
+
+  it('carousel: every routine, the suggested one first with its badge', async () => {
+    mockTab({ ...READY, todayRoutineId: 'b' });
+    await renderThemed(<GymHubScreen />);
+    const cards = screen.getAllByTestId(/^routine-card-/, { includeHiddenElements: true });
+    expect(cards.map((card) => card.props.testID)).toEqual(['routine-card-b', 'routine-card-a']);
+    expect(screen.getByLabelText(/^Día B, sugerida, 1 de 2\. 1 ejercicios/)).toBeTruthy();
+    expect(screen.getByText('Sugerida')).toBeTruthy();
+  });
+
+  it('carousel: next action moves to another routine and Empezar starts that one', async () => {
+    mockTab();
+    await renderThemed(<GymHubScreen />);
+    const first = screen.getByLabelText(/^Día A, sugerida, 1 de 2/);
+    await fireEvent(first, 'accessibilityAction', { nativeEvent: { actionName: 'next' } });
+    expect(screen.getByLabelText(/^Día B, 2 de 2/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Empezar' }));
+    expect(router.push).toHaveBeenLastCalledWith({
+      pathname: '/gym/session',
+      params: { routineId: 'b' },
+    });
   });
 
   it('offers the generator when there is no program', async () => {

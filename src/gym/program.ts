@@ -54,3 +54,13 @@ export function toRotationSessions(rows: readonly SessionLike[]): RotationSessio
     setCount: sets.length,
   }));
 }
+
+/**
+ * Routine ids in carousel order: the suggested one (rotation) first, then the ones after it in
+ * program order, wrapping around. An unknown or missing suggestion keeps the program order.
+ */
+export function carouselOrder(routineIds: readonly string[], suggestedId: string | null): string[] {
+  const start = suggestedId === null ? -1 : routineIds.indexOf(suggestedId);
+  if (start <= 0) return [...routineIds];
+  return [...routineIds.slice(start), ...routineIds.slice(0, start)];
+}
