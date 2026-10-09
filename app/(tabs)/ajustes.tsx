@@ -1,35 +1,69 @@
-import { ScrollView, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ScrollView, Text } from 'react-native';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import Constants from 'expo-constants';
 import {
-  Barbell,
+  BatteryCharging,
   Bell,
+  Barbell,
+  CalendarBlank,
   FloppyDisk,
+  Globe,
   Images,
   Info,
   MoonStars,
+  Palette,
+  PersonSimpleWalk,
   ShieldCheck,
+  Target,
 } from 'phosphor-react-native';
 
-import { useT } from '../../src/i18n';
-import { FreeDaysSettings } from '../../src/settings/FreeDaysSettings';
-import { ScheduleSettings } from '../../src/settings/ScheduleSettings';
-import { SedentarySettings } from '../../src/sedentary/SedentarySettings';
-import { Card } from '../../src/ui/Card';
+import { getRepositories } from '../../src/db';
+import { useLocaleStore, useT } from '../../src/i18n';
+import { LANGUAGE_LABELS, THEME_LABELS } from '../../src/settings/appearance';
+import {
+  buildSettingsSummary,
+  loadSettingsSummary,
+  type SettingsSummaryInput,
+} from '../../src/settings/summary';
 import { Screen } from '../../src/ui/Screen';
+import { SettingsGroup, SettingsRow } from '../../src/ui/SettingsRow';
 import { StepHeader } from '../../src/ui/StepHeader';
 import { useTheme } from '../../src/ui/theme';
+import { useThemeModeStore } from '../../src/ui/themeModeStore';
 import { hiddenScrollIndicators } from '../../src/ui/scroll';
 
-/** Settings: entries to the sub-screens plus the inline schedule, free days and sedentary cards. */
+/** Settings: a few groups of entries, each with a one-line summary; the detail lives in its page. */
 export default function Ajustes() {
   const t = useT();
   const theme = useTheme();
+  const themeMode = useThemeModeStore((state) => state.mode);
+  const language = useLocaleStore((state) => state.preference);
+  const [values, setValues] = useState<SettingsSummaryInput | null>(null);
+
+  // Coming back from a detail page refreshes the summaries.
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      loadSettingsSummary(getRepositories())
+        .then((loaded) => {
+          if (alive) setValues(loaded);
+        })
+        .catch(() => undefined);
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+
+  const summary = values ? buildSettingsSummary(values, t) : null;
+  const go = (href: Href) => () => router.push(href);
 
   return (
     <Screen>
       <ScrollView
         {...hiddenScrollIndicators}
-        contentContainerStyle={{ gap: theme.space[3], paddingVertical: theme.space[4] }}
+        contentContainerStyle={{ gap: theme.space[5], paddingVertical: theme.space[4] }}
       >
         {/* Ajustes is not a tab any more (opened from the section headers): it needs a way back. */}
         <StepHeader
@@ -44,124 +78,100 @@ export default function Ajustes() {
           </Text>
         </StepHeader>
 
-        <Card
-          onPress={() => router.push('/permisos')}
-          accessibilityLabel={t('settings.permissions.title')}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
-            <ShieldCheck color={theme.color.text} />
-            <View style={{ flex: 1 }}>
-              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-                {t('settings.permissions.title')}
-              </Text>
-              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                {t('settings.permissions.body')}
-              </Text>
-            </View>
-          </View>
-        </Card>
+        <SettingsGroup title={t('settings.groups.profile')}>
+          <SettingsRow
+            icon={CalendarBlank}
+            title={t('settings.schedule.title')}
+            value={summary?.schedule}
+            onPress={go('/horarios')}
+          />
+          <SettingsRow
+            icon={Target}
+            title={t('settings.schedule.goalsTitle')}
+            value={summary?.goals}
+            onPress={go('/metas')}
+          />
+          <SettingsRow
+            icon={MoonStars}
+            title={t('sleepCalc.entry.title')}
+            value={t('sleepCalc.entry.body')}
+            onPress={go('/ciclos-sueno')}
+          />
+        </SettingsGroup>
 
-        <Card
-          onPress={() => router.push('/mis-avisos')}
-          accessibilityLabel={t('settings.myNotifications.entryTitle')}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
-            <Bell color={theme.color.text} />
-            <View style={{ flex: 1 }}>
-              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-                {t('settings.myNotifications.entryTitle')}
-              </Text>
-              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                {t('settings.myNotifications.entryBody')}
-              </Text>
-            </View>
-          </View>
-        </Card>
+        <SettingsGroup title={t('settings.groups.notices')}>
+          <SettingsRow
+            icon={Bell}
+            title={t('settings.myNotifications.entryTitle')}
+            value={summary?.notifications}
+            onPress={go('/mis-avisos')}
+          />
+          <SettingsRow
+            icon={PersonSimpleWalk}
+            title={t('sedentary.title')}
+            value={summary?.sedentary}
+            onPress={go('/inactividad')}
+          />
+          <SettingsRow
+            icon={ShieldCheck}
+            title={t('settings.permissions.title')}
+            value={t('settings.permissions.body')}
+            onPress={go('/permisos')}
+          />
+          <SettingsRow
+            icon={BatteryCharging}
+            title={t('settings.battery.title')}
+            value={t('settings.battery.body')}
+            onPress={go('/bateria')}
+          />
+        </SettingsGroup>
 
-        <Card
-          onPress={() => router.push('/importar-programa')}
-          accessibilityLabel={t('settings.programImport.title')}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
-            <Barbell color={theme.color.text} />
-            <View style={{ flex: 1 }}>
-              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-                {t('settings.programImport.title')}
-              </Text>
-              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                {t('settings.programImport.body')}
-              </Text>
-            </View>
-          </View>
-        </Card>
+        <SettingsGroup title={t('settings.groups.data')}>
+          <SettingsRow
+            icon={FloppyDisk}
+            title={t('settings.backup.title')}
+            value={t('settings.backup.body')}
+            onPress={go('/respaldo')}
+          />
+          <SettingsRow
+            icon={Barbell}
+            title={t('settings.programImport.title')}
+            value={t('settings.programImport.body')}
+            onPress={go('/importar-programa')}
+          />
+          <SettingsRow
+            icon={Images}
+            title={t('settings.photos.title')}
+            value={t('settings.photos.body')}
+            onPress={go('/fotos')}
+          />
+        </SettingsGroup>
 
-        <Card
-          onPress={() => router.push('/respaldo')}
-          accessibilityLabel={t('settings.backup.title')}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
-            <FloppyDisk color={theme.color.text} />
-            <View style={{ flex: 1 }}>
-              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-                {t('settings.backup.title')}
-              </Text>
-              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                {t('settings.backup.body')}
-              </Text>
-            </View>
-          </View>
-        </Card>
+        <SettingsGroup title={t('settings.groups.appearance')}>
+          <SettingsRow
+            icon={Palette}
+            title={t('settings.appearance.theme')}
+            value={t(THEME_LABELS[themeMode])}
+            onPress={go('/apariencia')}
+          />
+          <SettingsRow
+            icon={Globe}
+            title={t('settings.appearance.language')}
+            value={t(LANGUAGE_LABELS[language])}
+            onPress={go('/apariencia')}
+          />
+        </SettingsGroup>
 
-        <Card
-          onPress={() => router.push('/ciclos-sueno')}
-          accessibilityLabel={t('sleepCalc.entry.title')}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
-            <MoonStars color={theme.color.text} />
-            <View style={{ flex: 1 }}>
-              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-                {t('sleepCalc.entry.title')}
-              </Text>
-              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                {t('sleepCalc.entry.body')}
-              </Text>
-            </View>
-          </View>
-        </Card>
-
-        <Card onPress={() => router.push('/fotos')} accessibilityLabel={t('settings.photos.title')}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
-            <Images color={theme.color.text} />
-            <View style={{ flex: 1 }}>
-              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-                {t('settings.photos.title')}
-              </Text>
-              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                {t('settings.photos.body')}
-              </Text>
-            </View>
-          </View>
-        </Card>
-
-        <Card onPress={() => router.push('/acerca')} accessibilityLabel={t('settings.about.title')}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
-            <Info color={theme.color.text} />
-            <View style={{ flex: 1 }}>
-              <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-                {t('settings.about.title')}
-              </Text>
-              <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                {t('settings.about.body')}
-              </Text>
-            </View>
-          </View>
-        </Card>
-
-        <ScheduleSettings />
-
-        <FreeDaysSettings />
-
-        <SedentarySettings />
+        <SettingsGroup title={t('settings.groups.about')}>
+          <SettingsRow
+            icon={Info}
+            title={t('settings.about.title')}
+            value={t('settings.about.body', {
+              version: Constants.expoConfig?.version ?? '0.0.0',
+            })}
+            onPress={go('/acerca')}
+          />
+        </SettingsGroup>
       </ScrollView>
     </Screen>
   );

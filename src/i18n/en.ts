@@ -332,8 +332,7 @@ export const en: Messages = {
       title: 'Before we start',
       body: 'Goals are general starting points, not medical advice. If you have a medical condition (for example kidney or heart disease), check the water and exercise goals with a professional first.',
     },
-    backupNotice:
-      "Pomi doesn't use Android's automatic backup; export your backup before switching phones.",
+    backupNotice: 'Export your backup before switching phones.',
     body: {
       title: 'How much do you weigh and how tall are you?',
       hint: 'Your weight sets your water goal.',
@@ -410,7 +409,7 @@ export const en: Messages = {
     },
     permissions: {
       title: 'Permissions for reminders',
-      hint: 'Each permission is requested only when you tap its button. You can decide now or later in Settings.',
+      hint: 'Each one is asked only when you tap it. You can decide later.',
     },
     summary: {
       title: 'Your starting point',
@@ -629,11 +628,10 @@ export const en: Messages = {
   },
   permissions: {
     title: 'Permissions and alerts',
-    intro:
-      'Pomi works without permissions, but with these your alerts arrive on time, even with the app closed.',
+    intro: 'Optional. They make your reminders arrive on time.',
     notifications: {
       title: 'Notifications',
-      body: 'To remind you about water, the gym, check-ins and bedtime.',
+      body: 'Water, gym, check-ins and bedtime.',
       granted: 'Enabled',
       denied: 'Disabled: turn them on in the system settings.',
       undetermined: 'Not decided yet',
@@ -642,14 +640,15 @@ export const en: Messages = {
     },
     alarms: {
       title: 'Exact alarms',
-      body: 'Optional. It lets the end of each gym rest ring on the dot. Your alerts still arrive, maybe a few minutes apart.',
-      hint: 'Android does not let Pomi check it. Open the setting and turn on "Alarms & reminders".',
+      body: 'The end of each gym rest rings right on time.',
+      info: 'Optional: without it your reminders still arrive, maybe a few minutes late. Android does not let Pomi check it: open the setting and turn on "Alarms & reminders".',
       open: 'Open alarm setting',
       unsupported: 'Your Android version does not need this permission.',
     },
     battery: {
       title: 'Battery',
-      body: 'Some phones throttle closed apps to save battery and alerts arrive late. Remove the optimization for Pomi.',
+      body: 'Remove the optimization so reminders are not late.',
+      info: 'Some phones throttle closed apps to save battery, and reminders arrive late. Removing the optimization for Pomi avoids it.',
       open: 'Open battery settings',
       guide: 'See steps by brand',
     },
@@ -677,7 +676,11 @@ export const en: Messages = {
   settings: {
     schedule: {
       title: 'Schedule and gym',
-      hint: 'Your wake time, your sleep hours and your gym days with their approximate time. Reminders follow along.',
+      hint: 'Your day and your gym days. Reminders follow along.',
+      value: 'Wake {{wake}} · gym {{count}} days',
+      valueNoGym: 'Wake {{wake}} · no gym',
+      goalsHint: 'Your daily water and steps goals.',
+      goalsValue: '{{glasses}} glasses · {{steps}} steps',
       wake: 'Wake time',
       sleepTarget: 'Sleep hours',
       sleepTargetValue: '{{hours}} h',
@@ -695,13 +698,29 @@ export const en: Messages = {
     },
     freeDays: {
       title: 'My free days',
-      hint: 'The days without a work schedule. They are used to compare your sleep on work days and free days.',
+      hint: 'Days off work. They compare your sleep on work and free days.',
       saveFailed: 'We could not save the change.',
     },
     title: 'Settings',
-    permissions: {
-      title: 'Permissions and alerts',
-      body: 'Notifications, exact alarms and battery.',
+    groups: {
+      profile: 'Profile and schedule',
+      notices: 'Reminders',
+      data: 'Data',
+      appearance: 'Appearance',
+      about: 'About',
+    },
+    permissions: { title: 'Permissions', body: 'Notifications, alarms and battery' },
+    battery: { title: 'Battery', body: 'So reminders arrive on time' },
+    appearance: {
+      title: 'Appearance',
+      theme: 'Theme',
+      language: 'Language',
+      themeSystem: 'Same as the phone',
+      themeLight: 'Light',
+      themeDark: 'Dark',
+      languageSystem: 'Same as the phone',
+      languageEs: 'Español',
+      languageEn: 'English',
     },
     notifications: {
       title: 'Alerts',
@@ -717,9 +736,10 @@ export const en: Messages = {
     },
     myNotifications: {
       entryTitle: 'My reminders',
-      entryBody: 'Choose which reminders you get and when.',
+      entryOn: 'On',
+      entryOff: 'Off',
       title: 'My reminders',
-      hint: 'Choose which reminders you get and when. Anything you leave alone works as before.',
+      hint: 'Which reminders you get and when.',
       general: 'General',
       water: 'Water',
       waterOn: 'Remind me to drink water',
@@ -747,13 +767,13 @@ export const en: Messages = {
       minutesValue: '{{count}} min',
       everyValue: 'Every {{count}} min',
       quiet: 'Quiet hours',
-      quietHint: 'On top of while you sleep. Nothing rings inside these hours.',
+      quietHint: 'Nothing rings in these hours, nor while you sleep.',
       quietWindow: 'Quiet {{index}}',
       quietAdd: 'Add quiet hours',
       quietRemove: 'Remove quiet {{index}}',
       sedentary: 'Inactivity break',
-      sedentaryHint: 'Set up in Settings, with your Health Connect steps.',
-      sedentaryOpen: 'Go to Settings',
+      sedentaryHint: 'Uses your Health Connect steps.',
+      sedentaryOpen: 'Set up',
       preview: "Tomorrow's preview",
       previewEmpty: 'No reminders tomorrow.',
       previewOff: 'Reminders are off.',
@@ -768,30 +788,29 @@ export const en: Messages = {
     },
     saveFailed: "We couldn't save the change.",
     back: 'Back to Settings',
-    about: { title: 'About', body: 'Version, license and an important notice.' },
-    backup: { title: 'Backup', body: 'Save or restore all your data from a file.' },
-    photos: { title: 'My photos', body: 'See them all or delete them.' },
+    about: { title: 'About Pomi', body: 'Version {{version}}' },
+    backup: { title: 'Backup', body: 'Save or restore your data' },
+    photos: { title: 'My photos', body: 'See or delete them' },
     programImport: {
-      title: 'Import a gym program',
-      body: 'Load a program from a JSON file.',
+      title: 'Import a program',
+      body: 'From a JSON file',
     },
   },
   backup: {
     title: 'Backup',
-    intro:
-      'Save all your data to a file, or bring it back from one. Your data lives only on this phone: the backup is your safety copy.',
+    intro: 'Save your data to a file or bring it back.',
+    info: 'Your data lives only on this phone: the backup is your safety copy.',
     policy:
       "Pomi doesn't use Android's automatic backup; export your backup before switching phones.",
     reminder: {
       label: 'Remind me to export my backup',
-      hint: 'Shows as a line in the monthly review. It sends no notifications.',
+      hint: 'A line in the monthly review, no notifications.',
     },
     export: {
       title: 'Save a backup',
-      body: 'Includes your profile, settings, templates, workouts, habits, steps and check-ins.',
+      body: 'Profile, settings, templates, workouts, habits and check-ins.',
       photos: 'Include photos',
-      photosHint:
-        'Saves the data of your photos (date and pose). The images go separately, with «Save photos» below.',
+      photosHint: 'Only date and pose; the images go separately.',
       action: 'Create backup',
       shareTitle: 'Pomi backup',
       unavailable: 'This phone cannot share files.',
@@ -800,7 +819,7 @@ export const en: Messages = {
     },
     import: {
       title: 'Restore from a file',
-      body: 'Pick a Pomi backup. You will see what it contains before anything changes.',
+      body: 'You will see what it contains before anything changes.',
       pick: 'Choose file',
       tooLarge: 'That file is too large for a backup (maximum {{mb}} MB).',
       photosKept: 'This backup has no photos: the photos you have now stay as they are.',
@@ -825,7 +844,8 @@ export const en: Messages = {
     },
     photos: {
       title: 'Photos',
-      body: 'The backup keeps the data of your photos; the images go separately, in one or more files. Restore the backup (with photos) first and then these files.',
+      body: 'The images go in separate files.',
+      info: 'The backup keeps the data of your photos; the images go separately, in one or more files. Restore the backup (with photos) first and then these files.',
       export: 'Save photos',
       import: 'Restore photos',
       shareTitle: 'Pomi photos',
@@ -1081,12 +1101,12 @@ export const en: Messages = {
     loadFailed: 'We could not load the comparison.',
   },
   sedentary: {
-    title: 'Active breaks',
-    intro:
-      'If you have not moved for a while, I suggest a 2 minute break. It uses your Health Connect steps.',
-    enable: 'Remind me if I have not moved for a while',
-    enableHint:
-      'When you turn it on I will ask you to connect Health Connect and allow background reads.',
+    title: 'Inactivity break',
+    on: 'On',
+    off: 'Off',
+    intro: 'If you have not moved for a while, I suggest a 2 minute break.',
+    how: 'It uses your Health Connect steps. When you turn it on I ask to read them, also in the background.',
+    enable: 'Remind me if I do not move',
     unavailable: 'Health Connect is not available on this phone.',
     denied:
       'We could not turn it on: the Health Connect permission is missing. You can try again any time.',
@@ -1208,6 +1228,10 @@ export const en: Messages = {
     slow: 'This is taking longer than usual, but it is still running. Please keep the app open.',
     hide: 'Hide this notice',
   },
+  info: {
+    open: 'More info: {{topic}}',
+    close: 'Close',
+  },
   photosScreen: {
     title: 'Your photos',
     count: 'Photos: {{count}}',
@@ -1238,6 +1262,7 @@ export const en: Messages = {
     privacy: 'Privacy',
     privacyBody: 'Your data lives only on this phone. Pomi has no accounts and no analytics.',
     disclaimerTitle: 'Important',
+    disclaimerShort: 'Pomi does not give medical advice.',
     disclaimer:
       'Pomi does not give medical advice. Goals are general starting points, not a prescription. If you have a medical condition (for example kidney or heart), an injury or any doubt, talk to a professional before following the water and exercise goals.',
   },

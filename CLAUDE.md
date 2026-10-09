@@ -58,7 +58,8 @@ Manual Android checklist before each version (PLAN §16): reminders with the app
 ```
 app/                 expo-router routes (see PLAN §5): (tabs)/{hoy,gym,habitos,progreso,ajustes}, onboarding/, gym/session, checkin/[tipo], compartir
 src/ui/              theme.tsx (ThemeProvider, useTheme, textStyle), icons.tsx (Phosphor IconContext), assets.ts (typed image registry),
-                     Button, Card, Chip, EmptyState, Mascot, MascotBubble, OptionRow, ProgressBar, Screen, SectionPlaceholder, Stepper (Stepper/NumberStepper/TimeStepper), TextField, usePressScale, themeModeStore, Consistency, HabitCounter (water drops / steps / generic), CheckinSheet
+                     Button, Card, Chip, EmptyState, Mascot, MascotBubble, OptionRow, ProgressBar, Screen, SectionPlaceholder, Stepper (Stepper/NumberStepper/TimeStepper), TextField, usePressScale, themeModeStore, Consistency, HabitCounter (water drops / steps / generic), CheckinSheet, InfoButton ((i) -> BottomSheet with the long text), SettingsRow/SettingsGroup (Ajustes entries)
+src/settings/        Ajustes: SettingsPage (detail page frame: back, title + optional (i), one-line intro), summary.ts (one-line values, pure `buildSettingsSummary`), appearance.ts (theme/language labels), ScheduleSettings (`part`: schedule | goals), FreeDaysSettings
 src/i18n/            es.ts (source of truth for keys), en.ts, index.ts (`t`, `useT()`, `useLocaleStore`, `setLanguage`, `translateIn`), types.ts, templateText.ts (`useTemplateText`, `templateText`, `resolverFor`)
 assets/              brand/, mascot/, icons/, illustrations/ — PLACEHOLDERS (blue-500 circle with the "o" face), final art keeps the same file names
 design/              tokens.json (single source of truth), docs
@@ -288,15 +289,20 @@ Create other `src/` folders from PLAN §5 (`domain`, `db`, `notifications`, `tim
 - **Reading** (`HealthAdapter.readRecentSteps`): `aggregateGroupByDuration` over the last N minutes (60 / 90 / 120, default 90) in 15-minute slices, summed (Health Connect de-duplicates phone + watch inside each slice), plus a `readRecords` page of size 1 over the last 6 h to know whether the step source is reporting. Approximate by nature (15 min granularity).
 - **Background**: the nudge runs inside the EXISTING `pomi-notification-sync` job (`runSedentaryNudgeForReal`, never makes it fail). expo-background-task docs: all tasks share one worker and "the last registered task determines the minimum interval", so there is ONE task and `refreshBackgroundSchedule()` registers it with 15 minutes while the nudge can fire (enabled and not `noPhone`) and 6 h otherwise (at app open and after every settings change). The library requires network (`NetworkType.CONNECTED`), so **the nudge may be missed offline**; Android may also delay it (Doze, OEM battery savers). The Ajustes section says so honestly. Reading Health Connect from a background job needs its own permission: `android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND` in `app.json` plus the runtime `BackgroundAccessPermission` (`adapter.requestBackgroundPermission`); turning the switch on asks for what is missing (`ensureNudgePermissions`) and stays off if refused or Health Connect is unavailable, which also makes "off until Health Connect is connected" literal.
 - **Notification**: "Pausa activa" (channel `habits`, category `pomi_pause` with ONLY "Hecho", no snooze: it never insists). "Hecho" marks the `pausa-activa` habit when the person has it (workType `sentada`), otherwise it just closes. Texts `sedentary.notification.*` (title <= 30, body <= 80, tested). Ids are not managed by the scheduler, so a sync never cancels them.
-- **Settings** (`sedentaryNudge` config + `sedentaryHistory` count/last time, both in the backup): Ajustes > Pausas activas: on/off (default off), window 60/90/120, threshold (50-500 steps, default 100), days, max per day (1-5, default 3), "No llevo el celular cuando camino" (turns it off with an explanation).
+- **Settings** (`sedentaryNudge` config + `sedentaryHistory` count/last time, both in the backup): Ajustes > Pausa por inactividad: on/off (default off), window 60/90/120, threshold (50-500 steps, default 100), days, max per day (1-5, default 3), "No llevo el celular cuando camino" (turns it off with an explanation).
 - Tests: `domain/sedentary` (every reason, edges, midnight, rollover), `src/sedentary` (run order and rollback with fakes, permissions flow, config defaults, worker interval, texts and category), `SedentarySettings` with RNTL, the notification action. The real background job, Health Connect and the notification are NOT covered by Jest.
 
 ### Manual on-device checklist: sedentary nudge
 
-- Ajustes > Pausas activas is off; turning it on asks for Health Connect (steps, then background read); refusing leaves it off with a calm message.
+- Ajustes > Pausa por inactividad is off; turning it on asks for Health Connect (steps, then background read); refusing leaves it off with a calm message.
 - Sit with the phone for the chosen window on a selected day inside the window hours: a "Pausa activa" notification arrives (it can take a while: the job is approximate and needs network); "Hecho" closes it (and marks the habit if you have it); no second one within 2 h; never more than the daily cap.
 - Walk with the phone: no nudge. Turn on "No llevo el celular cuando camino": the options disappear and nothing arrives.
 - Airplane mode: no nudge (expected, documented).
+
+## Ajustes and copy (owner feedback 2026-10)
+
+- **Copy rule:** one short line per option; any longer explanation goes behind an (i) `InfoButton` (bottom sheet). Applies to Permisos, Mis avisos, Respaldo, Acerca de, the sedentary nudge and the onboarding notices.
+- **Ajustes** is a list of groups (`SettingsGroup`), each row = icon + title + one-line value (`SettingsRow`), detail on its own page: Perfil y horarios (`/horarios` schedule + free days, `/metas` goals, `/ciclos-sueno`), Avisos (`/mis-avisos`, `/inactividad`, `/permisos`, `/bateria`), Datos (`/respaldo`, `/importar-programa`, `/fotos`), Apariencia (`/apariencia`: theme + language via their stores), Acerca de (`/acerca`). There is no profile editor yet.
 
 ## Connect your AI: removed (owner decision, PLAN §14d)
 

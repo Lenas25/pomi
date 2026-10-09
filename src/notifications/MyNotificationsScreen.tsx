@@ -433,7 +433,7 @@ export function MyNotificationsScreen() {
                 <Button
                   label={t('settings.myNotifications.sedentaryOpen')}
                   variant="secondary"
-                  onPress={() => router.back()}
+                  onPress={() => router.push('/inactividad')}
                 />
               </>,
             )}

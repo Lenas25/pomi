@@ -37,8 +37,13 @@ const SLEEP_STEP_H = 0.5;
 
 type WriteKey = 'anchors' | 'gym' | 'goals';
 
-/** Ajustes > "Horarios y gym": wake time, sleep target, gym days with a time per day, goals. */
-export function ScheduleSettings() {
+type ScheduleSettingsProps = {
+  /** `schedule`: wake time, sleep target, gym days and times. `goals`: water and steps goals. */
+  part: 'schedule' | 'goals';
+};
+
+/** Ajustes > "Horarios y gym" or "Metas" (the same stored settings, shown in two pages). */
+export function ScheduleSettings({ part }: ScheduleSettingsProps) {
   const t = useT();
   const theme = useTheme();
   const [state, setState] = useState<Schedule | null>(null);
@@ -134,87 +139,81 @@ export function ScheduleSettings() {
   return (
     <Card>
       <View style={{ gap: theme.space[3] }}>
-        <Text
-          accessibilityRole="header"
-          style={[theme.text('title-sm'), { color: theme.color.text }]}
-        >
-          {t('settings.schedule.title')}
-        </Text>
-        <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-          {t('settings.schedule.hint')}
-        </Text>
-        <TimeStepper
-          label={t('settings.schedule.wake')}
-          value={state.wake}
-          onChange={(wake) => setAnchors({ wake })}
-        />
-        <NumberStepper
-          label={t('settings.schedule.sleepTarget')}
-          value={state.sleepTargetH}
-          step={SLEEP_STEP_H}
-          min={LIMITS.sleepTargetH.min}
-          max={LIMITS.sleepTargetH.max}
-          format={(hours) => t('settings.schedule.sleepTargetValue', { hours })}
-          onChange={(sleepTargetH) => setAnchors({ sleepTargetH })}
-        />
-        <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
-          {t('settings.schedule.bed', { time: bedtimeFor(state.wake, state.sleepTargetH) })}
-        </Text>
-        <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
-          {t('settings.schedule.gymDays')}
-        </Text>
-        <WeekdayChips
-          selected={[...new Set(state.plan.map((entry) => entry.weekday))]}
-          onChange={(days) => setPlan(planForDays(state.plan, days, state.anchors))}
-          accessibilityLabel={t('settings.schedule.gymDays')}
-        />
-        {ordered.map((entry) => (
-          <TimeStepper
-            key={`${entry.weekday}-${entry.index}`}
-            label={t('settings.schedule.gymTime', {
-              day: t(LONG_DAY[entry.weekday] ?? LONG_DAY[0]),
-            })}
-            value={entry.time}
-            onChange={(time) =>
-              setPlan(
-                state.plan.map((item, index) => (index === entry.index ? { ...item, time } : item)),
-              )
-            }
-          />
-        ))}
-        <Text
-          accessibilityRole="header"
-          style={[theme.text('body-strong'), { color: theme.color.text }]}
-        >
-          {t('settings.schedule.goalsTitle')}
-        </Text>
-        <NumberStepper
-          label={t('settings.schedule.waterRest')}
-          value={state.goals.waterGlassesRest ?? FALLBACK_GOALS.waterGlassesRest}
-          step={1}
-          min={1}
-          max={30}
-          format={(count) => t('settings.schedule.glassesValue', { count })}
-          onChange={(waterGlassesRest) => setGoal({ waterGlassesRest })}
-        />
-        <NumberStepper
-          label={t('settings.schedule.waterGym')}
-          value={state.goals.waterGlassesGym ?? FALLBACK_GOALS.waterGlassesGym}
-          step={1}
-          min={1}
-          max={30}
-          format={(count) => t('settings.schedule.glassesValue', { count })}
-          onChange={(waterGlassesGym) => setGoal({ waterGlassesGym })}
-        />
-        <NumberStepper
-          label={t('settings.schedule.steps')}
-          value={state.goals.stepsGoal ?? FALLBACK_GOALS.stepsGoal}
-          step={STEPS_STEP}
-          min={STEPS_STEP}
-          max={LIMITS.steps.max}
-          format={(count) => t('settings.schedule.stepsValue', { count })}
-          onChange={(stepsGoal) => setGoal({ stepsGoal })}
-        />
+        {part === 'schedule' ? (
+          <>
+            <TimeStepper
+              label={t('settings.schedule.wake')}
+              value={state.wake}
+              onChange={(wake) => setAnchors({ wake })}
+            />
+            <NumberStepper
+              label={t('settings.schedule.sleepTarget')}
+              value={state.sleepTargetH}
+              step={SLEEP_STEP_H}
+              min={LIMITS.sleepTargetH.min}
+              max={LIMITS.sleepTargetH.max}
+              format={(hours) => t('settings.schedule.sleepTargetValue', { hours })}
+              onChange={(sleepTargetH) => setAnchors({ sleepTargetH })}
+            />
+            <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
+              {t('settings.schedule.bed', { time: bedtimeFor(state.wake, state.sleepTargetH) })}
+            </Text>
+            <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
+              {t('settings.schedule.gymDays')}
+            </Text>
+            <WeekdayChips
+              selected={[...new Set(state.plan.map((entry) => entry.weekday))]}
+              onChange={(days) => setPlan(planForDays(state.plan, days, state.anchors))}
+              accessibilityLabel={t('settings.schedule.gymDays')}
+            />
+            {ordered.map((entry) => (
+              <TimeStepper
+                key={`${entry.weekday}-${entry.index}`}
+                label={t('settings.schedule.gymTime', {
+                  day: t(LONG_DAY[entry.weekday] ?? LONG_DAY[0]),
+                })}
+                value={entry.time}
+                onChange={(time) =>
+                  setPlan(
+                    state.plan.map((item, index) =>
+                      index === entry.index ? { ...item, time } : item,
+                    ),
+                  )
+                }
+              />
+            ))}
+          </>
+        ) : (
+          <>
+            <NumberStepper
+              label={t('settings.schedule.waterRest')}
+              value={state.goals.waterGlassesRest ?? FALLBACK_GOALS.waterGlassesRest}
+              step={1}
+              min={1}
+              max={30}
+              format={(count) => t('settings.schedule.glassesValue', { count })}
+              onChange={(waterGlassesRest) => setGoal({ waterGlassesRest })}
+            />
+            <NumberStepper
+              label={t('settings.schedule.waterGym')}
+              value={state.goals.waterGlassesGym ?? FALLBACK_GOALS.waterGlassesGym}
+              step={1}
+              min={1}
+              max={30}
+              format={(count) => t('settings.schedule.glassesValue', { count })}
+              onChange={(waterGlassesGym) => setGoal({ waterGlassesGym })}
+            />
+            <NumberStepper
+              label={t('settings.schedule.steps')}
+              value={state.goals.stepsGoal ?? FALLBACK_GOALS.stepsGoal}
+              step={STEPS_STEP}
+              min={STEPS_STEP}
+              max={LIMITS.steps.max}
+              format={(count) => t('settings.schedule.stepsValue', { count })}
+              onChange={(stepsGoal) => setGoal({ stepsGoal })}
+            />
+          </>
+        )}
         {failed ? (
           <Text
             accessibilityRole="alert"

@@ -1,4 +1,4 @@
-// Ajustes > Pausas activas (PLAN §14b): everything the sedentary nudge lets you configure, with the
+// Ajustes > Pausa por inactividad (PLAN §14b): everything the sedentary nudge lets you configure, with the
 // honest note that it is approximate.
 import { Switch, Text, View } from 'react-native';
 
@@ -63,16 +63,7 @@ export function SedentarySettings() {
   return (
     <Card>
       <View style={{ gap: theme.space[3] }}>
-        <Text
-          accessibilityRole="header"
-          style={[theme.text('title-sm'), { color: theme.color.text }]}
-        >
-          {t('sedentary.title')}
-        </Text>
-        <Text style={muted}>{t('sedentary.intro')}</Text>
-
         {switchRow(t('sedentary.enable'), config.enabled, (next) => void setEnabled(next))}
-        {config.enabled ? null : <Text style={muted}>{t('sedentary.enableHint')}</Text>}
 
         {switchRow(
           t('sedentary.noPhone'),
@@ -152,7 +143,6 @@ export function SedentarySettings() {
             onPress={openHealthSettings}
           />
         ) : null}
-        <Text style={muted}>{t('sedentary.honest')}</Text>
       </View>
     </Card>
   );

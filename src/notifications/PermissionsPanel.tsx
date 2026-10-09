@@ -9,6 +9,7 @@ import { getRepositories } from '../db';
 import { useT } from '../i18n';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { InfoButton } from '../ui/InfoButton';
 import { useTheme } from '../ui/theme';
 
 import {
@@ -105,10 +106,16 @@ export function PermissionsPanel({ showBatteryGuide = true }: PermissionsPanelPr
         ? 'permissions.notifications.denied'
         : 'permissions.notifications.undetermined';
 
-  const title = (text: string) => (
-    <Text accessibilityRole="header" style={[theme.text('title-sm'), { color: theme.color.text }]}>
-      {text}
-    </Text>
+  const title = (text: string, info?: string) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+      <Text
+        accessibilityRole="header"
+        style={[theme.text('title-sm'), { color: theme.color.text, flex: 1 }]}
+      >
+        {text}
+      </Text>
+      {info ? <InfoButton title={text} body={info} /> : null}
+    </View>
   );
   const body = (text: string, muted = false) => (
     <Text style={[theme.text('body'), { color: muted ? theme.color.textMuted : theme.color.text }]}>
@@ -139,11 +146,10 @@ export function PermissionsPanel({ showBatteryGuide = true }: PermissionsPanelPr
 
       <Card>
         <View style={{ gap: theme.space[2] }}>
-          {title(t('permissions.alarms.title'))}
+          {title(t('permissions.alarms.title'), t('permissions.alarms.info'))}
           {body(t('permissions.alarms.body'))}
           {exactAlarmsApply() ? (
             <>
-              {body(t('permissions.alarms.hint'), true)}
               <Button
                 label={t('permissions.alarms.open')}
                 icon={Alarm}
@@ -159,7 +165,7 @@ export function PermissionsPanel({ showBatteryGuide = true }: PermissionsPanelPr
 
       <Card>
         <View style={{ gap: theme.space[2] }}>
-          {title(t('permissions.battery.title'))}
+          {title(t('permissions.battery.title'), t('permissions.battery.info'))}
           {body(t('permissions.battery.body'))}
           <Button
             label={t('permissions.battery.open')}

@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { useT } from '../i18n';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { InfoButton } from '../ui/InfoButton';
 import { Screen } from '../ui/Screen';
 import { useTheme } from '../ui/theme';
 
@@ -48,14 +49,17 @@ export function AboutScreen() {
         </Card>
         <Card variant="highlight">
           <View style={{ gap: theme.space[2] }}>
-            <Text
-              accessibilityRole="header"
-              style={[theme.text('title-sm'), { color: theme.color.text }]}
-            >
-              {t('about.disclaimerTitle')}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+              <Text
+                accessibilityRole="header"
+                style={[theme.text('title-sm'), { color: theme.color.text, flex: 1 }]}
+              >
+                {t('about.disclaimerTitle')}
+              </Text>
+              <InfoButton title={t('about.disclaimerTitle')} body={t('about.disclaimer')} />
+            </View>
             <Text style={[theme.text('body'), { color: theme.color.text }]}>
-              {t('about.disclaimer')}
+              {t('about.disclaimerShort')}
             </Text>
           </View>
         </Card>

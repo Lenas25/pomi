@@ -17,6 +17,7 @@ import { sweepOrphanPhotos, withPhotoLock } from '../photos/photoStore';
 import { dayKeyFor } from '../domain/time';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { InfoButton } from '../ui/InfoButton';
 import { Screen } from '../ui/Screen';
 import { useTheme } from '../ui/theme';
 
@@ -273,17 +274,17 @@ export function BackupScreen() {
   return (
     <Screen scroll edges={['top', 'bottom', 'left', 'right']}>
       <View style={{ gap: theme.space[3], paddingVertical: theme.space[4] }}>
-        <Text
-          accessibilityRole="header"
-          style={[theme.text('title-lg'), { color: theme.color.text }]}
-        >
-          {t('backup.title')}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+          <Text
+            accessibilityRole="header"
+            style={[theme.text('title-lg'), { color: theme.color.text, flex: 1 }]}
+          >
+            {t('backup.title')}
+          </Text>
+          <InfoButton title={t('backup.title')} body={[t('backup.info'), t('backup.policy')]} />
+        </View>
         <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
           {t('backup.intro')}
-        </Text>
-        <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
-          {t('backup.policy')}
         </Text>
 
         <Card>
@@ -423,9 +424,12 @@ export function BackupScreen() {
 
         <Card>
           <View style={{ gap: theme.space[3] }}>
-            <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-              {t('backup.photos.title')}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+              <Text style={[theme.text('title-sm'), { color: theme.color.text, flex: 1 }]}>
+                {t('backup.photos.title')}
+              </Text>
+              <InfoButton title={t('backup.photos.title')} body={t('backup.photos.info')} />
+            </View>
             <Text style={muted}>{t('backup.photos.body')}</Text>
             <Button
               label={t('backup.photos.export')}

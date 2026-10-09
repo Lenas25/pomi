@@ -1,4 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import Inactividad from '../../app/inactividad';
 
 import { setLanguage } from '../i18n';
 import { ThemeProvider } from '../ui/theme';
@@ -32,25 +35,38 @@ function renderIt() {
   );
 }
 
+const METRICS = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+};
+
+/** The Ajustes page: the honest limits live behind its (i) sheet. */
+async function openPageInfo() {
+  await render(
+    <SafeAreaProvider initialMetrics={METRICS}>
+      <ThemeProvider mode="light">
+        <Inactividad />
+      </ThemeProvider>
+    </SafeAreaProvider>,
+  );
+  await fireEvent.press(
+    screen.getByRole('button', { name: 'Más información: Pausa por inactividad' }),
+  );
+}
+
 beforeEach(() => {
   setLanguage('es');
   jest.clearAllMocks();
 });
 
 describe('SedentarySettings', () => {
-  it('is off by default, asks for Health Connect when turned on and is honest about being approximate', async () => {
+  it('is off by default and asks for Health Connect when turned on', async () => {
     mockSettings(undefined);
     await renderIt();
-    expect(screen.getByLabelText('Avisarme si llevo un rato sin moverme').props.value).toBe(false);
-    expect(screen.getByText(/necesita conexión a internet/)).toBeTruthy();
-    expect(screen.getByText(/nunca insiste/)).toBeTruthy();
+    expect(screen.getByLabelText('Avisarme si no me muevo').props.value).toBe(false);
     // The details only appear once it is on.
     expect(screen.queryByText('Máximo de avisos al día')).toBeNull();
-    await fireEvent(
-      screen.getByLabelText('Avisarme si llevo un rato sin moverme'),
-      'valueChange',
-      true,
-    );
+    await fireEvent(screen.getByLabelText('Avisarme si no me muevo'), 'valueChange', true);
     expect(setEnabled).toHaveBeenCalledWith(true);
   });
 
@@ -87,9 +103,12 @@ describe('SedentarySettings', () => {
     expect(openHealthSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('documents the no-recent-data limitation', async () => {
+  it('is honest about being approximate, behind the page info sheet', async () => {
     mockSettings(undefined);
-    await renderIt();
+    await openPageInfo();
+    expect(screen.getByText(/necesita conexión a internet/)).toBeTruthy();
+    expect(screen.getByText(/nunca insiste/)).toBeTruthy();
     expect(screen.getByText(/últimas 6 horas/)).toBeTruthy();
+    expect(screen.getByText(/Health Connect/)).toBeTruthy();
   });
 });
