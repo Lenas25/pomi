@@ -1299,6 +1299,30 @@ export const es = {
     failed: 'No pudimos guardar el programa. Tus datos siguen igual.',
   },
   today: {
+    tasks: {
+      title: 'Tareas de hoy',
+      hint: 'Cada tarea cuenta cuando la terminas o la saltas.',
+      close: 'Cerrar',
+      done: 'Hecha',
+      skipped: 'Saltada',
+      pending: 'Pendiente',
+      itemLabel: '{{title}}, {{status}}. {{how}}',
+    },
+    how: {
+      title: 'Cómo se cuenta',
+      check: 'Márcala tú',
+      counter: 'Suma hasta tu meta',
+      reminder: 'Márcalo tú al hacerlo',
+      gym: 'Al terminar la sesión',
+      checkin: 'Al responder el check-in',
+      waterWeight: '{{count}} vasos según tu peso',
+      water: 'Suma vasos hasta tu meta',
+      steps: 'Meta de {{count}} pasos',
+      stepsNoGoal: 'Tus pasos del día',
+      timesOne: 'aviso {{time}}',
+      timesRange: 'avisos {{from}}–{{until}}',
+      everyDay: 'todos los días',
+    },
     greeting: {
       morning: 'Buenos días',
       morningNamed: 'Buenos días, {{name}}',
@@ -1342,8 +1366,8 @@ export const es = {
     sub: { water: '{{done}} de {{total}} vasos', goal: '{{exercise}}: {{goal}}' },
     hub: {
       back: 'Volver',
-      progress: '{{done}} de {{total}} hechos',
-      progressLabel: 'Tu día: {{done}} de {{total}} hechos',
+      progress: '{{done}} de {{total}} tareas de hoy',
+      progressLabel: 'Tu día: {{done}} de {{total}} tareas de hoy. Ver cuáles',
       now: {
         title: 'Ahora',
         next: 'Lo próximo',

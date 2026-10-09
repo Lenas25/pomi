@@ -4,6 +4,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 
 import { buildTimeline } from '../domain/today/timeline';
 import { buildAgenda } from '../domain/agenda/buildAgenda';
+import { weeklyItems } from '../domain/agenda/weekly';
 import { setLanguage } from '../i18n';
 import { loadDefaultTemplates } from '../templates/defaults';
 import { ThemeProvider } from '../ui/theme';
@@ -55,17 +56,19 @@ function dataWith(
   gymGoal?: TodayData['gymGoal'],
 ): TodayData {
   const now = new Date(2026, 9, 5, 10, 0);
-  const agenda = buildAgenda(now, {
+  const agendaState = {
     profile: { weightKg: 60, workType: 'sentada' },
     anchors: defaults.settings.anchors ?? {},
     gymDays: defaults.settings.gymDays ?? [],
     modules: defaults.modules,
-  });
+  };
+  const agenda = buildAgenda(now, agendaState);
   return {
     today: '2026-10-05',
     midnight: new Date(2026, 9, 5),
     userName: undefined,
     agenda,
+    weekly: weeklyItems(now, agendaState),
     facts: { gymDone: false, view: SAMPLE_HABITS },
     state: { date: '2026-10-05', skipped: [], acked: [], snoozed: {} },
     activityToday: activity,

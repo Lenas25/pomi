@@ -31,6 +31,7 @@ import {
 } from './HabitCards';
 import type { HabitsView } from './habitsView';
 import type { SleepDetail } from './sleepStats';
+import { HowItCounts } from './HowItCounts';
 import { useHabits } from './useHabits';
 
 type Habits = ReturnType<typeof useHabits>;
@@ -228,6 +229,7 @@ export function WaterDetailScreen() {
               water={view.water}
               onChange={(next) => void habits.setWater(view.water?.habitId ?? '', next)}
             />
+            <HowItCounts habitId={view.water.habitId} />
             <WaterCurveCard companion={companion} />
             <WaterGoals habits={habits} />
           </>
@@ -288,6 +290,7 @@ export function StepsDetailScreen() {
                 })}
               </Muted>
             ) : null}
+            <HowItCounts habitId={view.steps.habitId} />
             <StepsGoal habits={habits} />
           </>
         ) : (
@@ -424,7 +427,13 @@ export function CheckDetailScreen({ habitId }: { habitId: string }) {
       render={({ view, habits }) => {
         const check = view.checks.find((candidate) => candidate.habitId === habitId);
         return check ? (
-          <CheckCard check={check} onChange={(done) => void habits.setCheck(check.habitId, done)} />
+          <>
+            <CheckCard
+              check={check}
+              onChange={(done) => void habits.setCheck(check.habitId, done)}
+            />
+            <HowItCounts habitId={check.habitId} />
+          </>
         ) : (
           <NotFound />
         );

@@ -34,6 +34,15 @@ jest.mock('../companion/loadCompanion', () => ({
     rhythm: { learning: true },
   })),
 }));
+jest.mock('../today/todayData', () => ({
+  loadWeeklyItems: jest.fn(async () => ({
+    'habit:movimiento:pausa-activa': {
+      days: [1, 2, 3, 4, 5],
+      occurrences: [540, 600, 1080],
+      item: { kind: 'habit', habitType: 'check', habitId: 'pausa-activa' },
+    },
+  })),
+}));
 jest.mock('../db', () => ({
   getRepositories: () => ({ settings: { get: jest.fn(async () => ({ waterGlassesRest: 9 })) } }),
 }));
@@ -199,6 +208,7 @@ describe('Habits detail pages', () => {
     const handlers = mockHabits();
     await renderThemed(<CheckDetailScreen habitId="pausa-activa" />);
     expect(screen.getByText('Levántate 2 minutos cada hora.')).toBeTruthy();
+    expect(await screen.findByText('Márcala tú · avisos 09:00–18:00 · Lun–Vie')).toBeTruthy();
     await fireEvent.press(screen.getByLabelText('Pausa activa: pendiente'));
     expect(handlers.setCheck).toHaveBeenCalledWith('pausa-activa', true);
   });

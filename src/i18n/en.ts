@@ -1292,6 +1292,30 @@ export const en: Messages = {
     failed: 'We could not save the program. Your data is unchanged.',
   },
   today: {
+    tasks: {
+      title: "Today's tasks",
+      hint: 'Each task counts once you finish it or skip it.',
+      close: 'Close',
+      done: 'Done',
+      skipped: 'Skipped',
+      pending: 'Pending',
+      itemLabel: '{{title}}, {{status}}. {{how}}',
+    },
+    how: {
+      title: 'How it counts',
+      check: 'You mark it',
+      counter: 'Add up to your goal',
+      reminder: 'Mark it when you do it',
+      gym: 'When you finish the session',
+      checkin: 'When you answer the check-in',
+      waterWeight: '{{count}} glasses from your weight',
+      water: 'Add glasses up to your goal',
+      steps: 'Goal of {{count}} steps',
+      stepsNoGoal: 'Your steps of the day',
+      timesOne: 'reminder {{time}}',
+      timesRange: 'reminders {{from}}–{{until}}',
+      everyDay: 'every day',
+    },
     greeting: {
       morning: 'Good morning',
       morningNamed: 'Good morning, {{name}}',
@@ -1335,8 +1359,8 @@ export const en: Messages = {
     sub: { goal: '{{exercise}}: {{goal}}', water: '{{done}} of {{total}} glasses' },
     hub: {
       back: 'Back',
-      progress: '{{done}} of {{total}} done',
-      progressLabel: 'Your day: {{done}} of {{total}} done',
+      progress: '{{done}} of {{total}} tasks today',
+      progressLabel: 'Your day: {{done}} of {{total}} tasks today. See which',
       now: {
         title: 'Now',
         next: 'Next up',

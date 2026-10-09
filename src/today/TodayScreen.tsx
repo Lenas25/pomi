@@ -1,19 +1,23 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import {
   ArrowRight,
   Barbell,
   Check,
+  CheckCircle,
+  CircleDashed,
   Clock,
   Drop,
   Footprints,
+  Info,
   PersonSimpleWalk,
   Plus,
   SunHorizon,
 } from 'phosphor-react-native';
 
-import { doneActionFor } from '../domain/today/timeline';
+import type { WeeklyItem } from '../domain/agenda/weekly';
+import { doneActionFor, type TimelineEntry } from '../domain/today/timeline';
 import { ActivityCard } from '../habits/ActivityCard';
 import { useLocaleStore, useT, type Translate } from '../i18n';
 import { templateText } from '../i18n/templateText';
@@ -34,6 +38,7 @@ import { SuggestionCard } from '../ui/SuggestionCard';
 import { Toast } from '../ui/Toast';
 import { useTheme } from '../ui/theme';
 
+import { countRule, howItCountsLine } from './howItCounts';
 import { entryHighlight, entryTime, entryTitle } from './labels';
 import { InsightCard } from './InsightCard';
 import { InsightSlot } from './slots';
@@ -47,34 +52,101 @@ type Today = ReturnType<typeof useToday>;
 const RING_SIZE = 48;
 const RING_STROKE = 6;
 
-/** Header summary: the day's progress ring and "x de y hechos". */
-function DayProgress({ settled, total }: { settled: number; total: number }) {
+/** One row of the "Tareas de hoy" sheet: status icon, title and how it counts. */
+function TaskRow({ entry, week }: { entry: TimelineEntry; week: WeeklyItem | undefined }) {
   const theme = useTheme();
   const t = useT();
-  const colors = theme.section.hoy;
-  if (total === 0) return null;
+  const settled = entry.status === 'done' || entry.status === 'skipped';
+  const status = t(
+    entry.status === 'done'
+      ? 'today.tasks.done'
+      : entry.status === 'skipped'
+        ? 'today.tasks.skipped'
+        : 'today.tasks.pending',
+  );
+  const title = entryTitle(entry, t);
+  const how = week ? howItCountsLine(week, t) : countRule(entry.item, t);
+  const Icon = settled ? CheckCircle : CircleDashed;
   return (
     <View
       accessible
-      accessibilityLabel={t('today.hub.progressLabel', { done: settled, total })}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.space[3],
-        marginTop: theme.space[2],
-      }}
+      accessibilityLabel={t('today.tasks.itemLabel', { title, status, how })}
+      style={{ flexDirection: 'row', gap: theme.space[3], alignItems: 'flex-start' }}
     >
-      <ProgressRing
-        progress={settled / total}
-        size={RING_SIZE}
-        stroke={RING_STROKE}
-        color={colors.onFill}
-        trackColor={colors.soft}
+      <Icon
+        color={settled ? theme.color.success : theme.color.textMuted}
+        weight={settled ? 'fill' : 'regular'}
       />
-      <Text style={[theme.text('body-strong'), { color: colors.onFill }]}>
-        {t('today.hub.progress', { done: settled, total })}
-      </Text>
+      <View style={{ flex: 1, gap: theme.space[1] }}>
+        <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>{title}</Text>
+        <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>{how}</Text>
+      </View>
+      <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>{status}</Text>
     </View>
+  );
+}
+
+/**
+ * Header summary: the day's progress ring and "x de y tareas de hoy". Tapping it lists the tasks
+ * (done / pending) with how each one counts.
+ */
+function DayProgress({
+  entries,
+  weekly,
+}: {
+  entries: readonly TimelineEntry[];
+  weekly: Readonly<Record<string, WeeklyItem>>;
+}) {
+  const theme = useTheme();
+  const t = useT();
+  const colors = theme.section.hoy;
+  const [open, setOpen] = useState(false);
+  const { settled, total } = dayProgressCount(entries);
+  if (total === 0) return null;
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('today.hub.progressLabel', { done: settled, total })}
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          alignSelf: 'flex-start',
+          gap: theme.space[3],
+          marginTop: theme.space[2],
+          minHeight: theme.touch.gym,
+          opacity: pressed ? theme.opacity.pressed : 1,
+        })}
+      >
+        <ProgressRing
+          progress={settled / total}
+          size={RING_SIZE}
+          stroke={RING_STROKE}
+          color={colors.onFill}
+          trackColor={colors.soft}
+        />
+        <Text style={[theme.text('body-strong'), { color: colors.onFill }]}>
+          {t('today.hub.progress', { done: settled, total })}
+        </Text>
+        <Info color={colors.onFill} />
+      </Pressable>
+      <BottomSheet
+        visible={open}
+        onClose={() => setOpen(false)}
+        title={t('today.tasks.title')}
+        closeLabel={t('today.tasks.close')}
+      >
+        <View style={{ gap: theme.space[4] }}>
+          <Text style={[theme.text('body'), { color: theme.color.textMuted }]}>
+            {t('today.tasks.hint')}
+          </Text>
+          {entries.map((entry) => (
+            <TaskRow key={entry.id} entry={entry} week={weekly[entry.id]} />
+          ))}
+        </View>
+      </BottomSheet>
+    </>
   );
 }
 
@@ -330,7 +402,6 @@ export function TodayScreen() {
 
   const { data } = view;
   const firstDay = data.identity.firstDay;
-  const progress = dayProgressCount(view.entries);
   const checkins = checkinsTile(view, t);
 
   const tiles: BentoItem[] = [
@@ -360,7 +431,7 @@ export function TodayScreen() {
     <Screen
       header={
         <SectionHeader section="hoy" title={view.greeting} subtitle={view.identity}>
-          <DayProgress settled={progress.settled} total={progress.total} />
+          <DayProgress entries={view.entries} weekly={data.weekly} />
         </SectionHeader>
       }
     >

@@ -304,6 +304,8 @@ Create other `src/` folders from PLAN §5 (`domain`, `db`, `notifications`, `tim
 - **Copy rule:** one short line per option; any longer explanation goes behind an (i) `InfoButton` (bottom sheet). Applies to Permisos, Mis avisos, Respaldo, Acerca de, the sedentary nudge and the onboarding notices.
 - **Ajustes** is a list of groups (`SettingsGroup`), each row = icon + title + one-line value (`SettingsRow`), detail on its own page: Perfil y horarios (`/horarios` schedule + free days, `/metas` goals, `/ciclos-sueno`), Avisos (`/mis-avisos`, `/inactividad`, `/permisos`, `/bateria`), Datos (`/respaldo`, `/importar-programa`, `/fotos`), Apariencia (`/apariencia`: theme + language via their stores), Acerca de (`/acerca`). There is no profile editor yet.
 
+- **Hoy progress** ("N de M tareas de hoy"): tapping the ring opens "Tareas de hoy" (BottomSheet): every entry, done/pending, with its "Cómo se cuenta" line (`src/today/howItCounts.ts`: rule + reminder times + weekdays from `weeklyItems` in `src/domain/agenda/weekly.ts`, the same agenda as the notifications). Habit detail pages (water, steps, check habits) show the same line (`src/habits/HowItCounts.tsx`, `loadWeeklyItems`).
+
 ## Connect your AI: removed (owner decision, PLAN §14d)
 
 - "Conectar mi IA" / "Pregúntale a Pomi" were built in v3 and then deleted entirely (code, routes, settings keys, i18n, tests, `expo-secure-store`). Do not reintroduce them without a new owner decision.

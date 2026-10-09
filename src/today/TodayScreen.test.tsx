@@ -4,6 +4,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 
 import { buildTimeline } from '../domain/today/timeline';
 import { buildAgenda } from '../domain/agenda/buildAgenda';
+import { weeklyItems } from '../domain/agenda/weekly';
 import { en } from '../i18n/en';
 import { es } from '../i18n/es';
 import { setLanguage } from '../i18n';
@@ -57,17 +58,19 @@ function dataWith(
   gymGoal?: TodayData['gymGoal'],
 ): TodayData {
   const now = new Date(2026, 9, 5, 10, 0);
-  const agenda = buildAgenda(now, {
+  const agendaState = {
     profile: { weightKg: 60, workType: 'sentada' },
     anchors: defaults.settings.anchors ?? {},
     gymDays: defaults.settings.gymDays ?? [],
     modules: defaults.modules,
-  });
+  };
+  const agenda = buildAgenda(now, agendaState);
   return {
     today: '2026-10-05',
     midnight: new Date(2026, 9, 5),
     userName: undefined,
     agenda,
+    weekly: weeklyItems(now, agendaState),
     facts: { gymDone: false, view: SAMPLE_HABITS },
     state: { date: '2026-10-05', skipped: [], acked: [], snoozed: {} },
     activityToday: activity,
@@ -272,10 +275,32 @@ describe('TodayScreen', () => {
     expect(handlers.addWater).toHaveBeenCalledTimes(1);
   });
 
-  it('the day progress ring speaks x of y done', async () => {
+  it('the day progress ring speaks x of y tasks of today', async () => {
     mockToday(dataWith(), { allDone: true, status: 'done' });
     await renderThemed(<TodayScreen />);
-    expect(screen.getByLabelText(/^Tu día: (\d+) de \1 hechos$/)).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: /^Tu día: (\d+) de \1 tareas de hoy\. Ver cuáles$/ }),
+    ).toBeTruthy();
+  });
+
+  it('tapping the progress lists the tasks and how each one counts', async () => {
+    mockToday(dataWith());
+    await renderThemed(<TodayScreen />);
+    await fireEvent.press(
+      screen.getByRole('button', { name: /^Tu día: \d+ de \d+ tareas de hoy/ }),
+    );
+    expect(screen.getByText('Tareas de hoy')).toBeTruthy();
+    expect(
+      screen.getByLabelText('Pausa activa, Pendiente. Márcala tú · avisos 09:00–18:00 · Lun–Vie'),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText(
+        /^Caminar 10–15 min después de comer, Pendiente\. Márcala tú · todos los días$/,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText(/^Vasos de agua, Pendiente\. \d+ vasos según tu peso · avisos /),
+    ).toBeTruthy();
   });
 
   it('asks "¿Te moviste hoy?" only while it is unanswered', async () => {

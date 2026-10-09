@@ -5,7 +5,8 @@ import { format, getDay, subDays } from 'date-fns';
 import type { Repositories } from '../db/repositories';
 import type { SuggestionRow } from '../db/repositories/suggestions';
 import { pickTodayCard, type TodayCard } from '../domain/companion';
-import { buildAgenda, type AgendaItem } from '../domain/agenda/buildAgenda';
+import { buildAgenda, type AgendaItem, type AgendaState } from '../domain/agenda/buildAgenda';
+import { weeklyItems, type WeeklyItem } from '../domain/agenda/weekly';
 import { plannedGymWeekdays } from '../domain/gym/gymPlan';
 import { todaysRoutineId } from '../domain/gym/rotation';
 import { dayKeyFor, dayStartFor } from '../domain/time';
@@ -18,7 +19,8 @@ import { loadGymGoal, type GymGoal } from './gymGoal';
 import { loadHabitsData } from '../habits/habitsData';
 import { categoryPrefsOf } from '../notifications/loadState';
 import type { LocalizedText } from '../templates/localized';
-import { buildHabitsView } from '../habits/habitsView';
+import { buildHabitsView, type HabitsData, type HabitsView } from '../habits/habitsView';
+import type { SettingsValue } from '../db/repositories/settings';
 
 import { parseInsightRow, type StoredInsight } from '../insights/payload';
 import { parsePayload, type SuggestionPayload } from '../suggestions/payload';
@@ -33,6 +35,8 @@ export type TodayData = {
   midnight: Date;
   userName: string | undefined;
   agenda: AgendaItem[];
+  /** The week of every item (weekdays + times), for "Cómo se cuenta". */
+  weekly: Record<string, WeeklyItem>;
   facts: LiveFacts;
   state: TodayState;
   activityToday: ActivityKind | undefined;
@@ -87,6 +91,55 @@ async function loadCompanionCard(
   }
 }
 
+type AgendaInputs = {
+  habits: HabitsData;
+  view: HabitsView;
+  anchors: SettingsValue<'anchors'> | undefined;
+  shifts: SettingsValue<'planShifts'> | undefined;
+  gymPlan: SettingsValue<'gymPlan'> | undefined;
+  gymWeekPlans: SettingsValue<'gymWeekPlans'> | undefined;
+  prefs: SettingsValue<'notificationPrefs'> | undefined;
+};
+
+/** The agenda inputs shared by Hoy and the habit pages (today's routine is added by Hoy). */
+function agendaStateOf(input: AgendaInputs): AgendaState {
+  const { habits, view, anchors, shifts, gymPlan, gymWeekPlans, prefs } = input;
+  return {
+    profile: { weightKg: habits.profile.weightKg, workType: habits.profile.workType },
+    anchors: anchors ?? {},
+    ...(shifts ? { shifts } : {}),
+    gymDays: habits.gymDays,
+    ...(gymPlan ? { gymPlan } : {}),
+    ...(gymWeekPlans ? { gymWeekPlans } : {}),
+    checkinPrefs: habits.checkinPrefs,
+    modules: habits.modules.filter((module) => module.active).map((module) => module.template),
+    ...(view.steps?.plan.goal != null ? { stepsGoal: view.steps.plan.goal } : {}),
+    // Same "Mis avisos" times as the notifications (`agendaTiming`).
+    ...(prefs ? { categories: categoryPrefsOf(prefs) } : {}),
+  };
+}
+
+/** The week of every agenda item from today (for "Cómo se cuenta" outside Hoy). */
+export async function loadWeeklyItems(
+  repos: Repositories,
+  now: Date,
+): Promise<Record<string, WeeklyItem>> {
+  const today = dayKeyFor(now);
+  const [habits, anchors, shifts, gymPlan, gymWeekPlans, prefs] = await Promise.all([
+    loadHabitsData(repos, today),
+    repos.settings.get('anchors'),
+    repos.settings.get('planShifts'),
+    repos.settings.get('gymPlan'),
+    repos.settings.get('gymWeekPlans'),
+    repos.settings.get('notificationPrefs'),
+  ]);
+  const view = buildHabitsView(habits, today);
+  return weeklyItems(
+    dayStartFor(now),
+    agendaStateOf({ habits, view, anchors, shifts, gymPlan, gymWeekPlans, prefs }),
+  );
+}
+
 export async function loadTodayData(repos: Repositories, now: Date): Promise<TodayData> {
   const today = dayKeyFor(now);
   const midnight = dayStartFor(now);
@@ -136,20 +189,11 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     : null;
   const routine = program?.routines.find((candidate) => candidate.id === routineId);
 
-  const agenda = buildAgenda(midnight, {
-    profile: { weightKg: habits.profile.weightKg, workType: habits.profile.workType },
-    anchors: anchors ?? {},
-    ...(shifts ? { shifts } : {}),
-    gymDays: habits.gymDays,
-    ...(gymPlan ? { gymPlan } : {}),
-    ...(gymWeekPlans ? { gymWeekPlans } : {}),
-    checkinPrefs: habits.checkinPrefs,
-    modules: habits.modules.filter((module) => module.active).map((module) => module.template),
+  const agendaState: AgendaState = {
+    ...agendaStateOf({ habits, view, anchors, shifts, gymPlan, gymWeekPlans, prefs }),
     ...(routine ? { todayRoutine: { id: routine.id, steps: routine.steps } } : {}),
-    ...(view.steps?.plan.goal != null ? { stepsGoal: view.steps.plan.goal } : {}),
-    // Same "Mis avisos" times as the notifications (`agendaTiming`).
-    ...(prefs ? { categories: categoryPrefsOf(prefs) } : {}),
-  });
+  };
+  const agenda = buildAgenda(midnight, agendaState);
 
   const gymGoal = program
     ? await loadGymGoal(
@@ -171,6 +215,7 @@ export async function loadTodayData(repos: Repositories, now: Date): Promise<Tod
     midnight,
     userName,
     agenda,
+    weekly: weeklyItems(midnight, agendaState),
     facts: { gymDone: gymDates.includes(today), view },
     state: todayStateFor(stored, today),
     activityToday: view.activityToday,
