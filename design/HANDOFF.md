@@ -114,6 +114,10 @@ Tipografía: ver `BRAND.md` sección 5 (`display`, `title-lg`, `title-md`, `titl
 1. `SectionHeader` coral (nombre del programa) + `BentoGrid`: "Hoy toca" 2x2 (rutina, meta de hoy del primer ejercicio, botón `energy` Empezar/Continuar), Semana 1x1 (sesiones hechas/planeadas), Volumen 1x1 (mini barras por músculo), Programa 2x1 (nombre + nº de rutinas), Crear rutina 1x1 (generador), Historial 1x1 (fecha de la última sesión).
 2. Detalle: `/gym/programa` (rutinas, empezar cualquiera; pie fijo con Editar programa e Importar), `/gym/volumen` (series por músculo esta semana + semanas), `/gym/historial` (sesiones recientes con series y volumen).
 
+### Progreso (hub bento)
+1. `SectionHeader` lavanda + `BentoGrid`: Constancia 2x1 (hero, sesiones de la semana + mini barras semanales), Fuerza 1x1 (e1RM del primer ejercicio y su cambio), Medidas 1x1 (último peso), Fotos 1x1 (miniatura, abre `/fotos`), Tu ritmo 1x1 (deuda de sueño o días conociéndote), Hallazgos 2x1 (el último), Compartir 1x1, Pregúntale a Pomi 1x1 (solo con IA conectada), Revisión mensual 1x1 (abre `/comparacion`; acción rápida para empezar la revisión).
+2. Detalle: `/progreso/constancia` (sesiones y días con hábitos por semana + volumen por músculo), `/progreso/fuerza` (selector de ejercicio + gráfico), `/progreso/medidas` (gráficos + formulario; pie fijo para la revisión mensual), `/progreso/ritmo` ("Tu ritmo"), `/progreso/hallazgos` (lista).
+
 ### Sesión de gym
 1. Encabezado: "Día 1: Glúteos e isquios" + progreso de series + fila de navegación (anterior / puntos de progreso / siguiente, 48 dp; los puntos anuncian "Paso x de y: nombre").
 2. Paginador horizontal (`FlatList` `pagingEnabled`, deslizar o botones; sin animación con reduce-motion), una página por paso: calentamiento plegable (checks) primero.

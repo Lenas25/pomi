@@ -69,6 +69,11 @@ function RootStack() {
           <Stack.Screen name="gym/programa" />
           <Stack.Screen name="gym/volumen" />
           <Stack.Screen name="gym/historial" />
+          <Stack.Screen name="progreso/constancia" />
+          <Stack.Screen name="progreso/fuerza" />
+          <Stack.Screen name="progreso/medidas" />
+          <Stack.Screen name="progreso/ritmo" />
+          <Stack.Screen name="progreso/hallazgos" />
           <Stack.Screen name="acerca" />
           <Stack.Screen name="importar-programa" />
           <Stack.Screen name="crear-rutina" />

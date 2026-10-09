@@ -1,397 +1,306 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { Alert, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { format, parseISO } from 'date-fns';
+import {
+  Barbell,
+  CalendarCheck,
+  Camera,
+  ChartBar,
+  ChatCircleDots,
+  Lightbulb,
+  MoonStars,
+  Ruler,
+  ShareNetwork,
+} from 'phosphor-react-native';
 
 import { useAiStatus } from '../ai/useAiStatus';
-import { useLocaleStore, useT } from '../i18n';
+import { useLocaleStore, useT, type Translate } from '../i18n';
 import { formatKg } from '../gym/sessionViewModel';
-import { CompanionSection } from '../companion/CompanionSection';
-import { InsightsList } from '../insights/InsightsList';
-import type { StoredInsight } from '../insights/payload';
+import { insightTexts } from '../insights/text';
 import { StoredPhoto } from '../photos/StoredPhoto';
-import { BarChart } from '../ui/BarChart';
-import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
-import { Chip } from '../ui/Chip';
+import { BentoGrid, type BentoItem } from '../ui/BentoGrid';
+import { BentoTile } from '../ui/BentoTile';
 import { EmptyState } from '../ui/EmptyState';
-import { LineChart } from '../ui/LineChart';
+import { MiniBars } from '../ui/MiniMeter';
 import { Screen } from '../ui/Screen';
 import { SectionHeader } from '../ui/SectionHeader';
 import { Skeleton } from '../ui/Skeleton';
-import { useTheme } from '../ui/theme';
-import { VolumeProgressSection } from '../volume/VolumeSection';
 import { useDelayedFlag } from '../ui/useDelayedFlag';
+import { useTheme, type Theme } from '../ui/theme';
 
-import { MeasurementCard } from './MeasurementCard';
-import {
-  buildProgressView,
-  dayLabel,
-  dayNumber,
-  type ProgressView,
-  type StrengthView,
-} from './progressView';
 import type { ProgressData } from './loadProgress';
+import { buildProgressView, type ProgressView } from './progressView';
 import { useProgress } from './useProgress';
 
-const weekLabel = (weekStart: string) => format(parseISO(weekStart), 'd/M');
+type TileContext = {
+  t: Translate;
+  theme: Theme;
+  language: 'es' | 'en';
+  /** "Pregúntale a Pomi" only when an AI is connected and ready. */
+  aiReady: boolean;
+};
 
-function SectionTitle({ children }: { children: string }) {
-  const theme = useTheme();
-  return (
-    <Text accessibilityRole="header" style={[theme.text('title-sm'), { color: theme.color.text }]}>
-      {children}
-    </Text>
-  );
+/** The measurement the tile shows: the weight when it has entries, else the first with one. */
+function shownMeasurement(view: ProgressView) {
+  const withEntry = view.measurements.filter((metric) => metric.latest !== undefined);
+  return withEntry.find((metric) => metric.unit === 'kg') ?? withEntry[0];
 }
 
-/** A group of cards: one column on a phone, two on a tablet (HANDOFF §2). */
-function Grid({ twoColumns, children }: { twoColumns: boolean; children: ReactNode }) {
-  const theme = useTheme();
-  return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[3] }}>
-      {Array.isArray(children) ? (
-        children.map((child: ReactNode, index) => (
-          <View key={index} style={{ flexGrow: 1, flexBasis: twoColumns ? '45%' : '100%' }}>
-            {child}
-          </View>
-        ))
-      ) : (
-        <View style={{ flexGrow: 1, flexBasis: '100%' }}>{children}</View>
-      )}
-    </View>
-  );
-}
-
-function ConsistencySection({
-  weekly,
-  twoColumns,
-}: {
-  weekly: ProgressView['weekly'];
-  twoColumns: boolean;
-}) {
-  const t = useT();
-  const theme = useTheme();
-  const { buckets, planned } = weekly;
-  const current = buckets.find((bucket) => bucket.isCurrent);
-
-  const sessionList = buckets
-    .map((bucket) =>
-      planned > 0
-        ? t('progress.consistency.bucketPlanned', {
-            date: weekLabel(bucket.weekStart),
-            done: bucket.sessionsDone,
-            planned,
-          })
-        : t('progress.consistency.bucket', {
-            date: weekLabel(bucket.weekStart),
-            done: bucket.sessionsDone,
-          }),
-    )
-    .join('; ');
-  const habitList = buckets
-    .map((bucket) =>
-      t('progress.consistency.habitBucket', {
-        date: weekLabel(bucket.weekStart),
-        days: bucket.habitDays,
-      }),
-    )
-    .join('; ');
-
-  return (
-    <View style={{ gap: theme.space[3] }}>
-      <SectionTitle>{t('progress.consistency.title')}</SectionTitle>
-      {weekly.hasData ? (
-        <Grid twoColumns={twoColumns}>
-          {[
-            <Card key="sessions">
-              <View style={{ gap: theme.space[2] }}>
-                <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
-                  {t('progress.consistency.sessionsTitle')}
-                </Text>
-                {current ? (
-                  <Text style={[theme.text('body'), { color: theme.color.text }]}>
-                    {planned > 0
-                      ? t('progress.consistency.thisWeek', {
-                          done: current.sessionsDone,
-                          planned,
-                        })
-                      : t('progress.consistency.thisWeekNoPlan', { done: current.sessionsDone })}
-                  </Text>
-                ) : null}
-                <BarChart
-                  bars={buckets.map((bucket) => ({
-                    key: bucket.weekStart,
-                    label: weekLabel(bucket.weekStart),
-                    value: bucket.sessionsDone,
-                    ...(planned > 0 ? { target: planned } : {}),
-                    current: bucket.isCurrent,
-                  }))}
-                  formatY={String}
-                  summary={t('progress.consistency.summarySessions', { list: sessionList })}
-                />
-                {planned > 0 ? (
-                  <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                    {t('progress.consistency.note')}
-                  </Text>
-                ) : null}
-              </View>
-            </Card>,
-            <Card key="habits">
-              <View style={{ gap: theme.space[2] }}>
-                <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
-                  {t('progress.consistency.habitsTitle')}
-                </Text>
-                <BarChart
-                  bars={buckets.map((bucket) => ({
-                    key: bucket.weekStart,
-                    label: weekLabel(bucket.weekStart),
-                    value: bucket.habitDays,
-                    current: bucket.isCurrent,
-                  }))}
-                  formatY={String}
-                  summary={t('progress.consistency.summaryHabits', { list: habitList })}
-                />
-              </View>
-            </Card>,
-          ]}
-        </Grid>
-      ) : (
-        <Card>
-          <EmptyState
-            compact
-            title={t('progress.consistency.emptyTitle')}
-            body={t('progress.consistency.emptyBody')}
-          />
-        </Card>
-      )}
-    </View>
-  );
-}
-
-function StrengthSection({
-  strength,
-  selectedId,
-  onSelect,
-}: {
-  strength: StrengthView;
-  selectedId: string | undefined;
-  onSelect: (id: string) => void;
-}) {
-  const t = useT();
-  const theme = useTheme();
-  const language = useLocaleStore((state) => state.language);
-  const kg = (value: number) => formatKg(value, language);
-  const selected = strength.exercises.find((exercise) => exercise.id === strength.selectedId);
-
-  let summary = '';
-  const last = strength.points.at(-1);
-  if (selected && strength.summary) {
-    const { from, to, spanDays } = strength.summary;
-    const params = { name: selected.name, from: kg(from), to: kg(to) };
-    summary =
-      spanDays >= 14
-        ? t('progress.strength.summaryWeeks', { ...params, weeks: Math.round(spanDays / 7) })
-        : spanDays === 1
-          ? t('progress.strength.summaryDay', params)
-          : t('progress.strength.summaryDays', { ...params, days: spanDays });
-  } else if (selected && last) {
-    summary = t('progress.strength.summaryOne', { name: selected.name, value: kg(last.e1rm) });
+function rhythmSummary(data: ProgressData, t: Translate): { value: string; caption: string } {
+  const companion = data.companion;
+  if (!companion) {
+    return { value: t('progress.hub.strengthNone'), caption: t('progress.hub.rhythmDebtCaption') };
   }
-
-  return (
-    <View style={{ gap: theme.space[3] }}>
-      <SectionTitle>{t('progress.strength.title')}</SectionTitle>
-      {selected ? (
-        <Card>
-          <View style={{ gap: theme.space[3] }}>
-            <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-              {t('progress.strength.choose')}
-            </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[2] }}>
-              {strength.exercises.map((exercise) => (
-                <Chip
-                  key={exercise.id}
-                  label={exercise.name}
-                  selected={
-                    exercise.id === selectedId ||
-                    (selectedId === undefined && exercise.id === selected.id)
-                  }
-                  onPress={() => onSelect(exercise.id)}
-                />
-              ))}
-            </View>
-            <Text style={[theme.text('body'), { color: theme.color.text }]}>{summary}</Text>
-            <LineChart
-              points={strength.points.map((point) => ({
-                x: dayNumber(point.date),
-                y: point.e1rm,
-              }))}
-              formatX={dayLabel}
-              formatY={kg}
-              summary={summary}
-            />
-            <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-              {strength.points.length < 2
-                ? `${t('progress.strength.oneMore')} ${t('progress.strength.note')}`
-                : `${t('progress.strength.axis')}. ${t('progress.strength.note')}`}
-            </Text>
-          </View>
-        </Card>
-      ) : (
-        <Card>
-          <EmptyState
-            compact
-            title={t('progress.strength.emptyTitle')}
-            body={t('progress.strength.emptyBody')}
-          />
-        </Card>
-      )}
-    </View>
-  );
+  const debt = companion.sleepDebt;
+  if (debt) {
+    return {
+      value:
+        debt.debtMin > 0
+          ? t('progress.hub.rhythmDebt', {
+              hours: Math.floor(debt.debtMin / 60),
+              minutes: debt.debtMin % 60,
+            })
+          : t('progress.hub.rhythmNoDebt'),
+      caption: t('progress.hub.rhythmDebtCaption'),
+    };
+  }
+  const { rhythm } = companion;
+  return {
+    value: t('progress.hub.rhythmLearning', {
+      days: Math.min(rhythm.daysWithData, rhythm.needed),
+      needed: rhythm.needed,
+    }),
+    caption: t('progress.hub.rhythmLearningCaption'),
+  };
 }
 
-const poseName = (pose: string) => pose.charAt(0).toUpperCase() + pose.slice(1);
-/** The newest photos shown in the grid (the rest stay on the phone). */
-const GRID_PHOTOS = 12;
+/** Builds the hub tiles in reading order (pure over the data; exported for the tests). */
+export function progressTiles(data: ProgressData, ctx: TileContext): BentoItem[] {
+  const { t, theme, language } = ctx;
+  const colors = theme.section.progreso;
+  const view = buildProgressView(data);
+  const kg = (value: number) => formatKg(value, language);
 
-/** "Lo que descubrimos de ti" (PLAN §12): every finding so far, newest first. */
-function InsightsSection({ insights }: { insights: readonly StoredInsight[] | undefined }) {
-  const theme = useTheme();
-  const t = useT();
-  return (
-    <View style={{ gap: theme.space[3] }}>
-      <SectionTitle>{t('progress.insights.title')}</SectionTitle>
-      {insights && insights.length > 0 ? (
-        <InsightsList insights={insights} />
-      ) : (
-        <Card>
-          <EmptyState
-            compact
-            pose="curioso"
-            title={t('progress.insights.emptyTitle')}
-            body={t('progress.insights.emptyBody')}
-          />
-        </Card>
-      )}
-    </View>
+  // Constancia: this week's sessions + the weekly bars.
+  const { buckets, planned } = view.weekly;
+  const thisWeek = buckets.find((bucket) => bucket.isCurrent)?.sessionsDone ?? 0;
+
+  // Fuerza: the first exercise with history, its latest e1RM and the change since the first point.
+  const strength = view.strength;
+  const lift = strength.exercises.find((exercise) => exercise.id === strength.selectedId);
+  const lastPoint = strength.points.at(-1);
+  const delta = strength.summary ? strength.summary.to - strength.summary.from : null;
+  const deltaText = delta === null ? null : `${delta >= 0 ? '+' : '−'}${kg(Math.abs(delta))}`;
+
+  const metric = shownMeasurement(view);
+  const metricValue = metric?.latest
+    ? t('progress.hub.measurementsValue', { value: kg(metric.latest.value), unit: metric.unit })
+    : null;
+
+  const photo = data.photos[0];
+  const rhythm = rhythmSummary(data, t);
+  const insight = data.insights?.[0];
+  const insightText = insight ? insightTexts(insight, t, language).text : null;
+  const monthlyState = t(
+    data.monthlyDone ? 'progress.hub.monthlyDone' : 'progress.hub.monthlyPending',
   );
+
+  const tiles: BentoItem[] = [
+    {
+      key: 'constancia',
+      span: '2x1',
+      node: (
+        <BentoTile
+          section="progreso"
+          variant="hero"
+          icon={ChartBar}
+          title={t('progress.hub.consistencyTitle')}
+          value={planned > 0 ? `${thisWeek}/${planned}` : String(thisWeek)}
+          caption={t('progress.hub.consistencyCaption')}
+          visual={
+            buckets.length > 0 ? (
+              <MiniBars
+                values={buckets.map((bucket) => bucket.sessionsDone)}
+                color={colors.onFill}
+                trackColor={colors.soft}
+              />
+            ) : undefined
+          }
+          accessibilityLabel={
+            planned > 0
+              ? t('progress.hub.consistencyLabel', { done: thisWeek, planned })
+              : t('progress.hub.consistencyLabelNoPlan', { done: thisWeek })
+          }
+          onPress={() => router.push('/progreso/constancia')}
+        />
+      ),
+    },
+    {
+      key: 'fuerza',
+      span: '1x1',
+      node: (
+        <BentoTile
+          section="progreso"
+          icon={Barbell}
+          title={t('progress.hub.strengthTitle')}
+          value={
+            lastPoint
+              ? t('progress.hub.strengthValue', { kg: kg(lastPoint.e1rm) })
+              : t('progress.hub.strengthNone')
+          }
+          {...(lift
+            ? {
+                caption: deltaText
+                  ? t('progress.hub.strengthCaption', { name: lift.name, delta: deltaText })
+                  : t('progress.hub.strengthCaptionOne', { name: lift.name }),
+              }
+            : {})}
+          accessibilityLabel={
+            lift && lastPoint
+              ? t('progress.hub.strengthLabel', { name: lift.name, kg: kg(lastPoint.e1rm) })
+              : t('progress.hub.strengthLabelNone')
+          }
+          onPress={() => router.push('/progreso/fuerza')}
+        />
+      ),
+    },
+    {
+      key: 'medidas',
+      span: '1x1',
+      node: (
+        <BentoTile
+          section="progreso"
+          icon={Ruler}
+          title={t('progress.hub.measurementsTitle')}
+          value={metricValue ?? t('progress.hub.measurementsNone')}
+          {...(metric ? { caption: metric.name } : {})}
+          accessibilityLabel={
+            metric && metricValue
+              ? t('progress.hub.measurementsLabel', { name: metric.name, value: metricValue })
+              : t('progress.hub.measurementsLabelNone')
+          }
+          onPress={() => router.push('/progreso/medidas')}
+        />
+      ),
+    },
+    {
+      key: 'fotos',
+      span: '1x1',
+      node: (
+        <BentoTile
+          section="progreso"
+          icon={Camera}
+          title={t('progress.hub.photosTitle')}
+          value={t('progress.hub.photosCount', { count: data.photos.length })}
+          visual={
+            photo ? (
+              <View
+                style={{
+                  width: theme.space[10],
+                  borderRadius: theme.radius.sm,
+                  overflow: 'hidden',
+                }}
+              >
+                <StoredPhoto name={photo.uri} label={t('progress.hub.photosTitle')} thumbnail />
+              </View>
+            ) : undefined
+          }
+          accessibilityLabel={t('progress.hub.photosLabel', { count: data.photos.length })}
+          onPress={() => router.push('/fotos')}
+        />
+      ),
+    },
+    {
+      key: 'ritmo',
+      span: '1x1',
+      node: (
+        <BentoTile
+          section="sueno"
+          icon={MoonStars}
+          title={t('progress.hub.rhythmTitle')}
+          value={rhythm.value}
+          caption={rhythm.caption}
+          accessibilityLabel={t('progress.hub.rhythmLabel', rhythm)}
+          onPress={() => router.push('/progreso/ritmo')}
+        />
+      ),
+    },
+    {
+      key: 'hallazgos',
+      span: '2x1',
+      node: (
+        <BentoTile
+          section="progreso"
+          icon={Lightbulb}
+          title={t('progress.hub.insightsTitle')}
+          caption={insightText ?? t('progress.hub.insightsNone')}
+          accessibilityLabel={t('progress.hub.insightsLabel', {
+            text: insightText ?? t('progress.hub.insightsNone'),
+          })}
+          onPress={() => router.push('/progreso/hallazgos')}
+        />
+      ),
+    },
+    {
+      key: 'compartir',
+      span: '1x1',
+      node: (
+        <BentoTile
+          section="progreso"
+          icon={ShareNetwork}
+          title={t('progress.hub.shareTitle')}
+          caption={t('progress.hub.shareCaption')}
+          accessibilityLabel={t('progress.hub.shareLabel')}
+          onPress={() => router.push('/compartir')}
+        />
+      ),
+    },
+  ];
+  if (ctx.aiReady) {
+    tiles.push({
+      key: 'pomi',
+      span: '1x1',
+      node: (
+        <BentoTile
+          section="progreso"
+          icon={ChatCircleDots}
+          title={t('ai.ask.entryTitle')}
+          caption={t('ai.ask.entryBody')}
+          accessibilityLabel={t('progress.hub.askLabel')}
+          onPress={() => router.push('/preguntale-a-pomi')}
+        />
+      ),
+    });
+  }
+  tiles.push({
+    key: 'mensual',
+    span: '1x1',
+    node: (
+      <BentoTile
+        section="progreso"
+        icon={CalendarCheck}
+        title={t('progress.hub.monthlyTitle')}
+        caption={monthlyState}
+        accessibilityLabel={t('progress.hub.monthlyLabel', { state: monthlyState })}
+        onPress={() => router.push('/comparacion')}
+        action={{
+          icon: Camera,
+          accessibilityLabel: t('progress.hub.monthlyStart'),
+          onPress: () => router.push('/revision-mensual'),
+        }}
+      />
+    ),
+  });
+  return tiles;
 }
 
-function MonthlySection({ done }: { done: boolean }) {
-  const t = useT();
-  const theme = useTheme();
-  return (
-    <View style={{ gap: theme.space[3] }}>
-      <SectionTitle>{t('progress.monthly.title')}</SectionTitle>
-      <Card>
-        <View style={{ gap: theme.space[3] }}>
-          <Text style={[theme.text('body'), { color: theme.color.text }]}>
-            {done ? t('progress.monthly.done') : t('progress.monthly.body')}
-          </Text>
-          <Button
-            label={t('progress.monthly.start')}
-            variant={done ? 'secondary' : 'primary'}
-            onPress={() => router.push('/revision-mensual')}
-          />
-          <Button
-            label={t('progress.monthly.compare')}
-            variant="secondary"
-            onPress={() => router.push('/comparacion')}
-          />
-        </View>
-      </Card>
-    </View>
-  );
-}
-
-function PhotosSection({
-  photos,
-  poseNames,
-  onDelete,
-}: {
-  photos: ProgressData['photos'];
-  /** Pose id -> label in the active language. */
-  poseNames: ProgressData['poseNames'];
-  onDelete: (id: number) => Promise<void>;
-}) {
-  const t = useT();
-  const theme = useTheme();
-  const shown = photos.slice(0, GRID_PHOTOS);
-
-  const confirmDelete = (id: number) =>
-    Alert.alert(t('progress.photos.deleteTitle'), t('progress.photos.deleteBody'), [
-      { text: t('progress.photos.cancel'), style: 'cancel' },
-      {
-        text: t('progress.photos.delete'),
-        style: 'destructive',
-        onPress: () =>
-          void onDelete(id).catch(() => Alert.alert(t('progress.photos.deleteFailed'))),
-      },
-    ]);
-
-  return (
-    <View style={{ gap: theme.space[3] }}>
-      <SectionTitle>{t('progress.photos.title')}</SectionTitle>
-      {shown.length > 0 ? (
-        <>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[3] }}>
-            {shown.map((photo) => {
-              const label = t('progress.photos.label', {
-                pose: poseNames[photo.pose] ?? poseName(photo.pose),
-                date: format(parseISO(photo.date), 'd/M/yyyy'),
-              });
-              return (
-                <Pressable
-                  key={photo.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={label}
-                  accessibilityHint={t('progress.photos.hint')}
-                  onPress={() => confirmDelete(photo.id)}
-                  style={({ pressed }) => ({
-                    width: '30%',
-                    flexGrow: 1,
-                    gap: theme.space[1],
-                    opacity: pressed ? theme.opacity.pressed : 1,
-                  })}
-                >
-                  <StoredPhoto name={photo.uri} label={label} thumbnail />
-                  <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Button
-            label={t('progress.photos.viewAll')}
-            variant="secondary"
-            onPress={() => router.push('/fotos')}
-          />
-        </>
-      ) : (
-        <Card>
-          <EmptyState
-            compact
-            pose="mide"
-            title={t('progress.photos.emptyTitle')}
-            body={t('progress.photos.emptyBody')}
-          />
-        </Card>
-      )}
-    </View>
-  );
-}
-
-/** Progreso tab (PLAN §13): consistency, strength, measurements, photos and findings. */
+/** Progreso tab (PLAN §13): a bento hub; every tile opens its detail page under `/progreso/*`. */
 export function ProgressScreen() {
   const t = useT();
   const theme = useTheme();
-  const { width } = useWindowDimensions();
-  const twoColumns = width >= theme.layout.twoColumnMin;
-  const { state, load, saveMetric, removePhoto } = useProgress();
+  const language = useLocaleStore((state) => state.language);
+  const { state, load } = useProgress();
   const { status: ai } = useAiStatus();
-  const [selectedStepId, setSelectedStepId] = useState<string | undefined>();
 
   // Coming back to the tab (or from a workout / check-in) refreshes the numbers.
   useFocusEffect(
@@ -400,22 +309,24 @@ export function ProgressScreen() {
     }, [load]),
   );
 
-  const view = useMemo(
-    () => (state.status === 'ready' ? buildProgressView(state.data, selectedStepId) : null),
-    [state, selectedStepId],
+  const tiles = useMemo(
+    () =>
+      state.status === 'ready'
+        ? progressTiles(state.data, { t, theme, language, aiReady: ai.loaded && ai.ready })
+        : null,
+    [state, t, theme, language, ai],
   );
   const showSkeleton = useDelayedFlag(state.status === 'loading');
 
   return (
-    <Screen scroll wide header={<SectionHeader section="progreso" title={t('progress.title')} />}>
-      <View style={{ gap: theme.space[8], paddingVertical: theme.space[4] }}>
+    <Screen header={<SectionHeader section="progreso" title={t('progress.title')} />}>
+      <ScrollView contentContainerStyle={{ paddingVertical: theme.space[4], gap: theme.space[3] }}>
         {state.status === 'loading' && showSkeleton ? (
-          <View style={{ gap: theme.space[3] }}>
+          <>
             <Skeleton height={theme.chart.height} />
             <Skeleton height={theme.chart.height} />
-          </View>
+          </>
         ) : null}
-
         {state.status === 'error' ? (
           <EmptyState
             compact
@@ -424,77 +335,8 @@ export function ProgressScreen() {
             action={{ label: t('progress.retry'), onPress: () => void load() }}
           />
         ) : null}
-
-        {view ? (
-          <>
-            <ConsistencySection weekly={view.weekly} twoColumns={twoColumns} />
-            <StrengthSection
-              strength={view.strength}
-              selectedId={selectedStepId}
-              onSelect={setSelectedStepId}
-            />
-            {state.status === 'ready' && state.data.volume ? (
-              <VolumeProgressSection data={state.data.volume} />
-            ) : null}
-
-            <View style={{ gap: theme.space[3] }}>
-              <SectionTitle>{t('progress.measurements.title')}</SectionTitle>
-              {view.measurements.length > 0 ? (
-                <Grid twoColumns={twoColumns}>
-                  {view.measurements.map((metric) => (
-                    <MeasurementCard key={metric.id} metric={metric} onSave={saveMetric} />
-                  ))}
-                </Grid>
-              ) : (
-                <Card>
-                  <EmptyState
-                    compact
-                    title={t('progress.measurements.emptyTitle')}
-                    body={t('progress.measurements.emptyBody')}
-                  />
-                </Card>
-              )}
-            </View>
-
-            <MonthlySection done={state.status === 'ready' && state.data.monthlyDone} />
-            <PhotosSection
-              photos={state.status === 'ready' ? state.data.photos : []}
-              poseNames={state.status === 'ready' ? state.data.poseNames : {}}
-              onDelete={removePhoto}
-            />
-
-            {state.status === 'ready' && state.data.companion ? (
-              <CompanionSection companion={state.data.companion} />
-            ) : null}
-
-            <InsightsSection
-              insights={state.status === 'ready' ? state.data.insights : undefined}
-            />
-
-            {ai.loaded && ai.ready ? (
-              <Card
-                onPress={() => router.push('/preguntale-a-pomi')}
-                accessibilityLabel={t('ai.ask.entryTitle')}
-              >
-                <View style={{ gap: theme.space[1] }}>
-                  <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-                    {t('ai.ask.entryTitle')}
-                  </Text>
-                  <Text style={[theme.text('caption'), { color: theme.color.textMuted }]}>
-                    {t('ai.ask.entryBody')}
-                  </Text>
-                </View>
-              </Card>
-            ) : null}
-
-            <Button
-              label={t('share.cta')}
-              variant="secondary"
-              onPress={() => router.push('/compartir')}
-            />
-          </>
-        ) : null}
-      </View>
+        {tiles ? <BentoGrid items={tiles} /> : null}
+      </ScrollView>
     </Screen>
   );
 }
