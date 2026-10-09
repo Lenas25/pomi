@@ -268,14 +268,8 @@ function SetRowBase({
       ) : null}
 
       {status === 'pending' ? null : (
-        <View
-          style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: theme.space[2],
-          }}
-        >
+        // RIR: the label row (RIR + (i)), then the circles row, so nothing wraps unexpectedly.
+        <View testID="rir-block" style={{ gap: theme.space[1], alignItems: 'flex-start' }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('gym.session.rirInfoLabel')}
@@ -283,7 +277,7 @@ function SetRowBase({
             disabled={!onRirInfo}
             hitSlop={theme.space[1]}
             style={{
-              minHeight: theme.touch.min,
+              minHeight: theme.touch.gym,
               flexDirection: 'row',
               alignItems: 'center',
               gap: theme.space[1],
@@ -298,6 +292,7 @@ function SetRowBase({
           <View
             accessibilityRole="radiogroup"
             accessibilityLabel={t('gym.session.rirTitle')}
+            testID="rir-circles"
             style={{ flexDirection: 'row', gap: theme.space[2] }}
           >
             {RIR_VALUES.map((value) => {
@@ -315,8 +310,8 @@ function SetRowBase({
                     else setRirChoice(next);
                   }}
                   style={{
-                    width: theme.touch.min,
-                    height: theme.touch.min,
+                    width: theme.touch.gym,
+                    height: theme.touch.gym,
                     alignItems: 'center',
                     justifyContent: 'center',
                     borderRadius: theme.radius.pill,

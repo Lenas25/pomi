@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Keyboard, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -39,6 +39,13 @@ export function TimerBar({ timer, onPause, onResume, onAddTime, onSkip, onClose 
   const reduceMotion = useReducedMotion();
   const entered = useSharedValue(0);
   const [expanded, setExpanded] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const window = useWindowDimensions();
+  // Small screens (360 dp, large font): the controls shrink and the ring is capped in height.
+  const compact =
+    window.width < theme.bento.singleColumnMaxWidth &&
+    window.fontScale >= theme.bento.singleColumnFontScale;
+  const ringSize = Math.min(theme.ring.size, Math.round(window.height * 0.22));
   // The 250 ms clock lives HERE, so only the bar re-renders on a tick (not the whole session).
   const now = useNow(timer.state.status === 'running');
 
@@ -48,6 +55,16 @@ export function TimerBar({ timer, onPause, onResume, onAddTime, onSkip, onClose 
       easing: bezierFromToken(theme.motion.easing.out),
     });
   }, [entered, reduceMotion, theme.motion]);
+
+  // The expanded ring collapses while the keyboard is open (the set inputs need the room).
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
 
   const animated = useAnimatedStyle(() => ({
     opacity: entered.value,
@@ -81,8 +98,8 @@ export function TimerBar({ timer, onPause, onResume, onAddTime, onSkip, onClose 
       onPress={onPress}
       style={({ pressed }) => ({
         minWidth: theme.touch.gym,
-        height: theme.touch.gym,
-        paddingHorizontal: ControlIcon ? 0 : theme.space[2],
+        minHeight: theme.touch.gym,
+        paddingHorizontal: ControlIcon ? 0 : theme.space[compact ? 1 : 2],
         borderRadius: theme.radius.pill,
         alignItems: 'center',
         justifyContent: 'center',
@@ -94,7 +111,10 @@ export function TimerBar({ timer, onPause, onResume, onAddTime, onSkip, onClose 
     >
       {ControlIcon ? <ControlIcon weight="bold" color={theme.color.text} /> : null}
       {text ? (
-        <Text numberOfLines={1} style={[theme.text('body-strong'), { color: theme.color.text }]}>
+        <Text
+          numberOfLines={1}
+          style={[theme.text(compact ? 'caption' : 'body-strong'), { color: theme.color.text }]}
+        >
           {text}
         </Text>
       ) : null}
@@ -117,22 +137,33 @@ export function TimerBar({ timer, onPause, onResume, onAddTime, onSkip, onClose 
         animated,
       ]}
     >
-      {expanded ? (
+      {expanded && !keyboardOpen ? (
         <View style={{ alignItems: 'center' }}>
-          <TimerRing kind={timer.kind} state={state} now={now} segments={timer.segments} />
+          <TimerRing
+            kind={timer.kind}
+            state={state}
+            now={now}
+            segments={timer.segments}
+            size={ringSize}
+          />
         </View>
       ) : null}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+      <View
+        style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[compact ? 1 : 2] }}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={next ? `${status}. ${next}` : status}
           accessibilityHint={t('timers.ringToggle')}
           accessibilityState={{ expanded }}
+          // The end of a rest is spoken (TalkBack live region; the label only changes then).
+          accessibilityLiveRegion={finished ? 'polite' : 'none'}
           onPress={() => setExpanded((value) => !value)}
-          style={{ flex: 1, minHeight: theme.touch.gym, justifyContent: 'center' }}
+          style={{ flex: 1, minWidth: 0, minHeight: theme.touch.gym, justifyContent: 'center' }}
         >
           <Text
             numberOfLines={1}
+            adjustsFontSizeToFit
             style={[
               theme.text('metric-sm'),
               { color: finished ? theme.color.success : theme.color.text },

@@ -56,7 +56,7 @@ function RoutinesTile({ data }: { data: GymReady }) {
     <RoutineCarousel
       routines={routines}
       suggestedId={data.todayRoutineId}
-      resumableId={data.resumableRoutineId}
+      resumableIds={data.resumableRoutineIds}
       goals={data.goals}
       onStart={openSession}
     />

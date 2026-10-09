@@ -122,7 +122,7 @@ export function ProgramDetailScreen() {
             </Text>
             {program.routines.map((routine) => {
               const isToday = routine.id === data.todayRoutineId;
-              const open = routine.id === data.resumableRoutineId;
+              const open = data.resumableRoutineIds.includes(routine.id);
               return (
                 <Card
                   key={routine.id}

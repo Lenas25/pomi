@@ -16,6 +16,8 @@ type ButtonProps = {
   loading?: boolean;
   disabled?: boolean;
   size?: ButtonSize;
+  /** `false` takes it out of keyboard / D-pad focus (e.g. an off-screen carousel card). */
+  focusable?: boolean;
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -28,6 +30,7 @@ export function Button({
   loading = false,
   disabled = false,
   size = 'md',
+  focusable = true,
 }: ButtonProps) {
   const theme = useTheme();
   const inactive = disabled || loading;
@@ -73,6 +76,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive, busy: loading }}
       disabled={inactive}
+      focusable={focusable}
       onPress={onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}

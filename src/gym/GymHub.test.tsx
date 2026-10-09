@@ -60,7 +60,7 @@ const READY: Extract<GymTabState, { status: 'ready' }> = {
   status: 'ready',
   program: PROGRAM,
   todayRoutineId: 'a',
-  resumableRoutineId: null,
+  resumableRoutineIds: [],
   volume: {
     today: TODAY,
     level: 'beginner',
@@ -126,7 +126,7 @@ describe('GymHubScreen (bento hub)', () => {
   });
 
   it('routes every tile to its page and the CTA to the session', async () => {
-    mockTab({ ...READY, resumableRoutineId: 'a' });
+    mockTab({ ...READY, resumableRoutineIds: ['a'] });
     await renderThemed(<GymHubScreen />);
     await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
     expect(router.push).toHaveBeenLastCalledWith({
@@ -165,6 +165,38 @@ describe('GymHubScreen (bento hub)', () => {
       pathname: '/gym/session',
       params: { routineId: 'b' },
     });
+  });
+
+  it('carousel: two routines open today each continue their own session', async () => {
+    mockTab({ ...READY, resumableRoutineIds: ['a', 'b'] });
+    await renderThemed(<GymHubScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    expect(router.push).toHaveBeenLastCalledWith({
+      pathname: '/gym/session',
+      params: { routineId: 'a' },
+    });
+    const first = screen.getByLabelText(/^Día A, sugerida, 1 de 2/);
+    await fireEvent(first, 'accessibilityAction', { nativeEvent: { actionName: 'next' } });
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    expect(router.push).toHaveBeenLastCalledWith({
+      pathname: '/gym/session',
+      params: { routineId: 'b' },
+    });
+  });
+
+  it('carousel: a new suggestion goes back to the first card', async () => {
+    mockTab();
+    const view = await renderThemed(<GymHubScreen />);
+    const first = screen.getByLabelText(/^Día A, sugerida, 1 de 2/);
+    await fireEvent(first, 'accessibilityAction', { nativeEvent: { actionName: 'next' } });
+    expect(screen.getByLabelText(/^Día B, 2 de 2/)).toBeTruthy();
+    mockTab({ ...READY, todayRoutineId: 'b' });
+    await view.rerender(
+      <ThemeProvider mode="light">
+        <GymHubScreen />
+      </ThemeProvider>,
+    );
+    expect(screen.getByLabelText(/^Día B, sugerida, 1 de 2/)).toBeTruthy();
   });
 
   it('offers the generator when there is no program', async () => {

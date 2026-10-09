@@ -82,6 +82,15 @@ describe('SetRow', () => {
     ).toMatchObject({ selected: true });
   });
 
+  it('lays RIR out as a label row, then a row of 48 dp circles', async () => {
+    await renderThemed(<SetRow {...base} status="current" logged={null} />);
+    const circles = screen.getByTestId('rir-circles');
+    expect(screen.getByTestId('rir-block').props.style).not.toMatchObject({ flexWrap: 'wrap' });
+    expect(circles.props.style).toMatchObject({ flexDirection: 'row' });
+    const radio = screen.getByRole('radio', { name: 'Repeticiones en reserva: 0' });
+    expect(radio.props.style).toMatchObject({ width: 48, height: 48 });
+  });
+
   it('keeps the RIR choice locally before ✓ and logs it with the press', async () => {
     const onToggle = jest.fn();
     await renderThemed(<SetRow {...base} status="current" logged={null} onToggle={onToggle} />);

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   FlatList,
@@ -27,8 +27,8 @@ type RoutineCarouselProps = {
   routines: readonly Routine[];
   /** Next routine by rotation: shown first with the "Sugerida" badge. */
   suggestedId: string | null;
-  /** Routine of today's unfinished session ("Continuar"). */
-  resumableId: string | null;
+  /** Routines with an unfinished session today ("Continuar"), each its own session. */
+  resumableIds: readonly string[];
   goals: Readonly<Record<string, GymGoal>>;
   onStart: (routineId: string) => void;
 };
@@ -46,7 +46,7 @@ function exerciseCount(routine: Routine): number {
 export function RoutineCarousel({
   routines,
   suggestedId,
-  resumableId,
+  resumableIds,
   goals,
   onStart,
 }: RoutineCarouselProps) {
@@ -63,6 +63,15 @@ export function RoutineCarousel({
   );
   const [current, setCurrent] = useState(0);
   const listRef = useRef<FlatList<Routine>>(null);
+
+  // A new suggestion (a session finished or deleted) reorders the cards: back to the first one.
+  const lastSuggested = useRef(suggestedId);
+  useEffect(() => {
+    if (lastSuggested.current === suggestedId) return;
+    lastSuggested.current = suggestedId;
+    setCurrent(0);
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [suggestedId]);
 
   const byId = new Map(routines.map((routine) => [routine.id, routine]));
   const ordered = carouselOrder(
@@ -101,7 +110,7 @@ export function RoutineCarousel({
 
   const renderItem = ({ item, index }: { item: Routine; index: number }) => {
     const suggested = item.id === suggestedId;
-    const resuming = item.id === resumableId;
+    const resuming = resumableIds.includes(item.id);
     const goal = goals[item.id];
     const count = t('gym.tab.exercises', { count: exerciseCount(item) });
     const goalText = goal
@@ -179,6 +188,7 @@ export function RoutineCarousel({
           size="lg"
           variant="energy"
           icon={Play}
+          focusable={isCurrent}
           onPress={() => onStart(item.id)}
         />
       </View>
@@ -201,13 +211,15 @@ export function RoutineCarousel({
         data={ordered}
         keyExtractor={(routine) => routine.id}
         renderItem={renderItem}
-        extraData={[current, width, goals, resumableId, language]}
+        extraData={[current, width, goals, resumableIds, language]}
         horizontal
         snapToInterval={interval}
         snapToAlignment="start"
         decelerationRate={reduceMotion ? 'normal' : 'fast'}
         disableIntervalMomentum
         contentContainerStyle={{ gap }}
+        // Both: a slow drag that snaps without momentum only fires `onScrollEndDrag`.
+        onScrollEndDrag={onScrollEnd}
         onMomentumScrollEnd={onScrollEnd}
       />
       {total > 1 ? (

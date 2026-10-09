@@ -14,7 +14,13 @@ import { getTimerStore } from '../timers/store';
 import type { Step } from '../templates/schema';
 
 import { activeDeloadPct } from './deload';
-import { pickProgram, ROTATION_LOOKBACK, toRotationSessions, type GymProgram } from './program';
+import {
+  pickProgram,
+  resumableRoutineIds,
+  ROTATION_LOOKBACK,
+  toRotationSessions,
+  type GymProgram,
+} from './program';
 import {
   buildExerciseView,
   groupLogsByStep,
@@ -39,8 +45,8 @@ export type GymTabState =
       status: 'ready';
       program: GymProgram | null;
       todayRoutineId: string | null;
-      /** Routine of an unfinished session of today that already has sets (can be resumed). */
-      resumableRoutineId: string | null;
+      /** Routines with an unfinished session of today that already has sets (can be resumed). */
+      resumableRoutineIds: readonly string[];
       /** Weekly volume per muscle; `null` when it could not be computed (never blocks the tab). */
       volume: VolumeData | null;
       /** "Meta de hoy" of the first main exercise of each routine, by routine id. */
@@ -74,7 +80,7 @@ export function useGymTab(): GymTabState & { reload: () => void } {
               status: 'ready',
               program: null,
               todayRoutineId: null,
-              resumableRoutineId: null,
+              resumableRoutineIds: [],
               volume: null,
               goals: {},
               week: { done: 0, planned: 0 },
@@ -86,9 +92,8 @@ export function useGymTab(): GymTabState & { reload: () => void } {
         const today = dayKeyFor(new Date());
         // A workout left open on an earlier day (app killed) is closed at its last set.
         await repos.workouts.finishStaleSessions(today);
-        const [recent, open, volume, deloadWeek, gymDays] = await Promise.all([
+        const [recent, volume, deloadWeek, gymDays] = await Promise.all([
           repos.workouts.recentSessions(ROTATION_LOOKBACK),
-          repos.workouts.unfinishedSessionOn(today),
           loadVolumeData(repos, today).catch((error: unknown) => {
             if (__DEV__) console.warn('Could not compute the weekly volume', error);
             return null;
@@ -97,9 +102,6 @@ export function useGymTab(): GymTabState & { reload: () => void } {
           repos.settings.get('gymDays'),
         ]);
         const routineIds = program.routines.map((routine) => routine.id);
-        const openWithSets = open
-          ? recent.find((entry) => entry.session.id === open.id && entry.sets.length > 0)
-          : undefined;
         const todayRoutineId = todaysRoutineId(routineIds, toRotationSessions(recent), today);
         const weekday = getDay(parseISO(today));
         const deloadPct = activeDeloadPct(deloadWeek, today);
@@ -120,10 +122,7 @@ export function useGymTab(): GymTabState & { reload: () => void } {
             status: 'ready',
             program,
             todayRoutineId,
-            resumableRoutineId:
-              openWithSets && routineIds.includes(openWithSets.session.routineId)
-                ? openWithSets.session.routineId
-                : null,
+            resumableRoutineIds: resumableRoutineIds(recent, today, routineIds),
             volume,
             goals,
             week: { done: sessionsThisWeek(recent, today), planned },

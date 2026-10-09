@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import {
   AccessibilityInfo,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Pressable,
   ScrollView,
@@ -144,7 +145,10 @@ function KeyboardAwarePage({
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
   const margin = theme.space[8];
-  const scrollIntoView = useCallback(
+  // The last focused row: the keyboard opening (KAV padding) changes the layout after focus, so
+  // the row is scrolled again when the keyboard is shown.
+  const focusedRef = useRef<View | null>(null);
+  const scrollNow = useCallback(
     (node: View | null) => {
       const content = contentRef.current;
       if (!node || !content) return;
@@ -157,13 +161,34 @@ function KeyboardAwarePage({
     },
     [margin, reduceMotion],
   );
+  const scrollIntoView = useCallback(
+    (node: View | null) => {
+      focusedRef.current = node;
+      scrollNow(node);
+      // Next frame: the KeyboardAvoidingView padding has been applied by then.
+      requestAnimationFrame(() => scrollNow(node));
+    },
+    [scrollNow],
+  );
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', () => {
+      const node = focusedRef.current;
+      if (node) requestAnimationFrame(() => scrollNow(node));
+    });
+    const hidden = Keyboard.addListener('keyboardDidHide', () => {
+      focusedRef.current = null;
+    });
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, [scrollNow]);
   return (
     <SessionScrollContext.Provider value={scrollIntoView}>
       <ScrollView
         {...hiddenScrollIndicators}
         ref={scrollRef}
         keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
         contentContainerStyle={{ paddingTop: theme.space[3], paddingBottom: bottomPadding }}
       >
         <View ref={contentRef} style={{ gap: theme.space[3] }}>

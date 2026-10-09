@@ -64,3 +64,23 @@ export function carouselOrder(routineIds: readonly string[], suggestedId: string
   if (start <= 0) return [...routineIds];
   return [...routineIds.slice(start), ...routineIds.slice(0, start)];
 }
+
+/**
+ * Routines with an UNFINISHED session of `today` that already has sets ("Continuar"), keyed by
+ * routine: two routines started the same day each resume their own session. Only `routineIds`.
+ */
+export function resumableRoutineIds(
+  rows: readonly SessionLike[],
+  today: string,
+  routineIds: readonly string[],
+): string[] {
+  const open = new Set(
+    rows
+      .filter(
+        ({ session, sets }) =>
+          session.date === today && session.finishedAt === null && sets.length > 0,
+      )
+      .map(({ session }) => session.routineId),
+  );
+  return routineIds.filter((id) => open.has(id));
+}

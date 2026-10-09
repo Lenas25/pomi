@@ -23,6 +23,8 @@ type TimerRingProps = {
   now: number;
   /** Cardio: the segments of the block; the current one is shown under the number. */
   segments?: readonly TimerSegment[];
+  /** Diameter override (capped by the caller on small screens); defaults to `ring.size`. */
+  size?: number;
 };
 
 /** Spoken duration, e.g. "1 minuto 20 segundos". */
@@ -51,11 +53,11 @@ export function useSpokenDuration(): (totalSec: number) => string {
 }
 
 /** Countdown ring (HANDOFF §4): track `border`, progress `energy` (rest) / `brand` (wait, cardio). */
-export function TimerRing({ kind, state, now, segments = [] }: TimerRingProps) {
+export function TimerRing({ kind, state, now, segments = [], size: sizeProp }: TimerRingProps) {
   const theme = useTheme();
   const t = useT();
   const spoken = useSpokenDuration();
-  const size = theme.ring.size;
+  const size = sizeProp ?? theme.ring.size;
   const stroke = theme.ring.stroke;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;

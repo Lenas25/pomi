@@ -1,5 +1,5 @@
 import { act, fireEvent, render, renderHook, screen } from '@testing-library/react-native';
-import { AccessibilityInfo, AppState, type AppStateStatus } from 'react-native';
+import { AccessibilityInfo, AppState, Keyboard, type AppStateStatus } from 'react-native';
 import type { ReactElement } from 'react';
 
 import { setLanguage } from '../i18n';
@@ -139,6 +139,30 @@ describe('TimerBar', () => {
     expect(screen.getByRole('button', { name }).props.accessibilityState).toEqual({
       expanded: true,
     });
+  });
+
+  it('collapses the ring while the keyboard is open and speaks the end as a live region', async () => {
+    const listeners: Record<string, () => void> = {};
+    const spy = jest.spyOn(Keyboard, 'addListener').mockImplementation((event, listener) => {
+      listeners[event] = listener as () => void;
+      return { remove: jest.fn() } as unknown as ReturnType<typeof Keyboard.addListener>;
+    });
+    const { ui } = setup(activeTimer({ state: pauseTimer(startTimer(T0, 80), T0) }));
+    await renderThemed(ui);
+    const name = 'Descanso, en pausa, quedan 1 minuto 20 segundos. Siguiente: Serie 2 · Hip thrust';
+    await fireEvent.press(screen.getByRole('button', { name }));
+    expect(screen.getByRole('timer')).toBeTruthy();
+    expect(screen.getByRole('button', { name }).props.accessibilityLiveRegion).toBe('none');
+    await act(() => listeners.keyboardDidShow?.());
+    expect(screen.queryByRole('timer')).toBeNull();
+    await act(() => listeners.keyboardDidHide?.());
+    expect(screen.getByRole('timer')).toBeTruthy();
+    spy.mockRestore();
+
+    const done = setup(activeTimer({ state: skipTimer(startTimer(T0, 80)), finishedBy: 'skipped' }));
+    await renderThemed(done.ui);
+    const status = screen.getAllByRole('button')[0];
+    expect(status?.props.accessibilityLiveRegion).toBe('polite');
   });
 
   it('offers Seguir while paused and Cerrar once finished', async () => {
