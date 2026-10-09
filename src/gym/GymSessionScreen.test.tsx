@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { AccessibilityInfo } from 'react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { AccessibilityInfo, Alert, type AlertButton } from 'react-native';
+import { router } from 'expo-router';
 import type { ReactElement } from 'react';
 
 import { setLanguage } from '../i18n';
@@ -12,7 +13,7 @@ import { buildExerciseView, type SetsStep, type StoredSet } from './sessionViewM
 import { useGymSession, type SessionExercise } from './useGym';
 
 jest.mock('expo-router', () => ({
-  router: { back: jest.fn(), push: jest.fn() },
+  router: { back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: () => true },
   useLocalSearchParams: () => ({ routineId: 'a' }),
 }));
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: () => undefined }));
@@ -69,6 +70,7 @@ function mockSession(overrides: Partial<ReturnType<typeof useGymSession>> = {}) 
     startHold: jest.fn(),
     clearError: jest.fn(),
     finish: jest.fn(async () => ({ status: 'empty' as const })),
+    discard: jest.fn(async () => true),
   };
   jest.mocked(useGymSession).mockReturnValue({
     state: { status: 'ready', routineName: 'Día A', steps: STEPS, exercises: EXERCISES },
@@ -223,5 +225,37 @@ describe('GymSessionScreen (one exercise per page)', () => {
     await renderThemed(<GymSessionScreen />);
     expect(screen.queryByTestId('session-pager')).toBeNull();
     expect(screen.getByRole('button', { name: 'Listo' })).toBeTruthy();
+  });
+
+  it('discards the session after confirming and goes back to the Gym hub', async () => {
+    const handlers = mockSession();
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    jest.mocked(router.back).mockClear();
+    await renderThemed(<GymSessionScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Descartar sesión' }));
+    const [title, , buttons] = alert.mock.calls[0] as [string, string, AlertButton[]];
+    expect(title).toBe('¿Descartar esta sesión?');
+    buttons.find((button) => button.style === 'cancel')?.onPress?.();
+    expect(handlers.discard).not.toHaveBeenCalled();
+    await act(async () => {
+      buttons.find((button) => button.style === 'destructive')?.onPress?.();
+    });
+    expect(handlers.discard).toHaveBeenCalledTimes(1);
+    expect(router.back).toHaveBeenCalledTimes(1);
+    alert.mockRestore();
+  });
+
+  it('stays in the session when the discard fails', async () => {
+    mockSession({ discard: jest.fn(async () => false) });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    jest.mocked(router.back).mockClear();
+    await renderThemed(<GymSessionScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Descartar sesión' }));
+    const [, , buttons] = alert.mock.calls[0] as [string, string, AlertButton[]];
+    await act(async () => {
+      buttons.find((button) => button.style === 'destructive')?.onPress?.();
+    });
+    expect(router.back).not.toHaveBeenCalled();
+    alert.mockRestore();
   });
 });

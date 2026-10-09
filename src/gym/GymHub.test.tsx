@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Alert, type AlertButton } from 'react-native';
 import type { ReactElement } from 'react';
 import { router } from 'expo-router';
 
@@ -78,9 +79,12 @@ const READY: Extract<GymTabState, { status: 'ready' }> = {
   history: historyEntries(ROWS, PROGRAM),
 };
 
+const deleteSession = jest.fn<(sessionId: number) => Promise<boolean>>();
+
 function mockTab(state: GymTabState = READY) {
   const reload = jest.fn();
-  jest.mocked(useGymTab).mockReturnValue({ ...state, reload });
+  deleteSession.mockReset().mockResolvedValue(true);
+  jest.mocked(useGymTab).mockReturnValue({ ...state, reload, deleteSession });
   return reload;
 }
 
@@ -233,6 +237,34 @@ describe('Gym detail pages', () => {
     expect(screen.getByText('3 series · 640 kg')).toBeTruthy();
     expect(screen.getByText('Sentadilla: 40 kg × 8, 40 kg × 8')).toBeTruthy();
     expect(screen.getByText('Press banca: 10 reps')).toBeTruthy();
+  });
+
+  it('history: long-press asks before deleting a session; cancel keeps it', async () => {
+    mockTab();
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    await renderThemed(<HistoryDetailScreen />);
+    await fireEvent(screen.getByTestId('history-2'), 'longPress');
+    const [title, body, buttons] = alert.mock.calls[0] as [string, string, AlertButton[]];
+    expect(title).toBe('¿Eliminar esta sesión?');
+    expect(body).toBe('Se borran sus series. No se puede deshacer.');
+    buttons.find((button) => button.style === 'cancel')?.onPress?.();
+    expect(deleteSession).not.toHaveBeenCalled();
+    await act(async () => {
+      buttons.find((button) => button.style === 'destructive')?.onPress?.();
+    });
+    expect(deleteSession).toHaveBeenCalledWith(2);
+    alert.mockRestore();
+  });
+
+  it('history: the screen reader action and the trash button ask too', async () => {
+    mockTab();
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    await renderThemed(<HistoryDetailScreen />);
+    await fireEvent(screen.getByTestId('history-2'), 'accessibilityAction', {
+      nativeEvent: { actionName: 'delete' },
+    });
+    expect(alert).toHaveBeenCalledTimes(1);
+    alert.mockRestore();
   });
 
   it('history: empty state without sessions', async () => {

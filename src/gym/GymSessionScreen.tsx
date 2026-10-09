@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
+  Alert,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
@@ -19,7 +20,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useReducedMotion } from 'react-native-reanimated';
 import { useStore } from 'zustand';
-import { CaretLeft, CaretRight, type Icon } from 'phosphor-react-native';
+import { CaretLeft, CaretRight, Trash, type Icon } from 'phosphor-react-native';
 
 import { dayKeyFor } from '../domain/time';
 import { useT } from '../i18n';
@@ -45,6 +46,11 @@ import { hiddenScrollIndicators } from '../ui/scroll';
 const FINISHED_SHEET_MS = 5000;
 const NO_LOGS: readonly StoredSet[] = [];
 const EDGES = ['top', 'bottom', 'left', 'right'] as const;
+const ERROR_TEXT = {
+  saveSet: { title: 'gym.session.errorSaveTitle', body: 'gym.session.errorSaveBody' },
+  finish: { title: 'gym.session.errorFinishTitle', body: 'gym.session.errorFinishBody' },
+  discard: { title: 'gym.session.errorDiscardTitle', body: 'gym.session.errorDiscardBody' },
+} as const;
 
 export type SessionPage =
   | { kind: 'warmup'; key: string; steps: NonSetsStep[] }
@@ -417,6 +423,23 @@ export function GymSessionScreen() {
     }
   };
 
+  const discard = async () => {
+    if (!(await session.discard())) return;
+    clearDoneSteps(stepsKey);
+    if (router.canGoBack()) router.back();
+    else router.replace('/gym');
+  };
+
+  const confirmDiscard = () =>
+    Alert.alert(t('gym.session.discardTitle'), t('gym.session.discardBody'), [
+      { text: t('gym.session.discardCancel'), style: 'cancel' },
+      {
+        text: t('gym.session.discardConfirm'),
+        style: 'destructive',
+        onPress: () => void discard(),
+      },
+    ]);
+
   const summary = session.summary;
   // The timer bar takes layout space under the pager, so the pages never hide behind it.
   const bottomPadding = theme.space[8];
@@ -505,12 +528,22 @@ export function GymSessionScreen() {
       bottomBar={timerStatus !== null && !summary ? <TimerBarHost /> : undefined}
     >
       <View style={{ gap: theme.space[2], paddingTop: theme.space[4] }}>
-        <Text
-          accessibilityRole="header"
-          style={[theme.text('title-lg'), { color: theme.color.text }]}
-        >
-          {text(routineName)}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+          <Text
+            accessibilityRole="header"
+            style={[theme.text('title-lg'), { color: theme.color.text, flex: 1 }]}
+          >
+            {text(routineName)}
+          </Text>
+          {summary ? null : (
+            <PageButton
+              icon={Trash}
+              label={t('gym.session.discard')}
+              disabled={finishing}
+              onPress={confirmDiscard}
+            />
+          )}
+        </View>
         <ProgressBar
           current={session.setsDone}
           total={setsPlanned}
@@ -646,16 +679,8 @@ export function GymSessionScreen() {
           <Toast
             key={session.error.id}
             variant="error"
-            title={t(
-              session.error.kind === 'finish'
-                ? 'gym.session.errorFinishTitle'
-                : 'gym.session.errorSaveTitle',
-            )}
-            subtitle={t(
-              session.error.kind === 'finish'
-                ? 'gym.session.errorFinishBody'
-                : 'gym.session.errorSaveBody',
-            )}
+            title={t(ERROR_TEXT[session.error.kind].title)}
+            subtitle={t(ERROR_TEXT[session.error.kind].body)}
             onHide={session.clearError}
           />
         </View>

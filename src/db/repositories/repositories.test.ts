@@ -9,6 +9,8 @@ import { createTestDb } from '../testing/createTestDb';
 import type { Db } from '../types';
 
 import { createRepositories, type Repositories } from './index';
+import { todaysRoutineId } from '../../domain/gym/rotation';
+import { toRotationSessions } from '../../gym/program';
 
 let repos: Repositories;
 let rawDb: Db;
@@ -340,6 +342,38 @@ describe('workouts', () => {
     await repos.workouts.deleteSession(a);
     expect(await repos.workouts.getSession(a)).toBeUndefined();
     expect((await repos.workouts.recentSessions(5)).map((entry) => entry.session.id)).toEqual([b]);
+  });
+
+  it('deleting a session cascades to its set logs and frees the rotation', async () => {
+    const make = async (routineId: string, date: string, startedAt: number) => {
+      const id = await repos.workouts.createSession({ programId: 'p', routineId, date, startedAt });
+      await repos.workouts.logSet({
+        sessionId: id,
+        stepId: 'squat',
+        setIndex: 0,
+        weightKg: 50,
+        reps: 5,
+        doneAt: startedAt,
+      });
+      await repos.workouts.finishSession(id, startedAt + 60);
+      return id;
+    };
+    await make('a', '2026-10-05', 1);
+    const last = await make('b', '2026-10-07', 2);
+    const rotation = async () =>
+      todaysRoutineId(
+        ['a', 'b', 'c'],
+        toRotationSessions(await repos.workouts.recentSessions(10)),
+        '2026-10-08',
+      );
+    expect(await rotation()).toBe('c');
+
+    await repos.workouts.deleteSession(last);
+    const orphans = await rawDb.all(sql`select id from set_logs where session_id = ${last}`);
+    expect(orphans).toHaveLength(0);
+    expect(await rawDb.all(sql`select id from set_logs`)).toHaveLength(1);
+    expect((await repos.workouts.lastSessionForStep('squat'))?.session.routineId).toBe('a');
+    expect(await rotation()).toBe('b');
   });
 
   it('breaks startedAt ties deterministically by the highest session id', async () => {

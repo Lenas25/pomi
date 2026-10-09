@@ -1,7 +1,8 @@
 // The Gym detail pages (`/gym/programa`, `/gym/volumen`, `/gym/historial`): the full data behind
 // each hub tile. They share `useGymTab` with the hub.
 import { useCallback, type ReactNode } from 'react';
-import { Text, View } from 'react-native';
+import { Alert, Pressable, Text, View, type AccessibilityActionEvent } from 'react-native';
+import { Trash } from 'phosphor-react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { format, parseISO } from 'date-fns';
 
@@ -33,7 +34,10 @@ function DetailScreen({
   footer,
 }: {
   title: string;
-  render: (data: GymReady) => ReactNode;
+  render: (
+    data: GymReady,
+    actions: { deleteSession: (sessionId: number) => Promise<boolean> },
+  ) => ReactNode;
   footer?: ReactNode;
 }) {
   const theme = useTheme();
@@ -74,7 +78,9 @@ function DetailScreen({
   }
   return (
     <Screen scroll header={header} edges={EDGES} footer={footer}>
-      <View style={{ gap: theme.space[4], paddingVertical: theme.space[4] }}>{render(tab)}</View>
+      <View style={{ gap: theme.space[4], paddingVertical: theme.space[4] }}>
+        {render(tab, tab)}
+      </View>
     </Screen>
   );
 }
@@ -177,45 +183,92 @@ export function VolumeDetailScreen() {
   );
 }
 
-function HistoryCard({ entry }: { entry: HistoryEntry }) {
+/**
+ * One past session. Long-press (or the trash button, or the screen reader's "Eliminar sesión"
+ * action) asks before deleting it.
+ */
+function HistoryCard({
+  entry,
+  onDelete,
+}: {
+  entry: HistoryEntry;
+  onDelete: (sessionId: number) => void;
+}) {
   const theme = useTheme();
   const t = useT();
   const text = useTemplateText();
   const language = useLocaleStore((state) => state.language);
+  const date = format(parseISO(entry.date), 'd/M/yyyy');
+  const confirm = () =>
+    Alert.alert(t('gym.hub.historyDeleteTitle'), t('gym.hub.historyDeleteBody'), [
+      { text: t('gym.hub.historyDeleteCancel'), style: 'cancel' },
+      {
+        text: t('gym.hub.historyDeleteConfirm'),
+        style: 'destructive',
+        onPress: () => onDelete(entry.id),
+      },
+    ]);
+  const onAction = (event: AccessibilityActionEvent) => {
+    if (event.nativeEvent.actionName === 'delete') confirm();
+  };
   return (
-    <Card>
-      <View style={{ gap: theme.space[2] }}>
-        <Text style={[theme.text('caption'), { color: theme.section.gym.text }]}>
-          {format(parseISO(entry.date), 'd/M/yyyy')}
-        </Text>
-        <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
-          {entry.routineName ? text(entry.routineName) : t('gym.hub.historyUnknownRoutine')}
-        </Text>
-        <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
-          {t('gym.hub.historySummary', {
-            sets: entry.setCount,
-            kg: formatKg(Math.round(entry.volumeKg), language),
-          })}
-        </Text>
-        {entry.exercises.map((exercise) => (
-          <Text
-            key={exercise.stepId}
-            style={[theme.text('body'), { color: theme.color.textMuted }]}
-          >
-            {`${exercise.name ? text(exercise.name) : t('gym.hub.historyUnknownExercise')}: ${exercise.sets
-              .map((set) =>
-                set.weightKg === null
-                  ? t('gym.session.lastTimeBodyweight', { reps: set.reps })
-                  : t('gym.session.lastTimeSet', {
-                      kg: formatKg(set.weightKg, language),
-                      reps: set.reps,
-                    }),
-              )
-              .join(', ')}`}
+    <Pressable
+      testID={`history-${entry.id}`}
+      onLongPress={confirm}
+      accessibilityHint={t('gym.hub.historyDeleteHint')}
+      accessibilityActions={[{ name: 'delete', label: t('gym.hub.historyDelete') }]}
+      onAccessibilityAction={onAction}
+    >
+      <Card>
+        <View style={{ gap: theme.space[2] }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+            <Text style={[theme.text('caption'), { color: theme.section.gym.text, flex: 1 }]}>
+              {date}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('gym.hub.historyDelete')}, ${date}`}
+              onPress={confirm}
+              style={({ pressed }) => ({
+                width: theme.touch.gym,
+                height: theme.touch.gym,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? theme.opacity.pressed : 1,
+              })}
+            >
+              <Trash size={theme.icon.size} color={theme.color.textMuted} />
+            </Pressable>
+          </View>
+          <Text style={[theme.text('title-sm'), { color: theme.color.text }]}>
+            {entry.routineName ? text(entry.routineName) : t('gym.hub.historyUnknownRoutine')}
           </Text>
-        ))}
-      </View>
-    </Card>
+          <Text style={[theme.text('body-strong'), { color: theme.color.text }]}>
+            {t('gym.hub.historySummary', {
+              sets: entry.setCount,
+              kg: formatKg(Math.round(entry.volumeKg), language),
+            })}
+          </Text>
+          {entry.exercises.map((exercise) => (
+            <Text
+              key={exercise.stepId}
+              style={[theme.text('body'), { color: theme.color.textMuted }]}
+            >
+              {`${exercise.name ? text(exercise.name) : t('gym.hub.historyUnknownExercise')}: ${exercise.sets
+                .map((set) =>
+                  set.weightKg === null
+                    ? t('gym.session.lastTimeBodyweight', { reps: set.reps })
+                    : t('gym.session.lastTimeSet', {
+                        kg: formatKg(set.weightKg, language),
+                        reps: set.reps,
+                      }),
+                )
+                .join(', ')}`}
+            </Text>
+          ))}
+        </View>
+      </Card>
+    </Pressable>
   );
 }
 
@@ -225,9 +278,19 @@ export function HistoryDetailScreen() {
   return (
     <DetailScreen
       title={t('gym.hub.historyTitle')}
-      render={(data) =>
+      render={(data, actions) =>
         data.history.length > 0 ? (
-          data.history.map((entry) => <HistoryCard key={entry.id} entry={entry} />)
+          data.history.map((entry) => (
+            <HistoryCard
+              key={entry.id}
+              entry={entry}
+              onDelete={(id) =>
+                void actions.deleteSession(id).then((ok) => {
+                  if (!ok) Alert.alert(t('gym.hub.historyDeleteFailed'));
+                })
+              }
+            />
+          ))
         ) : (
           <EmptyState
             compact

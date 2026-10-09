@@ -9,6 +9,7 @@ import { todaysRoutineId } from '../domain/gym/rotation';
 import { evaluateWhen } from '../domain/agenda/conditions';
 import { dayKeyFor } from '../domain/time';
 import { useT } from '../i18n';
+import { bumpDataVersion } from '../db/dataVersion';
 import { requestNotificationSync } from '../notifications/sync';
 import { getTimerStore } from '../timers/store';
 import type { Step } from '../templates/schema';
@@ -61,7 +62,10 @@ export type GymTabState =
  * Loads the program, today's routine (rotation) and any resumable session. Nothing loads until
  * the first `reload` (call it on focus, which also covers mount).
  */
-export function useGymTab(): GymTabState & { reload: () => void } {
+export function useGymTab(): GymTabState & {
+  reload: () => void;
+  deleteSession: (sessionId: number) => Promise<boolean>;
+} {
   const [state, setState] = useState<GymTabState>({ status: 'loading' });
   const [version, setVersion] = useState(0);
 
@@ -140,7 +144,32 @@ export function useGymTab(): GymTabState & { reload: () => void } {
   }, [version]);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
-  return { ...state, reload };
+  /** Deletes a session of the history (its sets go with it) and reloads everything derived. */
+  const deleteSession = useCallback(
+    async (sessionId: number): Promise<boolean> => {
+      try {
+        await removeWorkoutSession(sessionId);
+        reload();
+        return true;
+      } catch (error) {
+        if (__DEV__) console.error('Could not delete the session', error);
+        return false;
+      }
+    },
+    [reload],
+  );
+  return { ...state, reload, deleteSession };
+}
+
+/**
+ * Deletes a workout session and, by cascade, its set logs. Nothing is cached: history, rotation,
+ * "meta de hoy", volume and insights data are read from the database on the next load, so the
+ * shared data signal (hubs under a sheet) and the notification sync are all that is needed.
+ */
+export async function removeWorkoutSession(sessionId: number): Promise<void> {
+  await getRepositories().workouts.deleteSession(sessionId);
+  bumpDataVersion();
+  void requestNotificationSync('dataChanged');
 }
 
 export type SessionExercise = { step: SetsStep; view: ExerciseView };
@@ -159,7 +188,7 @@ export type GymSessionState =
       exercises: readonly SessionExercise[];
     };
 
-export type GymSessionError = { kind: 'saveSet' | 'finish'; id: number };
+export type GymSessionError = { kind: 'saveSet' | 'finish' | 'discard'; id: number };
 
 export type FinishResult =
   { status: 'finished'; summary: SessionSummary } | { status: 'empty' } | { status: 'error' };
@@ -385,6 +414,26 @@ export function useGymSession(routineId: string | undefined) {
     }
   }, [exercises, logs, queue]);
 
+  /**
+   * Discards this session: waits for pending writes, stops the rest timer (and its notification)
+   * and deletes the session with its sets. `false` when the delete failed (nothing changes).
+   */
+  const discard = useCallback(async (): Promise<boolean> => {
+    try {
+      await queue.idle();
+      getTimerStore().getState().cancel();
+      const sessionId = sessionIdRef.current;
+      if (sessionId !== null) await removeWorkoutSession(sessionId);
+      sessionIdRef.current = null;
+      creating.current = null;
+      setLogs(() => []);
+      return true;
+    } catch {
+      setError({ kind: 'discard', id: Date.now() });
+      return false;
+    }
+  }, [queue, setLogs]);
+
   const clearError = useCallback(() => setError(null), []);
 
   const setsDone = useMemo(
@@ -408,6 +457,7 @@ export function useGymSession(routineId: string | undefined) {
     setRir,
     startHold,
     finish,
+    discard,
     setsDone,
   };
 }
