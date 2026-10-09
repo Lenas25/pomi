@@ -217,6 +217,13 @@ export const en: Messages = {
       rirLabel: 'Reps in reserve: {{value}}',
       holdStart: 'Hold {{sec}} s',
       finish: 'Finish workout',
+      pagePrev: 'Previous step',
+      pageNext: 'Next step',
+      pagePosition: 'Step {{current}} of {{total}}: {{name}}',
+      extrasTitle: 'Cardio and extras',
+      finishTitle: 'Finish',
+      finishBody:
+        "You've done {{done}} of {{total}} sets. Whenever you're ready, finish and see your summary.",
       summaryTitle: 'Summary',
       summarySets: 'Sets',
       summaryVolume: 'Volume',

@@ -37,6 +37,8 @@ type ExerciseCardProps = {
   ) => void;
   onSetUndone: (step: SetsStep, setIndex: number) => void;
   onRir: (step: SetsStep, setIndex: number, rir: number | null) => void;
+  /** One exercise per page: the "meta de hoy" gets a tinted block and a larger type. */
+  prominentTarget?: boolean;
   /** `holdSec` exercises: starts the hold timer of that set. */
   onHold?: (step: SetsStep, setIndex: number) => void;
 };
@@ -83,6 +85,7 @@ function ExerciseCardBase({
   onSetUndone,
   onRir,
   onHold,
+  prominentTarget = false,
 }: ExerciseCardProps) {
   const theme = useTheme();
   const t = useT();
@@ -189,14 +192,29 @@ function ExerciseCardBase({
         </View>
 
         {lines.length > 0 ? (
-          <View style={{ gap: theme.space[1] }}>
+          <View
+            testID="exercise-target"
+            style={[
+              { gap: theme.space[1] },
+              prominentTarget
+                ? {
+                    padding: theme.space[3],
+                    borderRadius: theme.radius.md,
+                    backgroundColor: theme.section.gym.soft,
+                  }
+                : null,
+            ]}
+          >
             <Text style={[theme.text('caption'), { color: theme.color.energyText }]}>
               {t('gym.session.targetTitle')}
             </Text>
             {lines.map((line) => (
               <Text
                 key={line}
-                style={[theme.text('body-strong'), { color: theme.color.energyText }]}
+                style={[
+                  theme.text(prominentTarget ? 'title-sm' : 'body-strong'),
+                  { color: theme.color.energyText },
+                ]}
               >
                 {line}
               </Text>

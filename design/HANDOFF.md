@@ -115,9 +115,9 @@ Tipografía: ver `BRAND.md` sección 5 (`display`, `title-lg`, `title-md`, `titl
 2. Detalle: `/gym/programa` (rutinas, empezar cualquiera; pie fijo con Editar programa e Importar), `/gym/volumen` (series por músculo esta semana + semanas), `/gym/historial` (sesiones recientes con series y volumen).
 
 ### Sesión de gym
-1. Encabezado: "Día 1: Glúteos e isquios" + progreso de series.
-2. Calentamiento plegable (checks).
-3. `ExerciseCard` por ejercicio, con `SetRow`.
+1. Encabezado: "Día 1: Glúteos e isquios" + progreso de series + fila de navegación (anterior / puntos de progreso / siguiente, 48 dp; los puntos anuncian "Paso x de y: nombre").
+2. Paginador horizontal (`FlatList` `pagingEnabled`, deslizar o botones; sin animación con reduce-motion), una página por paso: calentamiento plegable (checks) primero.
+3. Una página por ejercicio: `ExerciseCard` con la meta de hoy destacada (bloque teñido coral) y sus `SetRow`; luego cardio y extras; al final la página Terminar.
 4. Al marcar ✓ en una serie: aparece `TimerSheet` con el descanso.
 5. Cardio: `TimerRing` `cardio` con tramos.
 6. Al terminar: `Toast` `routineComplete` + resumen (series, volumen, metas cumplidas).
