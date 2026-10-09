@@ -17,7 +17,7 @@ describe('scroll indicators', () => {
     const missing: string[] = [];
     for (const file of [...sources(join(ROOT, 'src')), ...sources(join(ROOT, 'app'))]) {
       const text = readFileSync(file, 'utf8');
-      const tag = /<(?:Animated\.)?(ScrollView|FlatList|SectionList)(?=[\s>])([\s\S]*?)>/g;
+      const tag = /(?<!\w)<(?:Animated\.)?(ScrollView|FlatList|SectionList)(?=[\s>])([\s\S]*?)>/g;
       for (const match of text.matchAll(tag)) {
         const props = match[2] ?? '';
         if (!props.trimStart().startsWith('{...hiddenScrollIndicators}')) {

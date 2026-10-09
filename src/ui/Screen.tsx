@@ -22,6 +22,11 @@ type ScreenProps = {
    * bottom inset when `edges` includes `bottom` (full screens); tab screens get it above the bar.
    */
   footer?: ReactNode;
+  /**
+   * Full-bleed bar pinned under the content (e.g. the gym timer bar). It owns its background and
+   * padding and takes layout space, so it never covers the content; it sits above `footer`.
+   */
+  bottomBar?: ReactNode;
 };
 
 const DEFAULT_EDGES: readonly Edge[] = ['top', 'left', 'right'];
@@ -34,6 +39,7 @@ export function Screen({
   wide = false,
   header,
   footer,
+  bottomBar,
 }: ScreenProps) {
   const theme = useTheme();
   const column = {
@@ -55,6 +61,7 @@ export function Screen({
       ) : (
         <View style={[content, { flex: 1 }]}>{children}</View>
       )}
+      {bottomBar}
       {footer ? (
         <View
           testID="screen-footer"

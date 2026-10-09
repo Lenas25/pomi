@@ -265,3 +265,21 @@ export function groupLogsByStep(
   }
   return result;
 }
+
+/**
+ * The numbers of the concise "meta de hoy" (shown as "Hoy: 40 kg × 9" / "Hoy: 8–10 reps" by the
+ * card): the weight (`null` for bodyweight or no weight) and the reps or reps range over the
+ * sets. `null` when the target has no reps (manual / unparseable): the card shows its text.
+ */
+export function targetSummary(
+  target: Pick<TodayTarget, 'weightKg' | 'reps'>,
+  bodyweight: boolean,
+  language: Language,
+): { kg: string | null; reps: string } | null {
+  if (target.reps.length === 0) return null;
+  const low = Math.min(...target.reps);
+  const high = Math.max(...target.reps);
+  const reps = low === high ? String(low) : `${low}–${high}`;
+  const kg = bodyweight || target.weightKg === null ? null : formatKg(target.weightKg, language);
+  return { kg, reps };
+}

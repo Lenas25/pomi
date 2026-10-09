@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import {
+  targetSummary,
   buildExerciseView,
   formatKg,
   groupLogsByStep,
@@ -310,5 +311,23 @@ describe('summarizeSession', () => {
 
   it('counts the planned sets', () => {
     expect(plannedSetCount(exercises)).toBe(5);
+  });
+});
+
+describe('targetSummary (concise "meta de hoy")', () => {
+  it('weight × reps, a reps range when the sets differ, reps only without weight', () => {
+    expect(targetSummary({ weightKg: 40, reps: [9, 9, 9] }, false, 'es')).toEqual({
+      kg: '40',
+      reps: '9',
+    });
+    expect(targetSummary({ weightKg: 42.5, reps: [8, 10] }, false, 'es')).toEqual({
+      kg: '42,5',
+      reps: '8–10',
+    });
+    expect(targetSummary({ weightKg: 40, reps: [12] }, true, 'es')).toEqual({
+      kg: null,
+      reps: '12',
+    });
+    expect(targetSummary({ weightKg: null, reps: [] }, false, 'es')).toBeNull();
   });
 });

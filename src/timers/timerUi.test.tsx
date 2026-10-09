@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 
 import { setLanguage } from '../i18n';
 import { TimerRing } from '../ui/TimerRing';
-import { TimerSheet } from '../ui/TimerSheet';
+import { TimerBar } from '../ui/TimerBar';
 import { ThemeProvider } from '../ui/theme';
 
 import { createTimerStore, type ActiveTimer, type TimerEffects } from './timerStore';
@@ -47,7 +47,7 @@ function activeTimer(overrides: Partial<ActiveTimer> = {}): ActiveTimer {
     owner: 'rest:ht:0',
     kind: 'rest',
     state: startTimer(T0, 80),
-    nextLabel: 'serie 2 de Hip thrust',
+    nextLabel: 'Serie 2 · Hip thrust',
     notification: { title: 't', body: 'b' },
     segments: [],
     notificationId: null,
@@ -98,7 +98,7 @@ describe('TimerRing', () => {
   });
 });
 
-describe('TimerSheet', () => {
+describe('TimerBar', () => {
   function setup(timer: ActiveTimer) {
     const handlers = {
       onPause: jest.fn(),
@@ -107,19 +107,38 @@ describe('TimerSheet', () => {
       onSkip: jest.fn(),
       onClose: jest.fn(),
     };
-    return { handlers, ui: <TimerSheet timer={timer} {...handlers} /> };
+    return { handlers, ui: <TimerBar timer={timer} {...handlers} /> };
   }
 
-  it('shows what is next and Pausar / +30 s / Saltar', async () => {
+  it('compact: time, the short next set and Pausar / +30 s / Saltar', async () => {
     const { ui, handlers } = setup(activeTimer());
     await renderThemed(ui);
-    expect(screen.getByText('Siguiente: serie 2 de Hip thrust')).toBeTruthy();
+    expect(screen.getByText('Serie 2 · Hip thrust')).toBeTruthy();
+    // Full width, no ring until expanded.
+    expect(screen.getByTestId('timer-bar')).toHaveStyle({ width: '100%' });
+    expect(screen.queryByRole('timer')).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: 'Pausar' }));
-    await fireEvent.press(screen.getByRole('button', { name: '+30 s' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Sumar 30 segundos' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Saltar' }));
     expect(handlers.onPause).toHaveBeenCalledTimes(1);
     expect(handlers.onAddTime).toHaveBeenCalledTimes(1);
     expect(handlers.onSkip).toHaveBeenCalledTimes(1);
+  });
+
+  it('tapping the time expands the ring view and speaks the status with what is next', async () => {
+    // Paused at 80 s: the clock does not move during the test.
+    const { ui } = setup(activeTimer({ state: pauseTimer(startTimer(T0, 80), T0) }));
+    await renderThemed(ui);
+    expect(screen.getByText('1:20')).toBeTruthy();
+    const name = 'Descanso, en pausa, quedan 1 minuto 20 segundos. Siguiente: Serie 2 · Hip thrust';
+    expect(screen.getByRole('button', { name }).props.accessibilityState).toEqual({
+      expanded: false,
+    });
+    await fireEvent.press(screen.getByRole('button', { name }));
+    expect(screen.getByRole('timer')).toBeTruthy();
+    expect(screen.getByRole('button', { name }).props.accessibilityState).toEqual({
+      expanded: true,
+    });
   });
 
   it('offers Seguir while paused and Cerrar once finished', async () => {

@@ -1,17 +1,20 @@
-import { memo, useCallback, useMemo } from 'react';
-import { Text, View } from 'react-native';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { Pressable, Text, View, type TextInput } from 'react-native';
 import { CheckCircle } from 'phosphor-react-native';
 
 import { useLocaleStore, useT, type Translate } from '../i18n';
 import type { Language } from '../i18n/types';
 import { formatClock } from '../timers/timerModel';
+import { BottomSheet } from '../ui/BottomSheet';
 import { Card } from '../ui/Card';
 import { useTheme } from '../ui/theme';
 
-import { SetRow, type LoggedValues } from './SetRow';
+import { SetHeader, SetRow, type LoggedValues } from './SetRow';
+import { nextFocusTarget, type SetField } from './setRowLayout';
 import {
   formatKg,
   localizeTargetParams,
+  targetSummary,
   resolveSetValues,
   type ExerciseView,
   type SetInputs,
@@ -100,6 +103,34 @@ function ExerciseCardBase({
   const firstPending = Array.from({ length: step.sets }, (_, i) => i).find((i) => !byIndex.has(i));
   const lastTime = lastTimeText(view, bodyweight, t, language);
   const lines = targetLines(view, step, t, language);
+  const summaryLine = targetSummary(view.target, bodyweight, language);
+  // One concise line ("Hoy: 40 kg × 9"); the explanation waits behind "¿Por qué?".
+  const mainLine = summaryLine
+    ? t('gym.session.targetToday', {
+        target: summaryLine.kg
+          ? t('gym.session.targetWeightReps', { kg: summaryLine.kg, reps: summaryLine.reps })
+          : t('gym.session.targetRepsOnly', { reps: summaryLine.reps }),
+      })
+    : (lines[0] ?? null);
+  const whyLines = summaryLine ? lines : lines.slice(1);
+  const [whyOpen, setWhyOpen] = useState(false);
+  const [rirInfo, setRirInfo] = useState(false);
+  const openRirInfo = useCallback(() => setRirInfo(true), [setRirInfo]);
+
+  // Keyboard chaining: kg -> reps -> next pending set (`nextFocusTarget`).
+  const inputs = useRef(new Map<string, TextInput>());
+  const registerInput = useCallback((index: number, field: SetField, input: TextInput | null) => {
+    const key = `${index}:${field}`;
+    if (input) inputs.current.set(key, input);
+    else inputs.current.delete(key);
+  }, []);
+  const onSubmitInput = useCallback(
+    (index: number, field: SetField) => {
+      const next = nextFocusTarget({ index, field }, step.sets, (i) => byIndex.has(i), bodyweight);
+      if (next) inputs.current.get(`${next.index}:${next.field}`)?.focus();
+    },
+    [step.sets, bodyweight, byIndex],
+  );
 
   // One entry per planned set; objects keep their identity while the sets do not change.
   const rows = useMemo(
@@ -191,34 +222,60 @@ function ExerciseCardBase({
             : null}
         </View>
 
-        {lines.length > 0 ? (
+        {mainLine ? (
           <View
             testID="exercise-target"
-            style={[
-              { gap: theme.space[1] },
-              prominentTarget
-                ? {
-                    padding: theme.space[3],
-                    borderRadius: theme.radius.md,
-                    backgroundColor: theme.section.gym.soft,
-                  }
-                : null,
-            ]}
+            style={{
+              gap: theme.space[1],
+              padding: prominentTarget ? theme.space[3] : 0,
+              borderRadius: theme.radius.md,
+              backgroundColor: prominentTarget ? theme.section.gym.soft : theme.color.transparent,
+            }}
           >
-            <Text style={[theme.text('caption'), { color: theme.color.energyText }]}>
+            <Text style={[theme.text('caption'), { color: theme.section.gym.text }]}>
               {t('gym.session.targetTitle')}
             </Text>
-            {lines.map((line) => (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
               <Text
-                key={line}
                 style={[
                   theme.text(prominentTarget ? 'title-sm' : 'body-strong'),
-                  { color: theme.color.energyText },
+                  { color: theme.color.text, flex: 1 },
                 ]}
               >
-                {line}
+                {mainLine}
               </Text>
-            ))}
+              {whyLines.length > 0 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: whyOpen }}
+                  accessibilityLabel={t(
+                    whyOpen ? 'gym.session.targetWhyHide' : 'gym.session.targetWhy',
+                  )}
+                  onPress={() => setWhyOpen((open) => !open)}
+                  hitSlop={theme.space[1]}
+                  style={{
+                    minHeight: theme.touch.min,
+                    justifyContent: 'center',
+                    paddingHorizontal: theme.space[2],
+                  }}
+                >
+                  <Text style={[theme.text('body-strong'), { color: theme.section.gym.text }]}>
+                    {t(whyOpen ? 'gym.session.targetWhyHide' : 'gym.session.targetWhy')}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+            {whyOpen
+              ? whyLines.map((line) => (
+                  <Text
+                    key={line}
+                    accessibilityLiveRegion="polite"
+                    style={[theme.text('body'), { color: theme.color.text }]}
+                  >
+                    {line}
+                  </Text>
+                ))
+              : null}
           </View>
         ) : null}
         {view.target.suggestions.map((message) => (
@@ -233,6 +290,7 @@ function ExerciseCardBase({
         ) : null}
 
         <View style={{ gap: theme.space[1] }}>
+          <SetHeader bodyweight={bodyweight} hold={step.holdSec !== undefined && !!handleHold} />
           {rows.map((row) => (
             <SetRow
               key={row.index}
@@ -248,10 +306,33 @@ function ExerciseCardBase({
                 : {})}
               onToggle={handleToggle}
               onRir={handleRir}
+              registerInput={registerInput}
+              onSubmitInput={onSubmitInput}
+              repsReturnKey={
+                nextFocusTarget(
+                  { index: row.index, field: 'reps' },
+                  step.sets,
+                  (i) => byIndex.has(i),
+                  bodyweight,
+                )
+                  ? 'next'
+                  : 'done'
+              }
+              onRirInfo={openRirInfo}
             />
           ))}
         </View>
       </View>
+      <BottomSheet
+        visible={rirInfo}
+        onClose={() => setRirInfo(false)}
+        title={t('gym.session.rirInfoTitle')}
+        closeLabel={t('gym.session.rirInfoClose')}
+      >
+        <Text style={[theme.text('body'), { color: theme.color.text }]}>
+          {t('gym.session.rirInfoBody')}
+        </Text>
+      </BottomSheet>
     </Card>
   );
 }

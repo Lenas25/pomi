@@ -1,10 +1,11 @@
 // Gym session (`/gym/session`): a horizontal pager with ONE exercise per page (warm-up first,
 // cardio / extras, then a finish page). The set, timer and finish logic is the same as before:
 // `useGymSession` + the timer store; only the layout changed.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   FlatList,
+  KeyboardAvoidingView,
   Pressable,
   ScrollView,
   Text,
@@ -29,7 +30,7 @@ import { Card } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Screen } from '../ui/Screen';
-import { TimerSheet } from '../ui/TimerSheet';
+import { TimerBar } from '../ui/TimerBar';
 import { Toast } from '../ui/Toast';
 import { useTheme } from '../ui/theme';
 import { ExerciseCard } from './ExerciseCard';
@@ -37,6 +38,7 @@ import type { StoredSet } from './sessionViewModel';
 import { SessionSummaryCard, StepRow, WarmupSection, type NonSetsStep } from './StepBlocks';
 import { clearDoneSteps, getDoneSteps, saveDoneSteps, sessionStepsKey } from './sessionStepsStore';
 import { useGymSession, type SessionExercise } from './useGym';
+import { SessionScrollContext } from './sessionScroll';
 import { hiddenScrollIndicators } from '../ui/scroll';
 
 const FINISHED_SHEET_MS = 5000;
@@ -107,23 +109,68 @@ export function initialPageIndex(
 }
 
 /**
- * Owns the timer subscription for the sheet, so the (busy) session screen does not re-render on
- * timer transitions; the 250 ms clock itself lives inside `TimerSheet`.
+ * Owns the timer subscription for the bar, so the (busy) session screen does not re-render on
+ * timer transitions; the 250 ms clock itself lives inside `TimerBar`.
  */
-function TimerSheetHost({ onLayoutHeight }: { onLayoutHeight: (height: number) => void }) {
+function TimerBarHost() {
   const timer = useActiveTimer();
   if (!timer) return null;
   const timers = getTimerStore().getState();
   return (
-    <TimerSheet
+    <TimerBar
       timer={timer}
       onPause={() => timers.pause()}
       onResume={() => timers.resume()}
       onAddTime={() => timers.addTime()}
       onSkip={() => timers.skip()}
       onClose={() => timers.dismiss()}
-      onLayoutHeight={onLayoutHeight}
     />
+  );
+}
+
+/**
+ * One page's vertical scroll. A focused set input scrolls its row near the top (above the numeric
+ * keyboard) through `SessionScrollContext`; no animation with reduce motion.
+ */
+function KeyboardAwarePage({
+  bottomPadding,
+  children,
+}: {
+  bottomPadding: number;
+  children: ReactNode;
+}) {
+  const theme = useTheme();
+  const reduceMotion = useReducedMotion();
+  const scrollRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
+  const margin = theme.space[8];
+  const scrollIntoView = useCallback(
+    (node: View | null) => {
+      const content = contentRef.current;
+      if (!node || !content) return;
+      node.measureLayout(
+        content,
+        (_x, y) =>
+          scrollRef.current?.scrollTo({ y: Math.max(0, y - margin), animated: !reduceMotion }),
+        () => undefined,
+      );
+    },
+    [margin, reduceMotion],
+  );
+  return (
+    <SessionScrollContext.Provider value={scrollIntoView}>
+      <ScrollView
+        {...hiddenScrollIndicators}
+        ref={scrollRef}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={{ paddingTop: theme.space[3], paddingBottom: bottomPadding }}
+      >
+        <View ref={contentRef} style={{ gap: theme.space[3] }}>
+          {children}
+        </View>
+      </ScrollView>
+    </SessionScrollContext.Provider>
   );
 }
 
@@ -182,7 +229,6 @@ export function GymSessionScreen() {
   // Warm-up / cardio checks survive leaving and resuming today's session of this routine.
   const [stepsKey] = useState(() => sessionStepsKey(dayKeyFor(new Date()), routineId ?? ''));
   const [doneSteps, setDoneSteps] = useState<ReadonlySet<string>>(() => getDoneSteps(stepsKey));
-  const [sheetHeight, setSheetHeight] = useState(0);
   const [finishing, setFinishing] = useState(false);
   // `null` until the session loads: then it is seeded (resume opens the first pending exercise).
   const [page, setPage] = useState<number | null>(null);
@@ -347,7 +393,8 @@ export function GymSessionScreen() {
   };
 
   const summary = session.summary;
-  const bottomPadding = timerStatus !== null ? sheetHeight + theme.space[4] : theme.space[8];
+  // The timer bar takes layout space under the pager, so the pages never hide behind it.
+  const bottomPadding = theme.space[8];
 
   const pageTitle = (title: string) => (
     <Text accessibilityRole="header" style={[theme.text('title-md'), { color: theme.color.text }]}>
@@ -422,23 +469,16 @@ export function GymSessionScreen() {
         importantForAccessibility={index === current ? 'auto' : 'no-hide-descendants'}
         style={{ width: pageWidth }}
       >
-        <ScrollView
-          {...hiddenScrollIndicators}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{
-            gap: theme.space[3],
-            paddingTop: theme.space[3],
-            paddingBottom: bottomPadding,
-          }}
-        >
-          {body}
-        </ScrollView>
+        <KeyboardAwarePage bottomPadding={bottomPadding}>{body}</KeyboardAwarePage>
       </View>
     );
   };
 
   return (
-    <Screen edges={EDGES}>
+    <Screen
+      edges={EDGES}
+      bottomBar={timerStatus !== null && !summary ? <TimerBarHost /> : undefined}
+    >
       <View style={{ gap: theme.space[2], paddingTop: theme.space[4] }}>
         <Text
           accessibilityRole="header"
@@ -520,7 +560,10 @@ export function GymSessionScreen() {
               onPress={() => goTo(current + 1)}
             />
           </View>
-          <View
+          {/* Edge-to-edge (SDK 57): the window no longer resizes for the keyboard, so the pager
+              takes the keyboard height as padding on both platforms. */}
+          <KeyboardAvoidingView
+            behavior="padding"
             style={{ flex: 1 }}
             onLayout={(event) => {
               const width = event.nativeEvent.layout.width;
@@ -555,7 +598,7 @@ export function GymSessionScreen() {
               })}
               onMomentumScrollEnd={onPageScrollEnd}
             />
-          </View>
+          </KeyboardAvoidingView>
         </>
       )}
 
@@ -592,8 +635,6 @@ export function GymSessionScreen() {
           />
         </View>
       ) : null}
-
-      {timerStatus !== null && !summary ? <TimerSheetHost onLayoutHeight={setSheetHeight} /> : null}
     </Screen>
   );
 }

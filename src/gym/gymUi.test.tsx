@@ -154,11 +154,28 @@ describe('ExerciseCard', () => {
   it('shows the target of the day, the last time and the chips', async () => {
     await renderThemed(setup().ui);
     expect(screen.getByText('Meta de hoy')).toBeTruthy();
+    // One concise line; the explanation waits behind "¿Por qué?".
+    expect(screen.getByText('Hoy: 45 kg × 8')).toBeTruthy();
+    expect(screen.queryByText(/Hoy: 45 kg × 8\. La última vez/)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: '¿Por qué?' }));
     expect(screen.getByText(/Hoy: 45 kg × 8\. La última vez: 40 kg × 10/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Ocultar' })).toBeTruthy();
     expect(screen.getByText(/La última vez: 40 kg × 10 · 40 kg × 10 · 40 kg × 10/)).toBeTruthy();
     expect(screen.getByText('3 × 8–10')).toBeTruthy();
     expect(screen.getByText('Descanso 2:00')).toBeTruthy();
     expect(screen.getByText('Peso: 40–45 kg')).toBeTruthy();
+  });
+
+  it('column headers over the sets and a short RIR label that opens its explanation', async () => {
+    await renderThemed(setup().ui);
+    const header = screen.getByTestId('set-header', { includeHiddenElements: true });
+    expect(header).toBeTruthy();
+    expect(screen.getByText('Serie', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByText('Anterior', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.queryByText('Repeticiones en reserva')).toBeNull();
+    expect(screen.getByText('RIR')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: '¿Qué es RIR?' }));
+    expect(screen.getByText('RIR: repeticiones en reserva')).toBeTruthy();
   });
 
   it('✓ with empty inputs logs the previous value (default on empty)', async () => {
