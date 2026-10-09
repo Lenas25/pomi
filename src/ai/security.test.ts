@@ -283,6 +283,12 @@ describe('plain http rules', () => {
     expect(checkBaseUrl('https://ai.example.com/v1', { withKey: true }).ok).toBe(true);
   });
 
+  it('rejects leading-zero octets that some stacks parse as octal', () => {
+    expect(isLocalHost('010.0.0.1')).toBe(false);
+    expect(checkBaseUrl('http://010.0.0.1:11434/v1').ok).toBe(false);
+    expect(isLocalHost('10.0.0.1')).toBe(true);
+  });
+
   it('no longer trusts link-local, mDNS or *.localhost hosts', () => {
     for (const host of ['169.254.1.1', 'pc.local', 'evil.localhost', '[fe80::1]']) {
       expect(isLocalHost(host)).toBe(false);

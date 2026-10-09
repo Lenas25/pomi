@@ -13,7 +13,8 @@ type ParsedUrl = { text: string; scheme: 'http' | 'https'; host: string; port: n
 
 function ipv4Parts(host: string): number[] | null {
   const parts = host.split('.');
-  if (parts.length !== 4 || parts.some((part) => !/^\d{1,3}$/.test(part))) return null;
+  // Leading zeros are rejected: some stacks read "010" as octal, turning a "private" host public.
+  if (parts.length !== 4 || parts.some((part) => !/^(0|[1-9]\d{0,2})$/.test(part))) return null;
   const numbers = parts.map(Number);
   return numbers.every((value) => value <= 255) ? numbers : null;
 }
