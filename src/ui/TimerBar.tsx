@@ -156,8 +156,7 @@ export function TimerBar({ timer, onPause, onResume, onAddTime, onSkip, onClose 
           accessibilityLabel={next ? `${status}. ${next}` : status}
           accessibilityHint={t('timers.ringToggle')}
           accessibilityState={{ expanded }}
-          // The end of a rest is spoken (TalkBack live region; the label only changes then).
-          accessibilityLiveRegion={finished ? 'polite' : 'none'}
+          // No live region: the end is announced once by `useTimerFeedback` (with the next step).
           onPress={() => setExpanded((value) => !value)}
           style={{ flex: 1, minWidth: 0, minHeight: theme.touch.gym, justifyContent: 'center' }}
         >

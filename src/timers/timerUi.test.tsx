@@ -141,7 +141,7 @@ describe('TimerBar', () => {
     });
   });
 
-  it('collapses the ring while the keyboard is open and speaks the end as a live region', async () => {
+  it('collapses the ring while the keyboard is open and leaves the end announcement to useTimerFeedback', async () => {
     const listeners: Record<string, () => void> = {};
     const spy = jest.spyOn(Keyboard, 'addListener').mockImplementation((event, listener) => {
       listeners[event] = listener as () => void;
@@ -152,17 +152,20 @@ describe('TimerBar', () => {
     const name = 'Descanso, en pausa, quedan 1 minuto 20 segundos. Siguiente: Serie 2 · Hip thrust';
     await fireEvent.press(screen.getByRole('button', { name }));
     expect(screen.getByRole('timer')).toBeTruthy();
-    expect(screen.getByRole('button', { name }).props.accessibilityLiveRegion).toBe('none');
+    expect(screen.getByRole('button', { name }).props.accessibilityLiveRegion).toBeUndefined();
     await act(() => listeners.keyboardDidShow?.());
     expect(screen.queryByRole('timer')).toBeNull();
     await act(() => listeners.keyboardDidHide?.());
     expect(screen.getByRole('timer')).toBeTruthy();
     spy.mockRestore();
 
-    const done = setup(activeTimer({ state: skipTimer(startTimer(T0, 80)), finishedBy: 'skipped' }));
+    const done = setup(
+      activeTimer({ state: skipTimer(startTimer(T0, 80)), finishedBy: 'skipped' }),
+    );
     await renderThemed(done.ui);
+    // A live region here would speak the end a second time.
     const status = screen.getAllByRole('button')[0];
-    expect(status?.props.accessibilityLiveRegion).toBe('polite');
+    expect(status?.props.accessibilityLiveRegion).toBeUndefined();
   });
 
   it('offers Seguir while paused and Cerrar once finished', async () => {
