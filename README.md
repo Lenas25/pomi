@@ -222,7 +222,6 @@ The full spec is in [`PLAN.md`](PLAN.md) (Spanish); conventions and decisions ar
 - [x] **v1**: useful base (Today, gym, habits, check-ins, reminders, timers, backup)
 - [x] **v2**: learning from you (suggestions, reviews, progress, monthly photos, sharing, Tu ritmo, generator)
 - [x] **v3**: discovering you (insights, weekly volume, program editor, CSV/JSON, full English, Connect your AI)
-- [ ] **v4** ideas: share programs by link or QR, photo timelapse, accountability with 1–2 people, iOS and store release
 
 Details and acceptance criteria: [`PLAN.md` §15](PLAN.md).
 

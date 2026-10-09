@@ -485,14 +485,6 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 
 - [ ] "Pomi en el celular" (sección 14e): LLM en el dispositivo con `llama.rn`, tras un benchmark en un dispositivo real (velocidad, español, batería y calor).
 
-### v4: comunidad
-
-- [ ] Plantillas de programas por link o QR y carpeta comunitaria en el repositorio.
-- [ ] Timelapse de fotos.
-- [ ] Arte generativo que crece con tus datos (explorar).
-- [ ] Accountability con 1 o 2 personas (requiere decidir cómo sin romper el principio local-first).
-- [ ] iOS (HealthKit) y publicación en tiendas. Antes de subir a Play: declarar el permiso `SCHEDULE_EXACT_ALARM` (uso: fin de los descansos del gym) o quitarlo; los avisos de hábitos no dependen de él.
-
 ## 16. Calidad
 
 - Tests unitarios obligatorios para: fórmulas de agua, pasos y sueño; meta de hoy (los 5 casos de 9.4); rotación; parser de `reps`; `buildAgenda`; `buildUpcoming` (límite de 64, horas de silencio); motor de sugerencias (cada regla, el máximo semanal y el bloqueo de 4 semanas tras un rechazo); motor de hallazgos (mínimo de datos, umbrales y redacción); generadores de reportes; deuda de sueño, jetlag social, ciclos de sueño, curva de agua por hora, detector de sedentarismo (umbral, ventana, días y desactivación) y registro de actividad desde la acción de la notificación (`activity_logs`).

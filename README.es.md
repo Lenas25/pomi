@@ -222,7 +222,6 @@ La especificación completa está en [`PLAN.md`](PLAN.md); las convenciones y de
 - [x] **v1**: base útil (Hoy, gym, hábitos, check-ins, avisos, cronómetros, respaldo)
 - [x] **v2**: aprender de ti (sugerencias, revisiones, progreso, fotos mensuales, compartir, Tu ritmo, generador)
 - [x] **v3**: descubrirte (hallazgos, volumen semanal, editor de programas, CSV/JSON, inglés completo, Conectar mi IA)
-- [ ] Ideas para **v4**: compartir programas por link o QR, timelapse de fotos, acompañamiento con 1 o 2 personas, iOS y publicación en tiendas
 
 Detalles y criterios de aceptación: [`PLAN.md` §15](PLAN.md).
 
