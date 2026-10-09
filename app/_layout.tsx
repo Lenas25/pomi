@@ -81,8 +81,6 @@ function RootStack() {
           <Stack.Screen name="editar-rutina" />
           <Stack.Screen name="editar-paso" />
           <Stack.Screen name="anadir-ejercicio" />
-          <Stack.Screen name="conectar-ia" />
-          <Stack.Screen name="preguntale-a-pomi" />
         </Stack.Protected>
       </Stack>
       <MaintenanceOverlay />

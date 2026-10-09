@@ -54,8 +54,6 @@ Usa la **última versión estable de Expo SDK** y verifica cada API en la docume
 | Fuentes | @expo-google-fonts/fredoka (títulos), @expo-google-fonts/nunito-sans (texto) y @expo-google-fonts/nunito (900, cronómetro y métricas) |
 | Íconos de UI | phosphor-react-native |
 | Animaciones | react-native-reanimated (y lottie-react-native si hay animaciones de la mascota) |
-| Clave de API (v3, opcional) | expo-secure-store (**nueva dependencia, se aprobará más adelante**) |
-| IA en el dispositivo (v3+, experimental) | llama.rn (solo tras un benchmark en dispositivo real) |
 | Fotos | expo-camera o expo-image-picker, guardadas en el almacenamiento privado de la app |
 | Compartir y PDF | expo-sharing, expo-print, expo-file-system, expo-document-picker |
 | Gráficos | victory-native o react-native-svg (elige uno y justifícalo en `CLAUDE.md`) |
@@ -362,14 +360,6 @@ Pomi acompaña: pregunta con cariño, calcula con datos reales y nunca juzga. To
 - Máximo 1 aviso cada 2 horas y 3 por día; respeta las horas de silencio.
 - **Nota honesta en la app:** Android puede retrasar o saltarse tareas en segundo plano (ahorro de batería, optimización por fabricante, modo Doze), así que el aviso es una ayuda aproximada, no un recordatorio exacto.
 
-### v3: compañera con IA en el dispositivo (opcional)
-
-Ver §14e ("Pomi en el celular"). Esta sección queda como resumen de principios que comparten §14d y §14e:
-
-- **Los motores deterministas calculan todas las cifras**; el modelo solo las redacta y responde mediante *tool calls* sobre los datos locales (sueño, agua, pasos, gym). Nunca inventa ni calcula números.
-- *System prompt* con alcance estricto: solo los temas de vida saludable de la persona (sueño, agua, movimiento, gym, hábitos); sin consejo médico; lenguaje prudente; fuera de ese alcance responde con amabilidad que no puede ayudar.
-- **Respaldo:** la app nunca depende del modelo. Sin modelo, o si la persona lo desactiva, se usan los textos de plantilla de siempre.
-
 ## 14c. Generador de rutinas basado en evidencia (v2)
 
 Función pura y determinista `generateProgram(input)` (en `src/domain/generator/`). Convierte unas pocas respuestas en un programa **en el mismo formato JSON de plantillas** (§6), así que el importador, la rotación y la "meta de hoy" lo usan sin cambios. Sin red, sin IA, sin azar: la misma entrada da siempre el mismo programa.
@@ -412,28 +402,13 @@ La posición oficial del **ACSM 2026** (Currier et al., *Med Sci Sports Exerc*, 
 
 **Se adapta después** con lo que ya existe: la "meta de hoy" (§9.4) y el motor de sugerencias (§11) con los datos reales de la persona, siempre como propuestas. Cualquier cambio de programa pasa otra vez por las reglas del generador.
 
-## 14d. Conectar mi IA (v3, opcional)
+## 14d. Conectar mi IA (descartado)
 
-Un asistente opcional que usa **el proveedor de IA que la persona ya tiene** (BYO: *bring your own*). Pomi no tiene servidor ni cuenta; la app habla directo con el proveedor elegido.
+**Descartado por decisión de la dueña (2026-10).** Se construyó en v3 (proveedor propio de IA, clave en `expo-secure-store`) y se eliminó por completo: código, pantallas, ajustes, textos y la dependencia. Los respaldos antiguos con las claves `aiConnection` / `aiChat` se siguen aceptando y esas claves se ignoran al restaurar.
 
-- **Adaptadores:** (1) *OpenAI-compatible* (cubre OpenAI, Gemini en modo OpenAI-compat, Kimi, MiniMax, OpenRouter y una **URL base personalizada** para modelos propios: Ollama, LM Studio o vLLM autoalojados) y (2) *Anthropic*. Cada adaptador implementa la misma interfaz (`chat(messages, tools)`), así que añadir un proveedor no toca el resto.
-- **Clave de API** guardada con `expo-secure-store` (dependencia aprobada e instalada en v3). Nunca en SQLite, en el respaldo ni en logs.
-- **Opt-in explícito**, apagado por defecto, con aviso de que el proveedor recibirá datos.
-- **Qué sale del celular, siempre a la vista:** antes de cada envío se muestra exactamente qué datos se enviarán (solo **agregados**: promedios, totales, tendencias). **Fotos y notas nunca salen por defecto**; incluirlas exige una acción explícita y puntual. La vista previa es la misma estructura que se envía (no una descripción aparte), y se prueba.
-- **Tool calls sobre datos locales:** el modelo pide lo que necesita (sueño, agua, pasos, gym) mediante herramientas que ejecuta la app. **Los motores deterministas calculan todos los números**; la IA solo verbaliza o propone.
-- **Cualquier cambio de rutina** que proponga la IA se valida con las reglas del generador (§14c) y solo se aplica si la persona lo acepta.
-- *System prompt* con alcance limitado a los temas de vida saludable de la persona, sin consejo médico y con lenguaje prudente.
-- Si no hay conexión, error o clave inválida, la app sigue funcionando con los textos de plantilla. Pomi nunca depende de la IA.
+## 14e. Pomi en el celular (descartado)
 
-## 14e. Pomi en el celular (v3+, experimental)
-
-Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función de §14d sin que ningún dato salga del celular.
-
-- Runtime: `llama.rn` (llama.cpp). Modelo de referencia: **Qwen3.5-2B en cuantización Q4**; respaldo **0.8B** para equipos justos de RAM y **4B** para equipos con ≥ 8 GB.
-- **Descarga opcional**, con comprobación de hash (SHA-256) del archivo antes de usarlo y posibilidad de borrarlo.
-- **Solo después de un benchmark en un dispositivo real:** velocidad (tokens/s y tiempo al primer token), calidad del español, batería y calor. Si no pasa, no se publica; la decisión de modelo se toma con esos números, no antes.
-- **Sin RAG vectorial:** los datos son pocos y estructurados, y llegan por *tool calls*. Para buscar en las notas se usa **FTS5** de SQLite.
-- Mismas reglas de §14b/§14d: cifras de los motores, alcance estricto, sin consejo médico y respaldo de plantillas.
+**Descartado por decisión de la dueña (2026-10)**, junto con §14d: no habrá modelo de lenguaje en el dispositivo.
 
 ## 14f. Ideas futuras (no están en el roadmap)
 
@@ -479,16 +454,10 @@ Modelo de lenguaje **en el dispositivo**, sin conexión, para la misma función 
 - [x] Reportes en CSV y JSON (§14): dos renderizadores más sobre el mismo `ReportModel` (solo las secciones elegidas, mismo período). CSV: un solo archivo con columna `section` (`section,date,item,metric,value,unit`), RFC 4180 (CRLF, comillas dobles), BOM UTF-8 para Excel, números con punto y fechas ISO (sin depender del idioma), y los textos que empiezan por `=`, `+`, `-`, `@` (o tab/CR) llevan un `'` delante contra la inyección de fórmulas (los números no se tocan). JSON: `{schemaVersion: 1, app: 'pomi', period, note, sections: [{id, ...}]}` con claves estables. Las fotos nunca van en CSV/JSON: solo su cantidad. Selector de formato en `/compartir` (Texto, PDF, CSV, JSON); se comparte por un archivo temporal en el caché que se borra tras un minuto (o al fallar), como el PDF.
 - [x] Inglés completo: las plantillas aceptan texto localizado (`"texto"` o `{ "es": ..., "en": ... }` en cada campo visible), todas las plantillas incluidas traen inglés, un solo resolvedor (`localizedText`: idioma pedido → español → el único texto) para la UI, las notificaciones, los reportes y el editor; los programas generados se guardan en los dos idiomas. Las horas de Hoy salen de «Mis avisos» con la misma función pura que las notificaciones (`agendaTiming`), con test de paridad.
 - [ ] Importar programas de un entrenador.
-- [x] Opcional: "Conectar mi IA" (sección 14d): proveedor propio (adaptadores OpenAI-compatible y Anthropic), clave en `expo-secure-store`, vista previa de los datos antes de cada envío. Contexto en el mensaje (sin *tool calling*): enrutado simple por intención elige qué agregados se envían; historial en el teléfono (va en el respaldo, la clave no).
-
-### v3+: experimental (solo si pasa el benchmark)
-
-- [ ] "Pomi en el celular" (sección 14e): LLM en el dispositivo con `llama.rn`, tras un benchmark en un dispositivo real (velocidad, español, batería y calor).
-
 ## 16. Calidad
 
 - Tests unitarios obligatorios para: fórmulas de agua, pasos y sueño; meta de hoy (los 5 casos de 9.4); rotación; parser de `reps`; `buildAgenda`; `buildUpcoming` (límite de 64, horas de silencio); motor de sugerencias (cada regla, el máximo semanal y el bloqueo de 4 semanas tras un rechazo); motor de hallazgos (mínimo de datos, umbrales y redacción); generadores de reportes; deuda de sueño, jetlag social, ciclos de sueño, curva de agua por hora, detector de sedentarismo (umbral, ventana, días y desactivación) y registro de actividad desde la acción de la notificación (`activity_logs`).
-- Tests del generador de rutinas (sección 14c): cada regla de volumen, frecuencia, RIR, descansos y progresión (con su identificador de evidencia), ajuste por tiempo y equipo, sustitución por limitaciones, totales frente a la OMS, determinismo (misma entrada, mismo programa) y que el resultado siempre valide con el esquema de plantillas. Cribado PAR-Q+: todo "no" genera normal; cualquier "sí" exige el reconocimiento y limita la intensidad; nunca se genera sin haberlo respondido. "Conectar mi IA" (14d): la vista previa de datos coincide exactamente con lo que se envía, nunca incluye fotos ni notas por defecto, y la clave no aparece en el respaldo ni en logs.
+- Tests del generador de rutinas (sección 14c): cada regla de volumen, frecuencia, RIR, descansos y progresión (con su identificador de evidencia), ajuste por tiempo y equipo, sustitución por limitaciones, totales frente a la OMS, determinismo (misma entrada, mismo programa) y que el resultado siempre valide con el esquema de plantillas. Cribado PAR-Q+: todo "no" genera normal; cualquier "sí" exige el reconocimiento y limita la intensidad; nunca se genera sin haberlo respondido.
 - Datos de prueba: un generador de 60 días de datos sintéticos para probar sugerencias, hallazgos y gráficos.
 - Checklist manual en Android antes de cada versión: avisos con la app cerrada, acciones de "¿Te moviste hoy?" con la app cerrada, cronómetro con la pantalla apagada, reinicio del celular, cambio de zona horaria, permiso de Health Connect denegado y modo claro/oscuro.
 - Sin `any`. Errores de importación con mensajes claros en español.

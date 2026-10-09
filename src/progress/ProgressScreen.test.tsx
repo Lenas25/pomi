@@ -13,7 +13,6 @@ import {
   StrengthDetailScreen,
 } from './ProgressDetailScreens';
 import { ProgressScreen } from './ProgressScreen';
-import { useAiStatus } from '../ai/useAiStatus';
 import { useProgress, type ProgressState } from './useProgress';
 
 jest.mock('expo-router', () => ({
@@ -32,7 +31,6 @@ jest.mock('expo-router', () => ({
   },
 }));
 jest.mock('./useProgress', () => ({ useProgress: jest.fn() }));
-jest.mock('../ai/useAiStatus', () => ({ useAiStatus: jest.fn() }));
 jest.mock('../photos/expoPhotoFs', () => ({
   expoPhotoFs: {
     exists: (name: string) => name !== 'missing.jpg',
@@ -72,17 +70,9 @@ const base: ProgressData = {
 
 const set = (weightKg: number, reps: number) => ({ stepId: 'hip', weightKg, reps });
 
-function mockAi(ready: boolean) {
-  jest.mocked(useAiStatus).mockReturnValue({
-    status: ready ? { loaded: true, ready: true } : { loaded: false },
-    reload: jest.fn(async () => undefined),
-  } as unknown as ReturnType<typeof useAiStatus>);
-}
-
 beforeEach(() => {
   setLanguage('es');
   mockPush.mockClear();
-  mockAi(false);
 });
 
 describe('ProgressScreen (bento hub)', () => {
@@ -134,7 +124,6 @@ describe('ProgressScreen (bento hub)', () => {
   });
 
   it('routes every tile to its page', async () => {
-    mockAi(true);
     mockProgress({ status: 'ready', data: rich });
     await renderThemed(<ProgressScreen />);
     const routes: [RegExp, string][] = [
@@ -145,7 +134,6 @@ describe('ProgressScreen (bento hub)', () => {
       [/^Tu ritmo/, '/progreso/ritmo'],
       [/^Hallazgos/, '/progreso/hallazgos'],
       [/^Compartir/, '/compartir'],
-      [/^Pregúntale a Pomi/, '/preguntale-a-pomi'],
       [/^Revisión mensual/, '/comparacion'],
       [/^Empezar la revisión mensual/, '/revision-mensual'],
     ];

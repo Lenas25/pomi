@@ -150,6 +150,28 @@ describe('backup export / restore', () => {
     expect(await target.repos.settings.get('backgroundLastHeavyRunAt')).toBe(222);
   });
 
+  it('accepts an older file with the removed AI settings and drops them on restore', async () => {
+    const exported = await createBackup(source.db, OPTIONS);
+    const old = {
+      ...exported,
+      data: {
+        ...exported.data,
+        settings: [
+          ...exported.data.settings,
+          { key: 'aiConnection', value: '{"enabled":true,"provider":"openai"}' },
+          { key: 'aiChat', value: '[{"role":"user","text":"hola","at":1}]' },
+        ],
+      },
+    };
+    const result = parseBackupText(JSON.stringify(old));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    await restoreBackup(target.db, result.backup);
+    const keys = (await createBackup(target.db, OPTIONS)).data.settings.map((row) => row.key);
+    expect(keys).not.toContain('aiConnection');
+    expect(keys).not.toContain('aiChat');
+  });
+
   it('restores a file written before habit events existed (no habitEvents key)', async () => {
     const original = await createBackup(source.db, OPTIONS);
     const { habitEvents: _omitted, ...dataWithout } = original.data;

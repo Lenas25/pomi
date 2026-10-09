@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import Constants from 'expo-constants';
 import { format, parseISO } from 'date-fns';
 
-import { getAiKeyStore } from '../ai/keyStore';
 import { getDatabase, getRepositories } from '../db';
 import { hydrateStores } from '../db/useDatabaseReady';
 import { useT } from '../i18n';
@@ -57,7 +56,6 @@ export function BackupScreen() {
   const t = useT();
   const theme = useTheme();
   const [includePhotos, setIncludePhotos] = useState(false);
-  const [includeAiChat, setIncludeAiChat] = useState(false);
   const [busy, setBusy] = useState<'export' | 'pick' | 'restore' | 'photos' | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [reminder, setReminder] = useState(true);
@@ -92,7 +90,6 @@ export function BackupScreen() {
       const backup = await createBackup(getDatabase(), {
         appVersion,
         includePhotos,
-        includeAiChat,
       });
       const outcome = await shareJsonFile(
         backupFileName(new Date()),
@@ -110,7 +107,7 @@ export function BackupScreen() {
     } finally {
       setBusy(null);
     }
-  }, [includeAiChat, includePhotos, t]);
+  }, [includePhotos, t]);
 
   const pickBackup = useCallback(async () => {
     setBusy('pick');
@@ -154,10 +151,6 @@ export function BackupScreen() {
       }
       // From here on the data IS restored: a failure below must not say the opposite.
       setPending(null);
-      // The restored AI connection is off: the person re-enables it and types the key again.
-      await getAiKeyStore()
-        .clear()
-        .catch(() => undefined);
       try {
         const repositories = getRepositories();
         await hydrateStores(repositories);
@@ -320,27 +313,6 @@ export function BackupScreen() {
               />
             </View>
             <Text style={muted}>{t('backup.export.photosHint')}</Text>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: theme.space[3],
-                minHeight: theme.touch.min,
-              }}
-            >
-              <Text style={[theme.text('body'), { flex: 1, color: theme.color.text }]}>
-                {t('backup.export.aiChat')}
-              </Text>
-              <Switch
-                accessibilityLabel={t('backup.export.aiChat')}
-                value={includeAiChat}
-                onValueChange={setIncludeAiChat}
-                trackColor={{ true: theme.color.brand, false: theme.color.border }}
-                thumbColor={theme.color.surface}
-              />
-            </View>
-            <Text style={muted}>{t('backup.export.aiChatHint')}</Text>
             <Button
               label={t('backup.export.action')}
               onPress={() => void exportBackup()}

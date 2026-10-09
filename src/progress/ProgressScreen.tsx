@@ -6,14 +6,12 @@ import {
   CalendarCheck,
   Camera,
   ChartBar,
-  ChatCircleDots,
   Lightbulb,
   MoonStars,
   Ruler,
   ShareNetwork,
 } from 'phosphor-react-native';
 
-import { useAiStatus } from '../ai/useAiStatus';
 import { useLocaleStore, useT, type Translate } from '../i18n';
 import { formatKg } from '../gym/sessionViewModel';
 import { insightTexts } from '../insights/text';
@@ -37,8 +35,6 @@ type TileContext = {
   t: Translate;
   theme: Theme;
   language: 'es' | 'en';
-  /** "Pregúntale a Pomi" only when an AI is connected and ready. */
-  aiReady: boolean;
 };
 
 /** The measurement the tile shows: the weight when it has entries, else the first with one. */
@@ -261,22 +257,6 @@ export function progressTiles(data: ProgressData, ctx: TileContext): BentoItem[]
       ),
     },
   ];
-  if (ctx.aiReady) {
-    tiles.push({
-      key: 'pomi',
-      span: '1x1',
-      node: (
-        <BentoTile
-          section="progreso"
-          icon={ChatCircleDots}
-          title={t('ai.ask.entryTitle')}
-          caption={t('ai.ask.entryBody')}
-          accessibilityLabel={t('progress.hub.askLabel')}
-          onPress={() => router.push('/preguntale-a-pomi')}
-        />
-      ),
-    });
-  }
   tiles.push({
     key: 'mensual',
     span: '1x1',
@@ -305,7 +285,6 @@ export function ProgressScreen() {
   const theme = useTheme();
   const language = useLocaleStore((state) => state.language);
   const { state, load } = useProgress();
-  const { status: ai } = useAiStatus();
 
   // Coming back to the tab (or from a workout / check-in) refreshes the numbers.
   useFocusEffect(
@@ -315,11 +294,8 @@ export function ProgressScreen() {
   );
 
   const tiles = useMemo(
-    () =>
-      state.status === 'ready'
-        ? progressTiles(state.data, { t, theme, language, aiReady: ai.loaded && ai.ready })
-        : null,
-    [state, t, theme, language, ai],
+    () => (state.status === 'ready' ? progressTiles(state.data, { t, theme, language }) : null),
+    [state, t, theme, language],
   );
   const showSkeleton = useDelayedFlag(state.status === 'loading');
 

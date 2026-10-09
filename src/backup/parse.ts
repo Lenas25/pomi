@@ -17,6 +17,7 @@ import {
   BACKUP_SCHEMA_VERSION,
   backupSchema,
   isKnownSetting,
+  REMOVED_SETTINGS,
   type Backup,
 } from './schema';
 
@@ -80,6 +81,8 @@ function crossChecks(backup: Backup): BackupError[] {
 
   backup.data.settings.forEach((row, index) => {
     const base = `data.settings[${index}]`;
+    // A removed feature's key (older files): accepted here, dropped by the restore.
+    if (REMOVED_SETTINGS.includes(row.key)) return;
     if (!isKnownSetting(row.key)) {
       errors.push(field('unknownKey', `${base}.key`));
       return;

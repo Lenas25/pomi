@@ -26,7 +26,13 @@ import type { Db } from '../db/types';
 import { activePosesOf, mapPhotoPoses } from '../photos/poseIds';
 import { moduleTemplateSchema, type ModuleTemplate } from '../templates/schema';
 
-import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION, type Backup, type BackupData } from './schema';
+import {
+  BACKUP_FORMAT,
+  BACKUP_SCHEMA_VERSION,
+  REMOVED_SETTINGS,
+  type Backup,
+  type BackupData,
+} from './schema';
 
 /**
  * Device-local bookkeeping of the background job: not user data, and wrong on another phone (a
@@ -42,46 +48,22 @@ export type ExportOptions = {
   appVersion: string;
   /** Include the photo rows (the image files are exported separately, see `src/photos`). Default false. */
   includePhotos?: boolean;
-  /** Include the "Pregúntale a Pomi" chat history (settings key `aiChat`). Default false (privacy). */
-  includeAiChat?: boolean;
   now?: () => Date;
 };
 
-/** Settings key of the AI chat history (left out of a backup unless asked for). */
-export const AI_CHAT_SETTING = 'aiChat';
-/** Settings key of the AI connection (always restored switched OFF). */
-export const AI_CONNECTION_SETTING = 'aiConnection';
-
-type SettingRow = { key: string; value: string };
-
-/**
- * A restored "Conectar mi IA" connection is ALWAYS switched off: the backup file may come from
- * anywhere, so the person re-enables it (and re-enters the key) on this phone. An unreadable value
- * is dropped.
- */
-export function disableRestoredAi(rows: readonly SettingRow[]): SettingRow[] {
-  return rows.flatMap((row) => {
-    if (row.key !== AI_CONNECTION_SETTING) return [row];
-    try {
-      const value: unknown = JSON.parse(row.value);
-      if (typeof value !== 'object' || value === null || Array.isArray(value)) return [];
-      return [{ key: row.key, value: JSON.stringify({ ...value, enabled: false }) }];
-    } catch {
-      return [];
-    }
-  });
+/** A settings row that belongs in a backup (not device-local, not a removed feature's key). */
+function isPortableSetting(key: string): boolean {
+  return !DEVICE_LOCAL_SETTINGS.includes(key) && !REMOVED_SETTINGS.includes(key);
 }
 
 /** Reads every table (deterministic order) into a backup document. */
 export async function createBackup(db: Db, options: ExportOptions): Promise<Backup> {
   const includePhotos = options.includePhotos ?? false;
-  const includeAiChat = options.includeAiChat ?? false;
   const now = options.now ?? (() => new Date());
   const data: BackupData = {
     profile: await db.select().from(profile),
-    settings: (await db.select().from(settings).orderBy(asc(settings.key))).filter(
-      (row) =>
-        !DEVICE_LOCAL_SETTINGS.includes(row.key) && (includeAiChat || row.key !== AI_CHAT_SETTING),
+    settings: (await db.select().from(settings).orderBy(asc(settings.key))).filter((row) =>
+      isPortableSetting(row.key),
     ),
     templates: await db.select().from(templates).orderBy(asc(templates.id)),
     workoutSessions: await db.select().from(workoutSessions).orderBy(asc(workoutSessions.id)),
@@ -155,7 +137,7 @@ export async function restoreBackup(target: Db | Tx, backup: Backup): Promise<vo
 
     await insertChunks(data.profile, (rows) => db.insert(profile).values(rows));
     await insertChunks(
-      disableRestoredAi(data.settings.filter((row) => !DEVICE_LOCAL_SETTINGS.includes(row.key))),
+      data.settings.filter((row) => isPortableSetting(row.key)),
       (rows) => db.insert(settings).values(rows),
     );
     await insertChunks(data.templates, (rows) => db.insert(templates).values(rows));
