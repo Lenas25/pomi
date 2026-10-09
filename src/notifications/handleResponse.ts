@@ -6,27 +6,9 @@ import { bootstrapDatabase } from '../db/useDatabaseReady';
 import { getRepositories } from '../db';
 import { dayKeyFor } from '../domain/time';
 
-import { ACTIONS } from './constants';
-import {
-  applyResponse,
-  type ResponseDeps,
-  type ResponseInput,
-  type ResponseOutcome,
-} from './responses';
+import { processNotificationResponse } from './responsePayload';
+import type { ResponseDeps, ResponseOutcome } from './responses';
 import { requestNotificationSync } from './sync';
-
-export function toResponseInput(response: Notifications.NotificationResponse): ResponseInput {
-  const { request, date } = response.notification;
-  return {
-    actionIdentifier: response.actionIdentifier,
-    notificationId: request.identifier,
-    deliveredAt: date,
-    title: request.content.title ?? '',
-    body: request.content.body ?? '',
-    categoryIdentifier: request.content.categoryIdentifier ?? null,
-    data: request.content.data,
-  };
-}
 
 function realDeps(): ResponseDeps {
   const repos = getRepositories();
@@ -58,18 +40,21 @@ function realDeps(): ResponseDeps {
   };
 }
 
-/** Applies a notification response. Safe to call twice for the same response (deduped). */
-export async function handleNotificationResponse(
-  response: Notifications.NotificationResponse,
-): Promise<ResponseOutcome> {
-  const input = toResponseInput(response);
-  if (input.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) return 'ignored';
-  // The headless run starts without the app's bootstrap: open + migrate the database first.
-  await bootstrapDatabase();
-  const outcome = await applyResponse(input, realDeps());
-  if (outcome === 'handled' && input.actionIdentifier !== ACTIONS.snooze) {
-    // A new answer can change what is left to remind about (water goal, today's survey).
-    void requestNotificationSync('dataChanged');
-  }
-  return outcome;
+/** `__DEV__` only: filter with `adb logcat -s ReactNativeJS:V ReactNative:V | grep PomiNotif`. */
+function log(message: string, extra?: unknown): void {
+  if (__DEV__) console.log(`[PomiNotif] ${message}`, extra ?? '');
+}
+
+/**
+ * Applies a notification response from the listener (mapped) or the background task (raw native
+ * bundle). Safe to call twice for the same response (deduped); dismisses the notification after.
+ */
+export function handleNotificationResponse(raw: unknown): Promise<ResponseOutcome> {
+  return processNotificationResponse(raw, {
+    bootstrap: bootstrapDatabase,
+    deps: realDeps,
+    dismiss: (id) => Notifications.dismissNotificationAsync(id),
+    sync: () => requestNotificationSync('dataChanged'),
+    log,
+  });
 }

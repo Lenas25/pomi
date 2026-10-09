@@ -45,7 +45,7 @@ export function useNotificationSetup(enabled: boolean): void {
     try {
       responses = Notifications.addNotificationResponseReceivedListener((response) => {
         handleNotificationResponse(response).catch((error: unknown) => {
-          if (__DEV__) console.warn('Could not apply the notification action', error);
+          if (__DEV__) console.warn('[PomiNotif] could not apply the notification action', error);
         });
       });
     } catch (error) {

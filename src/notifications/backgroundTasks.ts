@@ -34,18 +34,17 @@ import { runNotificationSync } from './sync';
 export const NOTIFICATION_RESPONSE_TASK = 'pomi-notification-response';
 export const NOTIFICATION_SYNC_TASK = 'pomi-notification-sync';
 
-function isResponse(data: unknown): data is Notifications.NotificationResponse {
-  return typeof data === 'object' && data !== null && 'actionIdentifier' in data;
-}
-
+// The task gets the RAW native bundle (payload in `content.dataString`, not `content.data`);
+// `handleNotificationResponse` normalizes both shapes. It also dismisses the notification.
 TaskManager.defineTask<Notifications.NotificationTaskPayload>(
   NOTIFICATION_RESPONSE_TASK,
   async ({ data, error }) => {
-    if (error || !isResponse(data)) return;
+    if (__DEV__) console.log('[PomiNotif] background task invoked', error ?? '');
+    if (error) return;
     try {
       await handleNotificationResponse(data);
     } catch (failure) {
-      if (__DEV__) console.warn('Could not apply the notification action', failure);
+      if (__DEV__) console.warn('[PomiNotif] could not apply the notification action', failure);
     }
   },
 );
